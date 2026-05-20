@@ -22,23 +22,65 @@ const SettingsApp = () => (
       </div>
     </div>
     <div className="section">
-      <h3>App Blocker (Focus Mode)</h3>
-      <p style={{fontSize: 13, color: '#94a3b8', marginBottom: 16}}>Khóa ứng dụng học tập/giải trí trong khoảng thời gian nhất định.</p>
-      <div className="block-list">
-        {['Social Media', 'Mini Games', 'Store'].map(app => (
-          <div className="block-item" key={app}>
-            <input type="checkbox" />
-            <span style={{fontSize: 14}}>{app}</span>
-            <span style={{margin: '0 8px', color: '#64748b'}}>|</span>
-            <input type="time" defaultValue="20:00" />
-            <span style={{fontSize: 12, color: '#94a3b8'}}>to</span>
-            <input type="time" defaultValue="22:00" />
-          </div>
-        ))}
+      <h3>Account Details</h3>
+      <div className="account-details">
+        <div className="info">
+          <p className="label">Username</p>
+          <p className="name">Player_9999</p>
+          <p className="note">* Chỉ được rename 1 lần/tháng</p>
+        </div>
+        <button className="btn-rename">Rename</button>
       </div>
+    </div>
+    <div className="section">
+      <h3>Language / Ngôn ngữ</h3>
+      <select className="language-select">
+        <option value="en" style={{ color: 'black' }}>English</option>
+        <option value="vi" style={{ color: 'black' }}>Tiếng Việt</option>
+      </select>
     </div>
   </div>
 );
+
+const FocusWidget = () => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  
+  return (
+    <div className={`app-blocker-widget ${isExpanded ? 'expanded' : 'collapsed'}`}>
+      <div 
+        className="widget-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title="Toggle Focus Mode"
+      >
+        <h3>
+          <span>🔒</span> Focus Mode
+        </h3>
+        <span className="toggle-icon">{isExpanded ? '▼' : '▶'}</span>
+      </div>
+      
+      {isExpanded && (
+        <div className="widget-content">
+          <p className="description">Select apps to block:</p>
+          <div className="app-list">
+            {['Mini Games', 'Store', 'Social Media', 'Web Browser'].map(app => (
+              <div className="app-item" key={app}>
+                <div className="app-name">
+                  <input type="checkbox" />
+                  <span>{app}</span>
+                </div>
+                <div className="time-range">
+                  <input type="time" defaultValue="20:00" />
+                  <span>-</span>
+                  <input type="time" defaultValue="22:00" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const InventoryApp = () => (
   <div className="app-container inventory-app">
@@ -110,15 +152,56 @@ const StoreApp = () => (
   </div>
 );
 
+const MINIGAMES = [
+  { id: 'all', label: 'Tổng Wins', icon: '🏅' },
+  { id: 'space', label: 'Space Invaders', icon: '👾' },
+  { id: 'typing', label: 'Typing Master', icon: '⌨️' },
+  { id: 'math', label: 'Math Genius', icon: '🧮' },
+  { id: 'asteroid', label: 'Asteroid Miner', icon: '☄️' },
+];
+
+const MINIGAME_SCORES: Record<string, number[]> = {
+  all:      [500, 425, 350, 275, 200],
+  space:    [180, 155, 120, 90, 60],
+  typing:   [95, 80, 70, 55, 40],
+  math:     [130, 110, 90, 75, 50],
+  asteroid: [95, 80, 70, 55, 50],
+};
+
 const LeaderboardApp = () => {
   const [tab, setTab] = useState('study');
+  const [minigameFilter, setMinigameFilter] = useState('all');
+
+  const scores = tab === 'study'
+    ? [100, 85, 70, 55, 40]
+    : MINIGAME_SCORES[minigameFilter];
+
+  const scoreLabel = tab === 'study'
+    ? (v: number) => `${v}h`
+    : (v: number) => `${v} Wins`;
+
   return (
     <div className="app-container leaderboard-app">
       <h2 className="app-title">Global Rankings</h2>
+
       <div className="tabs">
         <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>Study Hours</button>
         <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>Minigame Wins</button>
       </div>
+
+      {tab === 'minigame' && (
+        <div className="minigame-filter">
+          <select
+            className="minigame-select"
+            value={minigameFilter}
+            onChange={e => setMinigameFilter(e.target.value)}
+          >
+            {MINIGAMES.map(g => (
+              <option key={g.id} value={g.id}>{g.icon} {g.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="rank-list">
         {[...Array(5)].map((_, i) => (
@@ -129,7 +212,7 @@ const LeaderboardApp = () => {
               <span>Player_{Math.floor(Math.random() * 9999)}</span>
             </div>
             <div className="score">
-              {tab === 'study' ? `${100 - i * 15}h` : `${500 - i * 75} Wins`}
+              {scoreLabel(scores[i])}
             </div>
           </div>
         ))}
@@ -146,6 +229,7 @@ const APPS = [
     svg: <path d="M19.43 12.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>,
     content: <SettingsApp />
   },
+
   { 
     id: 'inventory', name: 'Inventory', className: 'inventory',
     svg: <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-2 .89-2 2v10c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-10-2h4v2h-4V4zm10 14H4v-3h16v3zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76l1-1.36 1 1.36L15.38 12 17 10.83 14.92 8H20v5z"/>,
@@ -192,6 +276,9 @@ const DesktopHub = () => {
       <div className="stars"></div>
       <div className="twinkling"></div>
       <div className="purple-nebula"></div>
+
+      {/* App Blocker Widget (Focus Mode) */}
+      <FocusWidget />
 
       {/* Desktop Icons Array */}
       <div className="desktop-icons">
@@ -245,17 +332,9 @@ const DesktopHub = () => {
           ))}
         </div>
 
-        <div className="taskbar-sys" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="taskbar-sys">
           <span className="os-time">{time}</span>
-          <button 
-            onClick={handleLogout}
-            style={{
-              background: 'rgba(255,95,86,0.15)', color: '#ff5f56', border: '1px solid rgba(255,95,86,0.3)', 
-              padding: '6px 12px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', fontSize: '13px'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,95,86,0.25)'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,95,86,0.15)'}
-          >
+          <button className="btn-logout" onClick={handleLogout}>
             Logout
           </button>
         </div>

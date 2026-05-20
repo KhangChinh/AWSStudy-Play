@@ -206,24 +206,44 @@
     }
   }
 
-  .block-list {
+  .account-details {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    
-    .block-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(0,0,0,0.2);
-      padding: 10px 16px;
-      border-radius: 8px;
-      
-      input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
-      input[type="time"] { 
-        background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 4px; outline: none;
-      }
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 8px;
+
+    .info {
+      .label { font-size: 13px; color: #94a3b8; margin: 0; }
+      .name { font-size: 16px; font-weight: bold; color: #fff; margin: 4px 0 0 0; }
+      .note { font-size: 11px; color: #fbbf24; margin: 6px 0 0 0; }
     }
+    
+    .btn-rename {
+      background: rgba(16, 185, 129, 0.8);
+      border: none;
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      transition: background 0.2s;
+      
+      &:hover { background: #10b981; }
+    }
+  }
+
+  .language-select {
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    margin-top: 8px;
+    cursor: pointer;
+    option { color: black; }
   }
 }
 
@@ -314,7 +334,7 @@
   .tabs {
     display: flex;
     gap: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     button {
       padding: 10px 20px;
       border-radius: 8px;
@@ -322,7 +342,36 @@
       background: rgba(255,255,255,0.1);
       color: white;
       font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
       &.active { background: #3b82f6; }
+      &:hover:not(.active) { background: rgba(255,255,255,0.15); }
+    }
+  }
+
+  .minigame-filter {
+    margin-bottom: 20px;
+
+    .minigame-select {
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+      width: auto;
+      min-width: 200px;
+
+      &:focus { border-color: #3b82f6; }
+      option { 
+        color: #e2e8f0; 
+        background: #1e1b3a; 
+        padding: 8px;
+      }
     }
   }
 
@@ -411,10 +460,116 @@
   }
 
   .taskbar-sys {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    
     .os-time {
       font-size: 13px;
       font-weight: 500;
       color: #e2e8f0;
     }
+
+    .btn-logout {
+      background: rgba(255,95,86,0.15); 
+      color: #ff5f56; 
+      border: 1px solid rgba(255,95,86,0.3); 
+      padding: 6px 12px; 
+      border-radius: 6px; 
+      font-weight: 600; 
+      cursor: pointer; 
+      transition: all 0.2s; 
+      font-size: 13px;
+
+      &:hover { background: rgba(255,95,86,0.25); }
+    }
   }
 }
+
+/* App Blocker Widget */
+.app-blocker-widget {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px;
+  color: white;
+  z-index: 5;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+
+  &.expanded { width: 320px; }
+  &.collapsed { width: auto; }
+
+  .widget-header {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    h3 {
+      margin: 0;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #e2e8f0;
+    }
+    
+    .toggle-icon { font-size: 12px; color: #cbd5e1; }
+  }
+
+  .widget-content {
+    margin-top: 12px;
+    
+    .description {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+    
+    .app-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .app-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255,255,255,0.05);
+      padding: 10px;
+      border-radius: 8px;
+
+      .app-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        input[type="checkbox"] { accent-color: #10b981; cursor: pointer; }
+        span { font-size: 13px; font-weight: 500; }
+      }
+
+      .time-range {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        input[type="time"] {
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 4px;
+          color: #cbd5e1;
+          font-size: 11px;
+          padding: 2px 4px;
+        }
+        span { color: #64748b; font-size: 10px; }
+      }
+    }
+  }
+}
+
