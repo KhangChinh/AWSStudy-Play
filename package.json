@@ -1,12 +1,12 @@
 {
-  "name": "login",
+  "name": "study-play",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "main": "electron/main.js",
+  "main": "electron/main/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "dev:desktop": "concurrently \"vite\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
@@ -14,8 +14,8 @@
     "start": "npm run dev:desktop"
   },
   "build": {
-    "appId": "com.cosmichub.app",
-    "productName": "Cosmic Hub",
+    "appId": "com.studyplay.app",
+    "productName": "Study Play",
     "directories": {
       "buildResources": "build",
       "output": "release"
@@ -31,17 +31,19 @@
     ]
   },
   "dependencies": {
+    "@ionic/react": "^8.8.7",
     "clsx": "^2.1.1",
+    "ionicons": "^8.0.13",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-redux": "^9.3.0",
     "react-router-dom": "^7.15.1",
+    "react-toastify": "^11.1.0",
+    "redux": "^5.0.1",
     "sass": "^1.99.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^24.12.3",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
@@ -51,8 +53,6 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
-    "typescript": "~6.0.2",
-    "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
     "wait-on": "^9.0.10"
   }

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { registerIpcHandlers } from './ipcHandlers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,11 +10,17 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 450, // Nhỏ nhắn vừa đủ popup form login
     height: 600,
-    resizable: false, // Không cho kéo giãn popup
+    minWidth: 450,
+    maxWidth: 450,
+    minHeight: 600,
+    maxHeight: 600,
+    resizable: true, // Giữ cờ true để không mất style native của Windows
+    maximizable: false, // Tạm ẩn nút phóng to ở màn login
     autoHideMenuBar: true,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false
     }
   });
 
@@ -21,24 +28,11 @@ function createWindow() {
   if (url) {
     win.loadURL(url);
   } else {
-    win.loadFile(path.join(__dirname, '../dist/index.html'));
+    win.loadFile(path.join(__dirname, '../../dist/index.html'));
   }
 
-  // Lắng nghe sự kiện login thành công từ frontend
-  ipcMain.on('login-success', () => {
-    win.setMinimumSize(800, 600); // Đặt giới hạn thu nhỏ cho DesktopHub
-    win.setResizable(true);
-    win.setSize(1280, 720); // Phóng to như Desktop
-    win.center(); // Đưa ra giữa màn hình
-  });
-
-  // Lắng nghe sự kiện logout để thu nhỏ lại
-  ipcMain.on('logout', () => {
-    win.setMinimumSize(450, 600); // Phục hồi giới hạn cho form popup
-    win.setSize(450, 600); // Thu nhỏ lại
-    win.setResizable(false);
-    win.center(); 
-  });
+  // Đăng ký IPC handlers
+  registerIpcHandlers(ipcMain, win);
 }
 
 app.whenReady().then(() => {
