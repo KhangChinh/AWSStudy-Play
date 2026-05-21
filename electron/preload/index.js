@@ -1,12 +1,4 @@
-/**
- * Preload Script — CẦU NỐI BẢO MẬT giữa React (Renderer) và Node.js (Main)
- * 
- * Định nghĩa window.api thông qua contextBridge
- * React gọi: await window.api.invoke('channel', data)
- * React lắng nghe: window.api.on('channel', callback)
- */
-
-import { contextBridge, ipcRenderer } from 'electron';
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   // ═══ Gọi Main Process (request-response) ═══
@@ -30,6 +22,7 @@ contextBridge.exposeInMainWorld('api', {
   // ═══ Gửi tín hiệu 1 chiều (fire-and-forget) ═══
   send: (channel, data) => {
     const validChannels = [
+      'login',
       'login-success',
       'logout'
     ];

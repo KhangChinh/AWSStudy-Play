@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { ToastContainer, toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
-import { 
-  settingsOutline, cubeOutline, ticketOutline, gameControllerOutline, 
+import {
+  settingsOutline, cubeOutline, ticketOutline, gameControllerOutline,
   cartOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
   imageOutline, personOutline, globeOutline, cart, planetOutline
 } from 'ionicons/icons';
@@ -116,7 +116,7 @@ class Dashboard extends Component {
   //logout
   handleLogout = async () => {
     this.setState({ disabledButtons: { ...this.state.disabledButtons, logout: true } });
-    
+
     const confirmAction = () =>
       new Promise((resolve) => {
         toast(
@@ -142,7 +142,7 @@ class Dashboard extends Component {
           }
         );
       });
-      
+
     const isConfirmed = await confirmAction();
     if (isConfirmed) {
       try {
@@ -230,8 +230,8 @@ class Dashboard extends Component {
 
           <div className="taskbar-sys">
             <span className="os-time">{time}</span>
-            <button 
-              className="btn-logout" 
+            <button
+              className="btn-logout"
               onClick={this.handleLogout}
               disabled={disabledButtons.logout}
             >

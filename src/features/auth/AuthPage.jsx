@@ -64,11 +64,13 @@ class AuthPage extends Component {
     }
     this.setState({ isLoading: true });
     try {
-      // TODO: Gọi AWS Cognito để đăng nhập/đăng ký
-      handleLoginSuccessApi();
+      handleLoginSuccessApi(); // Gửi lệnh resize ngay lập tức
       this.props.userLogin({ email, username: username || email });
       toast.success(authMode === 'login' ? 'Đăng nhập thành công!' : 'Đăng ký thành công!');
-      this.props.navigate('/desktop');
+
+      setTimeout(() => {
+        this.props.navigate('/desktop');
+      }, 100);
     } catch (e) {
       console.log('Error:', e);
       toast.error('Xảy ra lỗi, vui lòng thử lại!');

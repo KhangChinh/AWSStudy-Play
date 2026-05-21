@@ -33,6 +33,12 @@ export const handleClearTokenApi = async () => {
   }
 };
 
+export const handleLoginApi = () => {
+  if (window.api) {
+    window.api.send('login');
+  }
+};
+
 export const handleLoginSuccessApi = () => {
   if (window.api) {
     window.api.send('login-success');
