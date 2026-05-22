@@ -1,10 +1,13 @@
+import { config } from 'dotenv';
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipcHandlers.js';
 
+// Load .env cho Main Process (Vite chỉ handle VITE_* cho renderer)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+config({ path: path.join(__dirname, '../../.env') });
 
 let win;
 

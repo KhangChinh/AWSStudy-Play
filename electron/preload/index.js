@@ -11,7 +11,9 @@ contextBridge.exposeInMainWorld('api', {
       'focus:stop',
       'focus:status',
       'ai:classify',
-      'ai:clearCache'
+      'ai:clearCache',
+      'db:saveUser',
+      'db:getUser'
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);

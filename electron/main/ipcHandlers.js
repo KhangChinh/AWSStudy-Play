@@ -10,6 +10,7 @@
 import { saveToken, loadToken, clearToken } from './services/authHelper.js';
 import { startFocus, stopFocus, getSessionStatus } from './services/focusEngine.js';
 import { classifyContent, clearCache } from './services/aiGuard.js';
+import { saveUser, getUser } from './services/dynamoDbService.js';
 
 import { BrowserWindow } from 'electron';
 
@@ -53,5 +54,16 @@ export function registerIpcHandlers(ipcMain, win) {
 
   ipcMain.handle('ai:clearCache', async () => {
     return clearCache();
+  });
+
+  // ═══════════════════════════════════════════
+  //  DYNAMODB — Lưu & đọc thông tin User
+  // ═══════════════════════════════════════════
+  ipcMain.handle('db:saveUser', async (_event, { userId, email, name }) => {
+    return saveUser(userId, email, name);
+  });
+
+  ipcMain.handle('db:getUser', async (_event, userId) => {
+    return getUser(userId);
   });
 }

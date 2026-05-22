@@ -3,12 +3,13 @@ import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
-import { signIn, signUp, getCurrentUser, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
+import { signIn, signUp, getCurrentUser, fetchUserAttributes, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
 
 import './AuthPage.scss';
 import Spinner from '../../components/Spinner';
 import { withRouter } from '../../utils/withRouter';
 import { handleLoginSuccessApi } from '../../services/authServices';
+import { saveUserToDb, getUserFromDb } from '../../services/dynamoDbService';
 import { userLogin } from '../../store/actions';
 
 class AuthPage extends Component {
@@ -59,6 +60,56 @@ class AuthPage extends Component {
   };
   handleInputChange = (field, value) => {
     this.setState({ [field]: value });
+  };
+  /**
+   * Lưu user vào DynamoDB lần đầu (sau khi verify thành công)
+   */
+  handleFirstTimeSaveUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      const attributes = await fetchUserAttributes();
+      const { userId } = currentUser;
+      const { email, name } = attributes;
+
+      console.log('🚀 Đang lưu user mới vào DynamoDB...');
+      const saveResult = await saveUserToDb(userId, email, name);
+      console.log('✅ Kết quả ghi:', saveResult);
+    } catch (error) {
+      console.error('❌ Lỗi khi lưu user mới vào DynamoDB:', error);
+    }
+  };
+
+  /**
+   * Load thông tin user từ DynamoDB khi đăng nhập
+   * TẠM THỜI: nếu user chưa có trong DB (tài khoản Cognito cũ) → tự động lưu vào
+   */
+  loadUserOnLogin = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      const attributes = await fetchUserAttributes();
+      const { userId } = currentUser;
+      const { email, name } = attributes;
+
+      // Thử đọc từ DynamoDB
+      const getResult = await getUserFromDb(userId);
+
+      if (getResult.success && getResult.data) {
+        // User đã có trong DB → console.log thông tin
+        console.log('--- 📋 THÔNG TIN USER TỪ DYNAMODB ---');
+        console.log('UserID:', getResult.data.userId);
+        console.log('Email:', getResult.data.email);
+        console.log('Họ Tên:', getResult.data.name);
+        console.log('Ngày tạo:', getResult.data.createdAt);
+        console.log('--------------------------------------');
+      } else {
+        // TẠM THỜI: User có trên Cognito nhưng chưa có trong DB → lưu vào
+        console.log('⚠️ User chưa có trong DynamoDB, đang tự động lưu...');
+        await saveUserToDb(userId, email, name);
+        console.log('✅ Đã lưu user cũ vào DynamoDB:', { userId, email, name });
+      }
+    } catch (error) {
+      console.error('❌ Lỗi khi load thông tin user:', error);
+    }
   };
   handleToggleAuthMode = (mode) => {
     const keepEmail = ['confirm', 'forgot', 'resetPassword'].includes(mode);
@@ -147,6 +198,7 @@ class AuthPage extends Component {
           handleLoginSuccessApi();
           this.props.userLogin({ email, username: email });
           toast.success('Đăng nhập thành công!');
+          await this.loadUserOnLogin();
           setTimeout(() => {
             this.props.navigate('/desktop');
           }, 100);
@@ -194,8 +246,21 @@ class AuthPage extends Component {
           confirmationCode: verificationCode
         });
         if (isSignUpComplete) {
-          toast.success('Xác thực tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.');
-          this.setState({ authMode: 'login', password: '', confirmPassword: '', verificationCode: '' });
+          // Verify thành công → auto đăng nhập + lưu DB
+          toast.success('Xác thực thành công! Đang đăng nhập...');
+          const { isSignedIn } = await signIn({ username: email, password });
+          if (isSignedIn) {
+            await this.handleFirstTimeSaveUser();
+            handleLoginSuccessApi();
+            this.props.userLogin({ email, username: email });
+            setTimeout(() => {
+              this.props.navigate('/desktop');
+            }, 100);
+          } else {
+            // Trường hợp hiếm: verify OK nhưng auto-login thất bại
+            toast.info('Xác thực thành công! Vui lòng đăng nhập.');
+            this.setState({ authMode: 'login', password: '', confirmPassword: '', verificationCode: '' });
+          }
         } else {
           toast.info('Xác thực chưa hoàn tất. Vui lòng kiểm tra lại.');
         }
