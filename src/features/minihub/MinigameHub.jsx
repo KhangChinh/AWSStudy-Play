@@ -7,6 +7,7 @@ import './MinigameHub.scss';
 import { setHighscores } from '../../store/actions';
 import { handleGetLeaderboardApi } from '../../services/socialServices';
 import { toast } from 'react-toastify';
+import SudokuGame from './SudokuGame';
 
 const MINIGAMES = [
   { id: 'all', label: 'Tổng Wins', icon: '🏅' },
@@ -20,14 +21,14 @@ const MINIGAME_SCORES = {
   sudoku:      [130, 110, 90, 75, 50],
 };
 
-// ═══ Arcade Game List (Stateless Functional Component ok per plan) ═══
-const ArcadeList = () => (
+// ═══ Arcade Game List ═══
+const ArcadeList = ({ onPlayGame }) => (
   <div className="arcade-list">
     <h3><IonIcon icon={gameControllerOutline} /> Available Games</h3>
     <div className="store-grid">
       {[
-        { name: 'Minesweeper', price: 100, icon: '💣' },
-        { name: 'Sudoku', price: 'Free', icon: '🔢' },
+        { name: 'Minesweeper', price: 100, icon: '💣', disabled: true },
+        { name: 'Sudoku', price: 'Free', icon: '🔢', disabled: false },
       ].map(game => (
         <div className="store-item" key={game.name}>
           <div className="item-cover">{game.icon}</div>
@@ -36,7 +37,13 @@ const ArcadeList = () => (
             <span className="item-price">
               {typeof game.price === 'number' ? `🪙 ${game.price} P-Coin / Play` : game.price}
             </span>
-            <button><IonIcon icon={playOutline} /> Play Now</button>
+            <button 
+              onClick={() => !game.disabled && onPlayGame(game.name.toLowerCase())}
+              style={game.disabled ? { background: '#475569', cursor: 'not-allowed', opacity: 0.6 } : {}}
+              disabled={game.disabled}
+            >
+              <IonIcon icon={playOutline} /> {game.disabled ? 'Coming Soon' : 'Play Now'}
+            </button>
           </div>
         </div>
       ))}
@@ -127,6 +134,7 @@ class MinigameHub extends Component {
       tab: 'study',
       minigameFilter: 'all',
       isLoading: false,
+      activeGame: null,
     };
   }
 
@@ -157,11 +165,18 @@ class MinigameHub extends Component {
   };
 
   render() {
-    const { tab, minigameFilter } = this.state;
+    const { tab, minigameFilter, activeGame } = this.state;
+
+    if (activeGame === 'sudoku') {
+      return (
+        <SudokuGame onClose={() => this.setState({ activeGame: null })} />
+      );
+    }
+
     return (
       <div className="app-container minigame-hub">
         <h2 className="app-title">🎮 Minigame Hub</h2>
-        <ArcadeList />
+        <ArcadeList onPlayGame={(game) => this.setState({ activeGame: game })} />
         <LeaderboardView 
           tab={tab} 
           minigameFilter={minigameFilter}
