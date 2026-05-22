@@ -33,7 +33,6 @@ class AuthPage extends Component {
         submit: false,
       },
     };
-    this.resendTimerInterval = null;
   }
 
   componentDidMount() {
