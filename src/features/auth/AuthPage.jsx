@@ -33,17 +33,10 @@ class AuthPage extends Component {
         submit: false,
       },
     };
-    this.resendTimerInterval = null;
   }
 
-  async componentDidMount() {
-    try {
-      await getCurrentUser();
-      // Nếu đã đăng nhập rồi thì chuyển về dashboard
-      this.props.navigate('/desktop');
-    } catch (_) {
-      // Chưa đăng nhập → ở lại trang auth
-    }
+  componentDidMount() {
+    // Initial auth check is now handled in App.jsx to prevent UI flashing
   }
 
   componentWillUnmount() {

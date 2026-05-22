@@ -12,10 +12,35 @@
   }
 
   .leaderboard-section {
-    h3 {
-      font-size: 16px;
-      color: #e2e8f0;
-      margin-bottom: 12px;
+    .rank-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      
+      .name-with-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .player-name {
+          font-weight: 600;
+          color: #fff;
+        }
+        
+        .player-title {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+        }
+      }
+      
+      .player-rank-title {
+        font-size: 11px;
+        color: #94a3b8;
+      }
     }
   }
 }

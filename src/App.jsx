@@ -1,25 +1,72 @@
 import React, { Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import { Provider, connect } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
+import { getCurrentUser } from 'aws-amplify/auth';
 import 'react-toastify/dist/ReactToastify.css';
 
 import store from './store';
 import Dashboard from './features/dashboard/Dashboard';
 import AuthPage from './features/auth/AuthPage';
+import Spinner from './components/Spinner';
+import { handleLoginSuccessApi } from './services/authServices';
+import { userLogin } from './store/actions';
 import './index.css';
 
 class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isCheckingAuth: true,
+    };
+  }
+
+  async componentDidMount() {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        // Nếu đã đăng nhập, thực hiện setup ban đầu
+        handleLoginSuccessApi(); // Resize window
+        this.props.userLogin({ 
+          email: user.signInDetails?.loginId || user.username, 
+          username: user.username 
+        });
+      }
+    } catch (error) {
+      console.log('No active session found.');
+    } finally {
+      this.setState({ isCheckingAuth: false });
+    }
+  }
+
   render() {
+    const { isCheckingAuth } = this.state;
+    const { isLoggedIn } = this.props;
+
+    if (isCheckingAuth) {
+      return (
+        <div className="auth-page">
+          <Spinner />
+        </div>
+      );
+    }
+
     return (
-      <Provider store={store}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<AuthPage />} />
-            <Route path="/desktop" element={<Dashboard />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </BrowserRouter>
+      <BrowserRouter>
+        <Routes>
+          <Route 
+            path="/login" 
+            element={isLoggedIn ? <Navigate to="/desktop" replace /> : <AuthPage />} 
+          />
+          <Route 
+            path="/desktop" 
+            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="*" 
+            element={<Navigate to={isLoggedIn ? "/desktop" : "/login"} replace />} 
+          />
+        </Routes>
         <ToastContainer
           position="top-right"
           autoClose={1000}
@@ -32,9 +79,25 @@ class App extends Component {
           pauseOnHover
           theme="dark"
         />
-      </Provider>
+      </BrowserRouter>
     );
   }
 }
 
-export default App;
+const mapStateToProps = (state) => ({
+  isLoggedIn: state.isLoggedIn,
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  userLogin: (info) => dispatch(userLogin(info)),
+});
+
+const ConnectedApp = connect(mapStateToProps, mapDispatchToProps)(App);
+
+const Root = () => (
+  <Provider store={store}>
+    <ConnectedApp />
+  </Provider>
+);
+
+export default Root;
