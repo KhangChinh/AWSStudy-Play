@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
+import { signOut } from 'aws-amplify/auth';
 import { connect } from 'react-redux';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import {
   settingsOutline, cubeOutline, ticketOutline, gameControllerOutline,
@@ -341,6 +342,7 @@ class Dashboard extends Component {
     const isConfirmed = await confirmAction();
     if (isConfirmed) {
       try {
+        await signOut(); // Xóa session Cognito
         handleLogoutApi(); // Call Electron IPC to clear session if needed
         this.props.userLogout(); // Clear Redux
         toast.success('Đăng xuất thành công!');

@@ -20,11 +20,9 @@ class App extends Component {
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </BrowserRouter>
-        
-        {/* Toastify for notifications */}
         <ToastContainer
           position="top-right"
-          autoClose={3000}
+          autoClose={1000}
           hideProgressBar={false}
           newestOnTop={false}
           closeOnClick
