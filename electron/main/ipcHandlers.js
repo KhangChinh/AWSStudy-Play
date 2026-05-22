@@ -13,10 +13,8 @@ import { classifyContent, clearCache } from './services/aiGuard.js';
 
 import { BrowserWindow } from 'electron';
 
-export function registerIpcHandlers(ipcMain, win) {
-  // ═══════════════════════════════════════════
-  //  AUTH — Mã hóa & lưu trữ Token bảo mật
-  // ═══════════════════════════════════════════
+export function registerIpcHandlers(ipcMain, win, createTimerWidget, closeTimerWidget) {
+  // ... (auth handlers keep the same)
   ipcMain.handle('auth:saveToken', async (_event, token) => {
     return saveToken(token);
   });
@@ -33,11 +31,19 @@ export function registerIpcHandlers(ipcMain, win) {
   //  FOCUS ENGINE — Giám sát & chặn ứng dụng
   // ═══════════════════════════════════════════
   ipcMain.handle('focus:start', async (_event, data) => {
-    return startFocus(data);
+    const result = await startFocus(data);
+    if (result && result.success) {
+      if (win) win.hide();
+      createTimerWidget();
+    }
+    return result;
   });
 
   ipcMain.handle('focus:stop', async () => {
-    return stopFocus();
+    const result = await stopFocus();
+    closeTimerWidget();
+    if (win) win.show();
+    return result;
   });
 
   ipcMain.handle('focus:status', async () => {

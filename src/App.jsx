@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
 import { getCurrentUser } from 'aws-amplify/auth';
@@ -8,6 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import store from './store';
 import Dashboard from './features/dashboard/Dashboard';
 import AuthPage from './features/auth/AuthPage';
+import TimerWidget from './features/focus/TimerWidget';
 import Spinner from './components/Spinner';
 import { handleLoginSuccessApi } from './services/authServices';
 import { userLogin } from './store/actions';
@@ -52,7 +53,7 @@ class App extends Component {
     }
 
     return (
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route 
             path="/login" 
@@ -61,6 +62,10 @@ class App extends Component {
           <Route 
             path="/desktop" 
             element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/timer-widget" 
+            element={<TimerWidget />} 
           />
           <Route 
             path="*" 
@@ -79,7 +84,7 @@ class App extends Component {
           pauseOnHover
           theme="dark"
         />
-      </BrowserRouter>
+      </HashRouter>
     );
   }
 }

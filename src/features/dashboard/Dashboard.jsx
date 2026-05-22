@@ -175,10 +175,33 @@ class Dashboard extends Component {
       disabledButtons: { logout: false },
       isDragging: null,
       dragOffset: { x: 0, y: 0 },
-      selectedTitle: 'newbie'
+      selectedTitle: 'newbie',
+      isVacuuming: false
     };
     this.timerInterval = null;
   }
+
+  handleClearAllApps = () => {
+    if (this.state.openApps.length === 0) return;
+
+    this.setState({ isVacuuming: true });
+
+    // Đợi hiệu ứng hút chạy xong (0.8s) rồi mới dọn dẹp state
+    setTimeout(() => {
+      this.setState({
+        openApps: [],
+        activeApp: null,
+        minimizedApps: [],
+        maximizedApp: null,
+        isVacuuming: false
+      });
+      toast.success('System cleanup complete!', { 
+        icon: '🧹',
+        theme: 'dark',
+        autoClose: 1500
+      });
+    }, 800);
+  };
 
   handleTitleChange = (newTitleId) => {
     this.setState({ selectedTitle: newTitleId });
@@ -389,7 +412,7 @@ class Dashboard extends Component {
           return (
             <div
               key={appId}
-              className={`os-window ${activeApp === appId ? 'active' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
+              className={`os-window ${app.className} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''}`}
               style={{
                 top: isMaximized ? 0 : pos.y,
                 left: isMaximized ? 0 : pos.x,
@@ -400,9 +423,6 @@ class Dashboard extends Component {
               <div className="window-header" onMouseDown={(e) => this.handleDragStart(e, appId)}>
                 <div className="window-title">
                   {app.name}
-                  <span style={{ fontSize: '10px', marginLeft: '8px', color: TITLES.find(t => t.id === this.state.selectedTitle)?.color }}>
-                    [{TITLES.find(t => t.id === this.state.selectedTitle)?.name}]
-                  </span>
                 </div>
                 <div className="window-controls">
                   <button className="control minimize" onClick={(e) => this.toggleMinimize(e, appId)}>
@@ -429,7 +449,13 @@ class Dashboard extends Component {
         {/* Taskbar */}
         <div className="os-taskbar">
           <div className="taskbar-start">
-            <div className="start-btn"><IonIcon icon={planetOutline} /></div>
+            <div 
+              className={`start-btn ${this.state.isVacuuming ? 'active' : ''}`}
+              onClick={this.handleClearAllApps}
+              title="Clean Desktop"
+            >
+              <IonIcon icon={planetOutline} className={this.state.isVacuuming ? 'spinning' : ''} />
+            </div>
           </div>
 
           <div className="taskbar-apps">
