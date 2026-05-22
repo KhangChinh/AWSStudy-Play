@@ -1,0 +1,262 @@
+/* GACHA ANIMATION — Genshin style */
+$rarity-3-color: #6366f1;
+$rarity-3-glow: rgba(99, 102, 241, 0.6);
+$rarity-4-color: #c084fc;
+$rarity-4-glow: rgba(192, 132, 252, 0.6);
+$rarity-5-color: #fbbf24;
+$rarity-5-glow: rgba(251, 191, 36, 0.6);
+
+.gacha-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  overflow: hidden;
+}
+
+.blackout-layer {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  animation: fadeToBlack 0.5s ease forwards;
+}
+
+@keyframes fadeToBlack { to { opacity: 1; } }
+
+.meteor-wrapper {
+  position: absolute;
+  top: 50%;
+  left: -20%; 
+  width: 400px;
+  height: 20px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; 
+  animation: meteorFlyNew 1.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+
+  .meteor-head {
+    width: 24px;
+    height: 18px;
+    border-radius: 50% 100% 50% 100%;
+    position: relative;
+    z-index: 3;
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 20%;
+      background: white;
+      border-radius: 50%;
+      filter: blur(2px);
+    }
+  }
+
+  .meteor-trail {
+    position: absolute;
+    right: 12px; 
+    height: 4px;
+    width: 300px;
+    filter: blur(1px);
+    z-index: 2;
+    transform-origin: right center;
+    animation: trailStretch 1.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  }
+
+  &.rarity-3 {
+    .meteor-head { background: #818cf8; box-shadow: 0 0 30px #6366f1; }
+    .meteor-trail { background: linear-gradient(270deg, #6366f1, transparent); } 
+  }
+  &.rarity-4 {
+    .meteor-head { background: #c084fc; box-shadow: 0 0 40px #a855f7; }
+    .meteor-trail { background: linear-gradient(270deg, #a855f7, transparent); }
+  }
+  &.rarity-5 {
+    .meteor-head { background: #fbbf24; box-shadow: 0 0 50px #f59e0b; }
+    .meteor-trail { background: linear-gradient(270deg, #f59e0b, transparent); }
+  }
+}
+
+@keyframes meteorFlyNew {
+  0% { left: -400px; top: 50%; }
+  100% { left: 50%; top: 50%; transform: translate(-100%, -50%); }
+}
+
+@keyframes trailStretch {
+  0% { transform: scaleX(0); opacity: 0; }
+  30% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(0); opacity: 0; }
+}
+
+.burst-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  .burst-flash { 
+    position: absolute; 
+    inset: 0; 
+    animation: flashBang 0.8s ease-out forwards; 
+    z-index: 10;
+  }
+  .burst-ring { 
+    position: absolute; 
+    border-radius: 50%; 
+    border: 4px solid; 
+    opacity: 0; 
+    animation: ringExpand 1.2s cubic-bezier(0.1, 0.7, 0.1, 1) forwards; 
+    filter: blur(2px);
+  }
+  .ring-1 { width: 100px; height: 100px; }
+  .ring-2 { width: 100px; height: 100px; animation-delay: 0.1s; }
+  .ring-3 { width: 100px; height: 100px; animation-delay: 0.2s; }
+  
+  &.rarity-3 { .burst-flash { background: radial-gradient(circle, white, #6366f1, transparent); } .burst-ring { border-color: #6366f1; box-shadow: 0 0 30px #6366f1; } }
+  &.rarity-4 { .burst-flash { background: radial-gradient(circle, white, #c084fc, transparent); } .burst-ring { border-color: #c084fc; box-shadow: 0 0 40px #c084fc; } }
+  &.rarity-5 { .burst-flash { background: radial-gradient(circle, white, #fbbf24, transparent); } .burst-ring { border-color: #fbbf24; box-shadow: 0 0 50px #fbbf24; } }
+}
+
+@keyframes flashBang { 
+  0% { opacity: 0; transform: scale(0.1); } 
+  20% { opacity: 1; transform: scale(1); } 
+  100% { opacity: 0; transform: scale(2); } 
+}
+@keyframes ringExpand { 0% { transform: scale(0.2); opacity: 1; } 100% { transform: scale(15); opacity: 0; } }
+
+.reveal-container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: revealPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    z-index: -2;
+    animation: zoomOutBg 10s linear infinite;
+  }
+
+  &.single {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+    .item-glow { 
+      position: absolute; 
+      width: 250px; 
+      height: 250px; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%);
+      border-radius: 50%; 
+      filter: blur(50px); 
+      z-index: -1; 
+      animation: glowPulse 2s infinite alternate; 
+    }
+    .item-icon { font-size: 100px; z-index: 2; animation: iconBounce 2s infinite; }
+    .item-name { font-size: 32px; font-weight: 700; color: #fff; z-index: 2; margin-top: 20px; text-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    .item-rarity { font-size: 24px; letter-spacing: 6px; z-index: 2; margin-top: 10px; }
+  }
+
+  &.multi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 800px;
+    justify-items: center;
+    margin: 0 auto;
+
+    .grid-item {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      animation: revealPop 0.4s both;
+      transition: transform 0.2s;
+
+      &:hover { transform: scale(1.05); background: rgba(255,255,255,0.1); }
+
+      .grid-icon { font-size: 40px; }
+      .grid-stars { font-size: 10px; color: #fbbf24; }
+
+      &.rarity-3 { border-bottom: 3px solid #6366f1; }
+      &.rarity-4 { border-bottom: 3px solid #c084fc; box-shadow: 0 0 15px rgba(192, 132, 252, 0.2); }
+      &.rarity-5 { border-bottom: 3px solid #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
+    }
+  }
+
+  &.rarity-3 { .item-glow { background: $rarity-3-glow; } .item-rarity { color: $rarity-3-color; } }
+  &.rarity-4 { .item-glow { background: $rarity-4-glow; } .item-rarity { color: $rarity-4-color; } }
+  &.rarity-5 { .item-glow { background: $rarity-5-glow; } .item-rarity { color: $rarity-5-color; } }
+}
+
+@keyframes zoomOutBg { 
+  from { transform: translate(-50%, -50%) scale(1); } 
+  to { transform: translate(-50%, -50%) scale(1.5); } 
+}
+
+@keyframes revealPop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes glowPulse { from { opacity: 0.6; } to { opacity: 0.9; } }
+@keyframes iconBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.particle-field {
+  position: absolute; inset: 0; z-index: 5;
+  .particle { position: absolute; border-radius: 50%; animation: particleFloat linear infinite; }
+  &.rarity-3 .particle { background: $rarity-3-color; }
+  &.rarity-4 .particle { background: $rarity-4-color; }
+  &.rarity-5 .particle { background: $rarity-5-color; }
+}
+
+@keyframes particleFloat {
+  0% { transform: translateY(0); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+.light-rays {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 4;
+  .ray { position: absolute; width: 2px; height: 50vh; transform-origin: bottom center; opacity: 0.2; background: linear-gradient(to top, white, transparent); }
+}
+
+.click-hint {
+  margin-top: 40px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.4);
+  animation: hintBlink 2s ease-in-out infinite;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  z-index: 100;
+}
+
+@keyframes hintBlink {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.6; }
+}
+
+.fadeout-layer { position: absolute; inset: 0; background: #000; z-index: 1000; animation: fadeToBlack 0.5s ease forwards; }
+
+.gacha-overlay.reveal {
+  &.rarity-3 { background: radial-gradient(circle, #1a1a3e, #050510); }
+  &.rarity-4 { background: radial-gradient(circle, #2d1b4e, #0a0515); }
+  &.rarity-5 { background: radial-gradient(circle, #3d2b0a, #0f0a02); }
+}
