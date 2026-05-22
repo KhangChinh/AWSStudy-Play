@@ -7,6 +7,7 @@ import './MinigameHub.scss';
 import { setHighscores } from '../../store/actions';
 import { handleGetLeaderboardApi } from '../../services/socialServices';
 import { toast } from 'react-toastify';
+import SudokuGame from '../../../public/games/sudoku/SudokuGame';
 
 const MINIGAMES = [
   { id: 'all', label: 'Tổng Wins', icon: '🏅' },
@@ -15,19 +16,19 @@ const MINIGAMES = [
 ];
 
 const MINIGAME_SCORES = {
-  all:         [500, 425, 350, 275, 200],
+  all: [500, 425, 350, 275, 200],
   minesweeper: [180, 155, 120, 90, 60],
-  sudoku:      [130, 110, 90, 75, 50],
+  sudoku: [130, 110, 90, 75, 50],
 };
 
-// ═══ Arcade Game List (Stateless Functional Component ok per plan) ═══
-const ArcadeList = () => (
+// ═══ Arcade Game List ═══
+const ArcadeList = ({ onPlayGame }) => (
   <div className="arcade-list">
     <h3><IonIcon icon={gameControllerOutline} /> Available Games</h3>
     <div className="store-grid">
       {[
-        { name: 'Minesweeper', price: 100, icon: '💣' },
-        { name: 'Sudoku', price: 'Free', icon: '🔢' },
+        { name: 'Minesweeper', price: 100, icon: '💣', disabled: true },
+        { name: 'Sudoku', price: 'Free', icon: '🔢', disabled: false },
       ].map(game => (
         <div className="store-item" key={game.name}>
           <div className="item-cover">{game.icon}</div>
@@ -36,7 +37,13 @@ const ArcadeList = () => (
             <span className="item-price">
               {typeof game.price === 'number' ? `🪙 ${game.price} P-Coin / Play` : game.price}
             </span>
-            <button><IonIcon icon={playOutline} /> Play Now</button>
+            <button
+              onClick={() => !game.disabled && onPlayGame(game.name.toLowerCase())}
+              style={game.disabled ? { background: '#475569', cursor: 'not-allowed', opacity: 0.6 } : {}}
+              disabled={game.disabled}
+            >
+              <IonIcon icon={playOutline} /> {game.disabled ? 'Coming Soon' : 'Play Now'}
+            </button>
           </div>
         </div>
       ))}
@@ -47,23 +54,33 @@ const ArcadeList = () => (
 // ═══ Leaderboard (Stateless Functional Component for UI rendering) ═══
 const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => {
   const scores = tab === 'study'
-    ? [100, 85, 70, 55, 40]
+    ? [120.5, 98.2, 85.0, 72.4, 60.1]
     : MINIGAME_SCORES[minigameFilter];
 
   const scoreLabel = tab === 'study'
-    ? (v) => `${v}h`
+    ? (v) => `${v.toFixed(1)}h`
     : (v) => `${v} Wins`;
+
+  const DEMO_PLAYERS = [
+    { name: 'Cosmic_King', avatar: '👑' },
+    { name: 'Nebula_Runner', avatar: '✨' },
+    { name: 'Star_Gazer', avatar: '🔭' },
+    { name: 'Void_Walker', avatar: '🌌' },
+    { name: 'Galaxy_Master', avatar: '🌠' }
+  ];
 
   return (
     <div className="leaderboard-section">
-      <h3><IonIcon icon={trophyOutline} /> Leaderboard</h3>
-      <div className="tabs">
-        <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>
-          <IonIcon icon={timeOutline} /> Study Hours
-        </button>
-        <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>
-          <IonIcon icon={gameControllerOutline} /> Minigame Wins
-        </button>
+      <div className="section-header">
+        <h3><IonIcon icon={trophyOutline} /> Hall of Fame</h3>
+        <div className="tabs">
+          <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>
+            <IonIcon icon={timeOutline} /> Study
+          </button>
+          <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>
+            <IonIcon icon={gameControllerOutline} /> Minigame
+          </button>
+        </div>
       </div>
 
       {tab === 'minigame' && (
@@ -81,16 +98,24 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => 
       )}
 
       <div className="rank-list">
-        {[...Array(5)].map((_, i) => (
+        {DEMO_PLAYERS.map((player, i) => (
           <div className={`rank-item ${i < 3 ? `top-${i + 1}` : ''}`} key={i}>
-            <div className="player">
-              <span style={{ fontSize: 20, width: 30 }}>
-                {i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-              </span>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
-              <span>Player_{Math.floor(Math.random() * 9999)}</span>
+            <div className="rank-number">
+              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
             </div>
-            <div className="score">
+            <div className="player-info">
+              <div className="player-avatar">{player.avatar}</div>
+              <div className="player-details">
+                <div className="name-with-title">
+                  <span className="player-name">{player.name}</span>
+                  <span className="player-title" style={{ color: i === 0 ? '#a855f7' : i < 3 ? '#f87171' : '#94a3b8' }}>
+                    [{i === 0 ? 'Đại Gia' : i < 3 ? 'Chiến Thần' : 'Tân Thủ'}]
+                  </span>
+                </div>
+                <span className="player-rank-title">{i === 0 ? 'Grandmaster' : i < 3 ? 'Elite' : 'Challenger'}</span>
+              </div>
+            </div>
+            <div className="score-badge">
               {scoreLabel(scores[i])}
             </div>
           </div>
@@ -109,6 +134,7 @@ class MinigameHub extends Component {
       tab: 'study',
       minigameFilter: 'all',
       isLoading: false,
+      activeGame: null,
     };
   }
 
@@ -139,13 +165,20 @@ class MinigameHub extends Component {
   };
 
   render() {
-    const { tab, minigameFilter } = this.state;
+    const { tab, minigameFilter, activeGame } = this.state;
+
+    if (activeGame === 'sudoku') {
+      return (
+        <SudokuGame onClose={() => this.setState({ activeGame: null })} />
+      );
+    }
+
     return (
       <div className="app-container minigame-hub">
         <h2 className="app-title">🎮 Minigame Hub</h2>
-        <ArcadeList />
-        <LeaderboardView 
-          tab={tab} 
+        <ArcadeList onPlayGame={(game) => this.setState({ activeGame: game })} />
+        <LeaderboardView
+          tab={tab}
           minigameFilter={minigameFilter}
           setTab={this.setTab}
           setMinigameFilter={this.setMinigameFilter}
