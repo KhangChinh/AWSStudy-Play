@@ -33,38 +33,8 @@ class AuthPage extends Component {
         submit: false,
       },
     };
-    this.resendTimerInterval = null;
   }
-
-  async componentDidMount() {
-    try {
-      await getCurrentUser();
-      // Nếu đã đăng nhập rồi thì chuyển về dashboard
-      handleLoginSuccessApi();
-      this.props.navigate('/desktop');
-    } catch (_) {
-      // Chưa đăng nhập → ở lại trang auth
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
-  }
-
-  startResendCooldown = () => {
-    this.setState({ resendCooldown: 60 });
-    if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
-    this.resendTimerInterval = setInterval(() => {
-      this.setState((prev) => {
-        if (prev.resendCooldown <= 1) {
-          clearInterval(this.resendTimerInterval);
-          this.resendTimerInterval = null;
-          return { resendCooldown: 0 };
-        }
-        return { resendCooldown: prev.resendCooldown - 1 };
-      });
-    }, 1000);
-  };
+  //form input
   handleInputChange = (field, value) => {
     this.setState({ [field]: value });
   };
