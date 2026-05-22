@@ -21,6 +21,7 @@ import './Dashboard.scss';
 const SettingsApp = () => (
   <div className="app-container settings-app">
     <h2 className="app-title"><IonIcon icon={settingsOutline} /> User Preferences</h2>
+    
     <div className="section">
       <h3><IonIcon icon={imageOutline} /> Profile Avatar</h3>
       <div className="avatar-upload">
@@ -33,6 +34,35 @@ const SettingsApp = () => (
         </div>
       </div>
     </div>
+
+    {/* New Section: Avatar Frame */}
+    <div className="section">
+      <h3><IonIcon icon={cubeOutline} /> Avatar Frame / Khung Avatar</h3>
+      <div className="frame-grid">
+        {['None', 'Neon', 'Gold', 'Galactic'].map(frame => (
+          <div className="frame-option" key={frame}>
+            <div className={`frame-preview ${frame.toLowerCase()}`}>
+              <IonIcon icon={personOutline} />
+            </div>
+            <span>{frame}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* New Section: Profile Effect */}
+    <div className="section">
+      <h3><IonIcon icon={ticketOutline} /> Profile Effect / Hiệu ứng</h3>
+      <div className="effect-list">
+        <select className="effect-select">
+          <option value="none">No Effect</option>
+          <option value="sparkle">✨ Sparkle Particles</option>
+          <option value="fire">🔥 Phoenix Flame</option>
+          <option value="snow">❄️ Winter Frost</option>
+        </select>
+      </div>
+    </div>
+
     <div className="section">
       <h3><IonIcon icon={personOutline} /> Account Details</h3>
       <div className="account-details">
@@ -44,6 +74,7 @@ const SettingsApp = () => (
         <button className="btn-rename">Rename</button>
       </div>
     </div>
+
     <div className="section">
       <h3><IonIcon icon={globeOutline} /> Language / Ngôn ngữ</h3>
       <select className="language-select">

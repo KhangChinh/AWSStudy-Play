@@ -47,23 +47,33 @@ const ArcadeList = () => (
 // ═══ Leaderboard (Stateless Functional Component for UI rendering) ═══
 const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => {
   const scores = tab === 'study'
-    ? [100, 85, 70, 55, 40]
+    ? [120.5, 98.2, 85.0, 72.4, 60.1]
     : MINIGAME_SCORES[minigameFilter];
 
   const scoreLabel = tab === 'study'
-    ? (v) => `${v}h`
+    ? (v) => `${v.toFixed(1)}h`
     : (v) => `${v} Wins`;
+
+  const DEMO_PLAYERS = [
+    { name: 'Cosmic_King', avatar: '👑' },
+    { name: 'Nebula_Runner', avatar: '✨' },
+    { name: 'Star_Gazer', avatar: '🔭' },
+    { name: 'Void_Walker', avatar: '🌌' },
+    { name: 'Galaxy_Master', avatar: '🌠' }
+  ];
 
   return (
     <div className="leaderboard-section">
-      <h3><IonIcon icon={trophyOutline} /> Leaderboard</h3>
-      <div className="tabs">
-        <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>
-          <IonIcon icon={timeOutline} /> Study Hours
-        </button>
-        <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>
-          <IonIcon icon={gameControllerOutline} /> Minigame Wins
-        </button>
+      <div className="section-header">
+        <h3><IonIcon icon={trophyOutline} /> Hall of Fame</h3>
+        <div className="tabs">
+          <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>
+            <IonIcon icon={timeOutline} /> Study
+          </button>
+          <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>
+            <IonIcon icon={gameControllerOutline} /> Minigame
+          </button>
+        </div>
       </div>
 
       {tab === 'minigame' && (
@@ -81,16 +91,19 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => 
       )}
 
       <div className="rank-list">
-        {[...Array(5)].map((_, i) => (
+        {DEMO_PLAYERS.map((player, i) => (
           <div className={`rank-item ${i < 3 ? `top-${i + 1}` : ''}`} key={i}>
-            <div className="player">
-              <span style={{ fontSize: 20, width: 30 }}>
-                {i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-              </span>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
-              <span>Player_{Math.floor(Math.random() * 9999)}</span>
+            <div className="rank-number">
+              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
             </div>
-            <div className="score">
+            <div className="player-info">
+              <div className="player-avatar">{player.avatar}</div>
+              <div className="player-details">
+                <span className="player-name">{player.name}</span>
+                <span className="player-rank-title">{i === 0 ? 'Grandmaster' : i < 3 ? 'Elite' : 'Challenger'}</span>
+              </div>
+            </div>
+            <div className="score-badge">
               {scoreLabel(scores[i])}
             </div>
           </div>

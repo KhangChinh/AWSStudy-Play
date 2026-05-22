@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipcHandlers.js';
@@ -10,8 +10,9 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 450,
     height: 600,
-    resizable: false, // Khóa ngay từ đầu giống bản cũ
-    autoHideMenuBar: true,
+    resizable: false,
+    frame: true, // Giữ frame để có nút đóng/thu nhỏ nếu muốn, hoặc set false nếu muốn custom hoàn toàn
+    autoHideMenuBar: true, // Thử lại với true kết hợp removeMenu
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -19,14 +20,21 @@ function createWindow() {
     }
   });
 
+  // PHƯƠNG PHÁP QUYẾT LIỆT HƠN ĐỂ TẮT MENU
+  win.removeMenu();
+  win.setMenuBarVisibility(false);
+  win.setAutoHideMenuBar(true);
+
   // LẮNG NGHE TRỰC TIẾP TẠI INDEX (Giống logic mainold.js)
   ipcMain.on('login-success', () => {
     if (!win || win.isDestroyed()) return;
 
-    win.setMinimumSize(800, 600); // Đặt giới hạn trước
-    win.setResizable(true);       // Mở khóa
-    win.setSize(1280, 720);       // Phóng to
+    win.setMinimumSize(800, 600);
+    win.setResizable(true);
+    win.setSize(1280, 720);
     win.center();
+    // Đảm bảo sau khi đổi size vẫn không có menu
+    win.removeMenu();
   });
 
   ipcMain.on('logout', () => {
@@ -35,6 +43,7 @@ function createWindow() {
     win.setSize(450, 600);
     win.setResizable(false);
     win.center();
+    win.removeMenu();
   });
 
   const url = process.env.VITE_DEV_SERVER_URL;
@@ -44,11 +53,13 @@ function createWindow() {
     win.loadFile(path.join(__dirname, '../../dist/index.html'));
   }
 
-  // Đăng ký các IPC handlers khác
   registerIpcHandlers(ipcMain, win);
 }
 
 app.whenReady().then(() => {
+  // Tắt menu toàn cục ngay khi app sẵn sàng
+  Menu.setApplicationMenu(null);
+
   createWindow();
 
   app.on('activate', () => {
