@@ -99,7 +99,12 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => 
             <div className="player-info">
               <div className="player-avatar">{player.avatar}</div>
               <div className="player-details">
-                <span className="player-name">{player.name}</span>
+                <div className="name-with-title">
+                  <span className="player-name">{player.name}</span>
+                  <span className="player-title" style={{ color: i === 0 ? '#a855f7' : i < 3 ? '#f87171' : '#94a3b8' }}>
+                    [{i === 0 ? 'Đại Gia' : i < 3 ? 'Chiến Thần' : 'Tân Thủ'}]
+                  </span>
+                </div>
                 <span className="player-rank-title">{i === 0 ? 'Grandmaster' : i < 3 ? 'Elite' : 'Challenger'}</span>
               </div>
             </div>

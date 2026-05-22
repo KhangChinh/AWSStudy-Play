@@ -19,73 +19,112 @@ import { handleLogoutApi } from '../../services/authServices';
 import { userLogout } from '../../store/actions';
 import './Dashboard.scss';
 
+const TITLES = [
+  { id: 'newbie', name: 'Tân Thủ', color: '#94a3b8', hint: 'Danh hiệu mặc định cho người mới' },
+  { id: 'scholar', name: 'Học Giả', color: '#60a5fa', hint: 'Điều kiện: Tổng thời gian học > 10 giờ' },
+  { id: 'warrior', name: 'Chiến Thần', color: '#f87171', hint: 'Điều kiện: Thắng 100 trận Minigames' },
+  { id: 'collector', name: 'Nhà Sưu Tầm', color: '#fbbf24', hint: 'Điều kiện: Thu thập 50 vật phẩm Inventory' },
+  { id: 'whale', name: 'Đại Gia', color: '#a855f7', hint: 'Điều kiện: Tiêu phí 1.000.000 P-Coin' },
+  { id: 'admin', name: 'Người Điều Hành', color: '#ef4444', hint: 'Danh hiệu dành cho Quản trị viên' },
+];
+
 // ═══ Settings App ═══
-const SettingsApp = () => (
-  <div className="app-container settings-app">
-    <h2 className="app-title"><IonIcon icon={settingsOutline} /> User Preferences</h2>
-    
-    <div className="section">
-      <h3><IonIcon icon={imageOutline} /> Profile Avatar</h3>
-      <div className="avatar-upload">
-        <div className="avatar-circle">
-          <IonIcon icon={personOutline} style={{ fontSize: 32 }} />
-        </div>
-        <div>
-          <p style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 6 }}>Upload new avatar</p>
-          <p style={{ fontSize: 12, color: '#94a3b8' }}>Optimal size 256x256. Max 2MB.</p>
-        </div>
-      </div>
-    </div>
+const SettingsApp = ({ currentTitle, onTitleChange }) => {
+  const selectedTitleData = TITLES.find(t => t.id === currentTitle) || TITLES[0];
 
-    {/* New Section: Avatar Frame */}
-    <div className="section">
-      <h3><IonIcon icon={cubeOutline} /> Avatar Frame / Khung Avatar</h3>
-      <div className="frame-grid">
-        {['None', 'Neon', 'Gold', 'Galactic'].map(frame => (
-          <div className="frame-option" key={frame}>
-            <div className={`frame-preview ${frame.toLowerCase()}`}>
-              <IonIcon icon={personOutline} />
-            </div>
-            <span>{frame}</span>
+  return (
+    <div className="app-container settings-app">
+      <h2 className="app-title"><IonIcon icon={settingsOutline} /> User Preferences</h2>
+
+      <div className="section">
+        <h3><IonIcon icon={imageOutline} /> Profile Avatar</h3>
+        <div className="avatar-upload">
+          <div className="avatar-circle">
+            <IonIcon icon={personOutline} style={{ fontSize: 32 }} />
           </div>
-        ))}
+          <div>
+            <p style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 6 }}>Upload new avatar</p>
+            <p style={{ fontSize: 12, color: '#94a3b8' }}>Optimal size 256x256. Max 2MB.</p>
+          </div>
+        </div>
       </div>
-    </div>
 
-    {/* New Section: Profile Effect */}
-    <div className="section">
-      <h3><IonIcon icon={ticketOutline} /> Profile Effect / Hiệu ứng</h3>
-      <div className="effect-list">
-        <select className="effect-select">
-          <option value="none">No Effect</option>
-          <option value="sparkle">✨ Sparkle Particles</option>
-          <option value="fire">🔥 Phoenix Flame</option>
-          <option value="snow">❄️ Winter Frost</option>
+      <div className="section">
+        <h3><IonIcon icon={personOutline} /> Account Details</h3>
+        <div className="account-details">
+          <div className="info">
+            <p className="label">Username</p>
+            <div className="name-wrapper">
+              <span className="name">Player_9999</span>
+              <span className="user-title" style={{ color: selectedTitleData.color }}>
+                [{selectedTitleData.name}]
+              </span>
+            </div>
+            <p className="note">* Đổi tên tốn 10.000 P-Coin</p>
+          </div>
+          <button className="btn-rename">Rename</button>
+        </div>
+      </div>
+
+      <div className="section">
+        <h3><IonIcon icon={starOutline} /> Danh Hiệu (Titles)</h3>
+        <p className="section-desc">Chọn danh hiệu hiển thị phía sau tên của bạn.</p>
+        <div className="titles-grid">
+          {TITLES.map(title => (
+            <div
+              key={title.id}
+              className={`title-badge ${currentTitle === title.id ? 'active' : ''}`}
+              style={{ '--title-color': title.color }}
+              onClick={() => onTitleChange(title.id)}
+            >
+              <div className="badge-bg"></div>
+              <span className="badge-name">{title.name}</span>
+              <div className="badge-info">
+                <IonIcon icon={ticketOutline} />
+                <span>{title.hint}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="section">
+        <h3><IonIcon icon={cubeOutline} /> Avatar Frame / Khung Avatar</h3>
+        <div className="frame-grid">
+          {['None', 'Neon', 'Gold', 'Galactic'].map(frame => (
+            <div className="frame-option" key={frame}>
+              <div className={`frame-preview ${frame.toLowerCase()}`}>
+                <IonIcon icon={personOutline} />
+              </div>
+              <span>{frame}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* RE-ADDED SECTION: Profile Effect */}
+      <div className="section">
+        <h3><IonIcon icon={ticketOutline} /> Profile Effect / Hiệu ứng</h3>
+        <div className="effect-list">
+          <select className="effect-select">
+            <option value="none" style={{ color: 'white' }}>No Effect</option>
+            <option value="sparkle" style={{ color: 'white' }}>✨ Sparkle Particles</option>
+            <option value="fire" style={{ color: 'white' }}>🔥 Phoenix Flame</option>
+            <option value="snow" style={{ color: 'white' }}>❄️ Winter Frost</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="section">
+        <h3><IonIcon icon={globeOutline} /> Language / Ngôn ngữ</h3>
+        <select className="language-select">
+          <option value="en" style={{ color: 'black' }}>English</option>
+          <option value="vi" style={{ color: 'black' }}>Tiếng Việt</option>
         </select>
       </div>
     </div>
-
-    <div className="section">
-      <h3><IonIcon icon={personOutline} /> Account Details</h3>
-      <div className="account-details">
-        <div className="info">
-          <p className="label">Username</p>
-          <p className="name">Player_9999</p>
-          <p className="note">* Chỉ được rename 1 lần/tháng</p>
-        </div>
-        <button className="btn-rename">Rename</button>
-      </div>
-    </div>
-
-    <div className="section">
-      <h3><IonIcon icon={globeOutline} /> Language / Ngôn ngữ</h3>
-      <select className="language-select">
-        <option value="en" style={{ color: 'black' }}>English</option>
-        <option value="vi" style={{ color: 'black' }}>Tiếng Việt</option>
-      </select>
-    </div>
-  </div>
-);
+  );
+};
 
 // ═══ Cosmetics Store ═══
 const StoreApp = () => (
@@ -134,10 +173,15 @@ class Dashboard extends Component {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       disabledButtons: { logout: false },
       isDragging: null,
-      dragOffset: { x: 0, y: 0 }
+      dragOffset: { x: 0, y: 0 },
+      selectedTitle: 'newbie'
     };
     this.timerInterval = null;
   }
+
+  handleTitleChange = (newTitleId) => {
+    this.setState({ selectedTitle: newTitleId });
+  };
 
   componentDidMount() {
     this.timerInterval = setInterval(() => {
@@ -158,17 +202,25 @@ class Dashboard extends Component {
     this.setState((prev) => {
       const isAlreadyOpen = prev.openApps.includes(appId);
       const newOpenApps = isAlreadyOpen ? prev.openApps : [...prev.openApps, appId];
-      
+
       const newPositions = { ...prev.windowPositions };
-      // Nếu là lần đầu mở, set vị trí mặc định có chút lệch nhau (cascading)
       if (!newPositions[appId]) {
-        newPositions[appId] = { x: 100 + (newOpenApps.length * 30), y: 80 + (newOpenApps.length * 30) };
+        // AUTO CENTER: Tính toán tâm màn hình
+        const winW = 900;
+        const winH = 600;
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight - 48; // Trừ taskbar
+
+        newPositions[appId] = {
+          x: Math.max(0, (screenW - winW) / 2) + (newOpenApps.length * 10),
+          y: Math.max(0, (screenH - winH) / 2) + (newOpenApps.length * 10)
+        };
       }
 
       return {
         openApps: newOpenApps,
         activeApp: appId,
-        minimizedApps: prev.minimizedApps.filter(id => id !== appId) // Mở lại ứng dụng nếu đang thu nhỏ
+        minimizedApps: prev.minimizedApps.filter(id => id !== appId)
       };
     });
   };
@@ -210,8 +262,8 @@ class Dashboard extends Component {
 
   // --- LOGIC KÉO THẢ (DRAG) ---
   handleDragStart = (e, appId) => {
-    if (this.state.maximizedApp === appId) return; // Không cho kéo khi đang phóng to
-    
+    if (this.state.maximizedApp === appId) return;
+
     this.setState({
       activeApp: appId,
       isDragging: appId,
@@ -228,13 +280,25 @@ class Dashboard extends Component {
   handleDragging = (e) => {
     if (!this.state.isDragging) return;
     const appId = this.state.isDragging;
+
+    // GIỚI HẠN VỊ TRÍ (CONSTRAINT)
+    const headerHeight = 42;
+    const taskbarHeight = 48;
+    const padding = 100; // Đảm bảo còn 100px tiêu đề trong màn hình
+
+    let newX = e.clientX - this.state.dragOffset.x;
+    let newY = e.clientY - this.state.dragOffset.y;
+
+    // Giới hạn trục Y (Không vượt giới hạn trên và Taskbar)
+    newY = Math.max(0, Math.min(newY, window.innerHeight - taskbarHeight - headerHeight));
+
+    // Giới hạn trục X (Đảm bảo tiêu đề không trôi mất)
+    newX = Math.max(-(900 - padding), Math.min(newX, window.innerWidth - padding));
+
     this.setState(prev => ({
       windowPositions: {
         ...prev.windowPositions,
-        [appId]: {
-          x: e.clientX - prev.dragOffset.x,
-          y: e.clientY - prev.dragOffset.y
-        }
+        [appId]: { x: newX, y: newY }
       }
     }));
   };
@@ -321,7 +385,7 @@ class Dashboard extends Component {
           if (isMinimized) return null; // Ẩn hoàn toàn cửa sổ nếu đã thu nhỏ
 
           return (
-            <div 
+            <div
               key={appId}
               className={`os-window ${activeApp === appId ? 'active' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
               style={{
@@ -332,7 +396,12 @@ class Dashboard extends Component {
               onMouseDown={() => this.setState({ activeApp: appId })}
             >
               <div className="window-header" onMouseDown={(e) => this.handleDragStart(e, appId)}>
-                <div className="window-title">{app.name}</div>
+                <div className="window-title">
+                  {app.name}
+                  <span style={{ fontSize: '10px', marginLeft: '8px', color: TITLES.find(t => t.id === this.state.selectedTitle)?.color }}>
+                    [{TITLES.find(t => t.id === this.state.selectedTitle)?.name}]
+                  </span>
+                </div>
                 <div className="window-controls">
                   <button className="control minimize" onClick={(e) => this.toggleMinimize(e, appId)}>
                     <IonIcon icon={removeOutline} />
@@ -346,7 +415,10 @@ class Dashboard extends Component {
                 </div>
               </div>
               <div className="window-content">
-                {app.content}
+                {React.cloneElement(app.content, {
+                  currentTitle: this.state.selectedTitle,
+                  onTitleChange: this.handleTitleChange
+                })}
               </div>
             </div>
           );

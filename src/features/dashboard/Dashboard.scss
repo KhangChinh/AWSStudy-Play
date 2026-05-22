@@ -432,6 +432,100 @@
     }
   }
 
+  /* Name & Title Display */
+  .name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    .name { font-size: 18px; font-weight: bold; color: #fff; }
+    .user-title {
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  /* Titles Grid UI */
+  .section-desc { font-size: 12px; color: #94a3b8; margin: -8px 0 16px 0; }
+  
+  .titles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+
+    .title-badge {
+      position: relative;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      .badge-bg {
+        position: absolute;
+        inset: 0;
+        background: var(--title-color);
+        opacity: 0.05;
+        transition: opacity 0.3s;
+      }
+
+      .badge-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--title-color);
+        z-index: 1;
+        text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .badge-info {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 9px;
+        color: #94a3b8;
+        margin-top: 4px;
+        z-index: 1;
+        opacity: 0.7;
+        text-align: center;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-3px);
+        border-color: var(--title-color);
+        .badge-bg { opacity: 0.15; }
+        .badge-info { opacity: 1; }
+      }
+
+      &.active {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--title-color);
+        box-shadow: 0 0 15px rgba(var(--title-color), 0.2);
+        
+        &::after {
+          content: '✓';
+          position: absolute;
+          top: 2px;
+          right: 4px;
+          font-size: 10px;
+          color: var(--title-color);
+        }
+
+        .badge-bg { opacity: 0.25; }
+        .badge-name { transform: scale(1.05); }
+      }
+    }
+  }
+
   /* Effects */
   .effect-select {
     width: 100%;
