@@ -11,6 +11,7 @@ class Inventory extends Component {
     const pCoins = economy?.pCoins || 0;
     
     // Giả lập item từ inventory (hiện tại schema là {})
+    //placeholder
     const dummyItems = [...Array(10)].map((_, i) => ({
       id: i,
       icon: ['🎁', '💫', '🎟️', '👑'][i % 4],

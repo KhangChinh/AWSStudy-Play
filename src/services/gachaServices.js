@@ -1,3 +1,4 @@
+//placeholder
 /**
  * Gacha Services — Gọi AWS Lambda cho Gacha Station
  * React <-> AWS (Gọi Mây) qua HTTP

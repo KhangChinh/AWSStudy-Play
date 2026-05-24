@@ -10,6 +10,7 @@ const PREFIX = process.env.DYNAMODB_TABLE_PREFIX || "";
 
 export const TABLES = {
   USER: `${PREFIX}User`,
+  //placeholder
   // ── Thêm bảng mới ở đây ──────────────
   // SESSIONS:    `${PREFIX}Sessions`,
   // FOCUS_LOGS:  `${PREFIX}FocusLogs`,

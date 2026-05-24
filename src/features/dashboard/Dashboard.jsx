@@ -30,6 +30,7 @@ const TITLES = [
 ];
 
 // ═══ Settings App ═══
+//placeholder
 const SettingsApp = ({ currentTitle, onTitleChange }) => {
   const selectedTitleData = TITLES.find(t => t.id === currentTitle) || TITLES[0];
 
@@ -128,6 +129,7 @@ const SettingsApp = ({ currentTitle, onTitleChange }) => {
 };
 
 // ═══ Cosmetics Store ═══
+//placeholder
 const StoreApp = () => (
   <div className="app-container">
     <h2 className="app-title"><IonIcon icon={cartOutline} /> Cosmetics Store</h2>

@@ -52,6 +52,7 @@ const ArcadeList = ({ onPlayGame }) => (
 );
 
 // ═══ Leaderboard (Stateless Functional Component for UI rendering) ═══
+//placeholder
 const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => {
   const scores = tab === 'study'
     ? [120.5, 98.2, 85.0, 72.4, 60.1]

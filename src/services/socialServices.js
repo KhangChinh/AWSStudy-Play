@@ -1,3 +1,4 @@
+//placeholder
 /**
  * Social Services — Gọi AWS cho Social & Leaderboard
  * React <-> AWS (Gọi Mây) qua HTTP

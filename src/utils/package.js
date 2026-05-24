@@ -22,6 +22,7 @@ export const apiCall = async (endpoint, options = {}) => {
 };
 
 //check login
+//placeholder
 export const checkLoginStatus = async () => {
   try {
     if (!window.api) {

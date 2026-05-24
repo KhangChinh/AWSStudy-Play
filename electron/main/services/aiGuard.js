@@ -16,6 +16,7 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
  * @param {{ url?: string, title?: string }} content
  * @returns {{ isDistracting: boolean, reason: string, cached: boolean }}
  */
+//placeholder
 export async function classifyContent(content) {
   const key = content.url || content.title || '';
   

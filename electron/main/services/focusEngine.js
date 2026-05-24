@@ -15,6 +15,7 @@ let activeSession = null;
  * @param {{ targetMinutes: number, blacklist: string[] }} data
  * @returns {{ success: boolean, sessionId: string }}
  */
+//placeholder
 export function startFocus(data) {
   const sessionId = `sess_${Date.now()}`;
   activeSession = {
@@ -36,6 +37,7 @@ export function startFocus(data) {
  * Dừng Focus Session (Bỏ cuộc)
  * @returns {{ success: boolean, elapsedMinutes: number }}
  */
+//placeholder
 export function stopFocus() {
   if (!activeSession) {
     return { success: false, error: 'No active session' };
