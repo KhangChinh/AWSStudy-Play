@@ -37,6 +37,7 @@ function createWindow() {
   const url = process.env.VITE_DEV_SERVER_URL;
   if (url) {
     win.loadURL(url);
+    win.webContents.openDevTools(); // Tự mở DevTools khi dev
   } else {
     win.loadFile(path.join(__dirname, '../../dist/index.html'));
   }

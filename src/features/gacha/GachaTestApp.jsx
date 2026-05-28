@@ -35,6 +35,7 @@ class GachaTestApp extends Component {
     };
   }
 
+  //đưa lên lambda
   // Gacha Math Logic
   getRollResult = (currentP5, currentP4, forced) => {
     let p5 = currentP5 + 1;

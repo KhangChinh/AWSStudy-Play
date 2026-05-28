@@ -3,14 +3,14 @@ import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
-import { signIn, signUp, getCurrentUser, fetchUserAttributes, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, signOut } from 'aws-amplify/auth';
 
 import './AuthPage.scss';
 import Spinner from '../../components/Spinner';
 import { withRouter } from '../../utils/withRouter';
-import { handleLoginSuccessApi } from '../../services/authServices';
-import { saveUserToDb, getUserFromDb } from '../../services/dynamoDbService';
-import { userLogin } from '../../store/actions';
+import { notifyLoginSuccess } from '../../services/ipcWindowService';
+import { getUserFromApi } from '../../services/userService';
+import { userLogin, userLogout } from '../../store/actions';
 
 class AuthPage extends Component {
   constructor(props) {
@@ -29,23 +29,16 @@ class AuthPage extends Component {
       newPassword: '',
       confirmNewPassword: '',
       resendCooldown: 0,
-      // DisableButton
-      disabledButtons: {
-        submit: false,
-      },
     };
   }
 
-  componentDidMount() {
-    // Initial auth check is now handled in App.jsx to prevent UI flashing
-  }
 
   componentWillUnmount() {
     if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
   }
 
   startResendCooldown = () => {
-    this.setState({ resendCooldown: 60 });
+    this.setState({ resendCooldown: 300 });
     if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
     this.resendTimerInterval = setInterval(() => {
       this.setState((prev) => {
@@ -62,53 +55,50 @@ class AuthPage extends Component {
     this.setState({ [field]: value });
   };
   /**
-   * Lưu user vào DynamoDB lần đầu (sau khi verify thành công)
-   */
-  handleFirstTimeSaveUser = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      const attributes = await fetchUserAttributes();
-      const { userId } = currentUser;
-      const { email, name } = attributes;
-
-      console.log('🚀 Đang lưu user mới vào DynamoDB...');
-      const saveResult = await saveUserToDb(userId, email, name);
-      console.log('✅ Kết quả ghi:', saveResult);
-    } catch (error) {
-      console.error('❌ Lỗi khi lưu user mới vào DynamoDB:', error);
-    }
-  };
-
-  /**
-   * Load thông tin user từ DynamoDB khi đăng nhập
-   * TẠM THỜI: nếu user chưa có trong DB (tài khoản Cognito cũ) → tự động lưu vào
+   * Load thông tin user khi đăng nhập (Zero-Trust)
+   * Luồng: API Gateway (JWT) → Lambda → DynamoDB → electron-store → console.log → Redux
    */
   loadUserOnLogin = async () => {
     try {
-      const currentUser = await getCurrentUser();
-      const attributes = await fetchUserAttributes();
-      const { userId } = currentUser;
-      const { email, name } = attributes;
+      const apiResult = await getUserFromApi();
 
-      // Thử đọc từ DynamoDB
-      const getResult = await getUserFromDb(userId);
-
-      if (getResult.success && getResult.data) {
-        // User đã có trong DB → console.log thông tin
-        console.log('--- 📋 THÔNG TIN USER TỪ DYNAMODB ---');
-        console.log('UserID:', getResult.data.userId);
-        console.log('Email:', getResult.data.email);
-        console.log('Họ Tên:', getResult.data.name);
-        console.log('Ngày tạo:', getResult.data.createdAt);
-        console.log('--------------------------------------');
-      } else {
-        // TẠM THỜI: User có trên Cognito nhưng chưa có trong DB → lưu vào
-        console.log('⚠️ User chưa có trong DynamoDB, đang tự động lưu...');
-        await saveUserToDb(userId, email, name);
-        console.log('✅ Đã lưu user cũ vào DynamoDB:', { userId, email, name });
+      if (!apiResult.success || !apiResult.data) {
+        console.error('Không lấy được thông tin user từ API:', apiResult.error);
+        // Force cleanup session & logout to avoid getting stuck in half-authenticated state
+        await signOut().catch(err => console.error('Signout error:', err));
+        if (window.api) {
+          await window.api.invoke('store:clearUser').catch(() => {});
+        }
+        this.props.userLogout(); // Clear Redux
+        throw new Error(apiResult.error || 'Failed to retrieve user data from API');
       }
+      const userData = apiResult.data;
+      if (window.api) {
+        const storeResult = await window.api.invoke('store:saveUser', userData);
+        console.log('[electron-store] Kết quả lưu:', storeResult);
+
+        const readResult = await window.api.invoke('store:getUser');
+        if (readResult.success && readResult.data) {
+          console.log('═══════════════════════════════════════════');
+          console.log('📋 THÔNG TIN USER TỪ ELECTRON-STORE:');
+          console.log('UserID:', readResult.data.UserID);
+          console.log('Information:', readResult.data.Information);
+          console.log('Ngày tạo:', readResult.data.createdAt);
+          console.log('Cập nhật:', readResult.data.updatedAt);
+          console.log('Lần đăng nhập:', readResult.lastLoginAt);
+          console.log('═══════════════════════════════════════════');
+        }
+      }
+
+      this.props.userLogin({
+        userId: userData.UserID,
+        email: userData.Information?.email,
+        name: userData.Information?.name,
+        createdAt: userData.createdAt,
+      });
     } catch (error) {
       console.error('❌ Lỗi khi load thông tin user:', error);
+      throw error;
     }
   };
   handleToggleAuthMode = (mode) => {
@@ -195,8 +185,7 @@ class AuthPage extends Component {
       if (authMode === 'login') {
         const { isSignedIn, nextStep } = await signIn({ username: email, password });
         if (isSignedIn) {
-          handleLoginSuccessApi();
-          this.props.userLogin({ email, username: email });
+          notifyLoginSuccess();
           toast.success('Đăng nhập thành công!');
           await this.loadUserOnLogin();
           setTimeout(() => {
@@ -246,13 +235,13 @@ class AuthPage extends Component {
           confirmationCode: verificationCode
         });
         if (isSignUpComplete) {
-          // Verify thành công → auto đăng nhập + lưu DB
+          // Verify thành công → Cognito trigger tự tạo DB record
+          // → Auto đăng nhập + load user từ API
           toast.success('Xác thực thành công! Đang đăng nhập...');
           const { isSignedIn } = await signIn({ username: email, password });
           if (isSignedIn) {
-            await this.handleFirstTimeSaveUser();
-            handleLoginSuccessApi();
-            this.props.userLogin({ email, username: email });
+            notifyLoginSuccess();
+            await this.loadUserOnLogin();
             setTimeout(() => {
               this.props.navigate('/desktop');
             }, 100);
@@ -286,7 +275,20 @@ class AuthPage extends Component {
       }
     } catch (error) {
       console.log('Error:', error);
-      toast.error(error.message || 'Xảy ra lỗi, vui lòng thử lại!');
+      if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
+        toast.info('Phát hiện phiên đăng nhập cũ chưa dọn dẹp. Đang làm sạch, vui lòng bấm đăng nhập lại...');
+        try {
+          await signOut().catch(() => {});
+          if (window.api) {
+            await window.api.invoke('store:clearUser').catch(() => {});
+          }
+          this.props.userLogout();
+        } catch (logoutError) {
+          console.error('Error during cleanup:', logoutError);
+        }
+      } else {
+        toast.error(error.message || 'Xảy ra lỗi, vui lòng thử lại!');
+      }
     }
     this.setState({ isLoading: false });
   };
@@ -476,6 +478,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => ({
   userLogin: (info) => dispatch(userLogin(info)),
+  userLogout: () => dispatch(userLogout()),
 });
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(AuthPage));

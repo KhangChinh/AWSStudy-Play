@@ -16,7 +16,7 @@ import GachaStation from '../gacha/GachaStation';
 import GachaTestApp from '../gacha/GachaTestApp';
 import MinigameHub from '../minihub/MinigameHub';
 import { withRouter } from '../../utils/withRouter';
-import { handleLogoutApi } from '../../services/authServices';
+import { notifyLogout } from '../../services/ipcWindowService';
 import { userLogout } from '../../store/actions';
 import './Dashboard.scss';
 
@@ -345,7 +345,7 @@ class Dashboard extends Component {
     if (isConfirmed) {
       try {
         await signOut(); // Xóa session Cognito
-        handleLogoutApi(); // Call Electron IPC to clear session if needed
+        notifyLogout(); // Gửi IPC để thu nhỏ cửa sổ về Login mode
         this.props.userLogout(); // Clear Redux
         toast.success('Đăng xuất thành công!');
         this.props.navigate('/login');

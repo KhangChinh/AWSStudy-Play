@@ -2,34 +2,18 @@
  * IPC Handlers — Đón tín hiệu IPC từ React (Renderer Process)
  * 
  * Quy ước channel naming:
- *   - auth:*   → Xác thực & Token
  *   - focus:*  → Focus Engine
  *   - ai:*     → AI Guard
+ *   - store:*  → User Store (electron-store cache)
  */
 
-import { saveToken, loadToken, clearToken } from './services/authHelper.js';
 import { startFocus, stopFocus, getSessionStatus } from './services/focusEngine.js';
 import { classifyContent, clearCache } from './services/aiGuard.js';
-import { saveUser, getUser } from './services/dynamoDbService.js';
-
-import { BrowserWindow } from 'electron';
+// [DEPRECATED] Client không nên truy cập DynamoDB trực tiếp — vi phạm zero-trust
+// import { saveUser, getUser } from './services/dynamoDbService.js';
+import { saveUserToStore, getUserFromStore, clearUserStore } from './services/userStore.js';
 
 export function registerIpcHandlers(ipcMain, win) {
-  // ═══════════════════════════════════════════
-  //  AUTH — Mã hóa & lưu trữ Token bảo mật
-  // ═══════════════════════════════════════════
-  ipcMain.handle('auth:saveToken', async (_event, token) => {
-    return saveToken(token);
-  });
-
-  ipcMain.handle('auth:loadToken', async () => {
-    return loadToken();
-  });
-
-  ipcMain.handle('auth:clearToken', async () => {
-    return clearToken();
-  });
-
   // ═══════════════════════════════════════════
   //  FOCUS ENGINE — Giám sát & chặn ứng dụng
   // ═══════════════════════════════════════════
@@ -57,13 +41,30 @@ export function registerIpcHandlers(ipcMain, win) {
   });
 
   // ═══════════════════════════════════════════
-  //  DYNAMODB — Lưu & đọc thông tin User
+  //  DYNAMODB — [DEPRECATED] Vi phạm zero-trust
+  //  Client không nên truy cập DynamoDB trực tiếp
+  //  Dùng API Gateway + JWT thay thế (userService.js)
   // ═══════════════════════════════════════════
-  ipcMain.handle('db:saveUser', async (_event, { userId, email, name }) => {
-    return saveUser(userId, email, name);
+  // ipcMain.handle('db:saveUser', async (_event, { userId, email, name }) => {
+  //   return saveUser(userId, email, name);
+  // });
+
+  // ipcMain.handle('db:getUser', async (_event, userId) => {
+  //   return getUser(userId);
+  // });
+
+  // ═══════════════════════════════════════════
+  //  USER STORE — Cache user data cục bộ (electron-store)
+  // ═══════════════════════════════════════════
+  ipcMain.handle('store:saveUser', async (_event, userData) => {
+    return saveUserToStore(userData);
   });
 
-  ipcMain.handle('db:getUser', async (_event, userId) => {
-    return getUser(userId);
+  ipcMain.handle('store:getUser', async () => {
+    return getUserFromStore();
+  });
+
+  ipcMain.handle('store:clearUser', async () => {
+    return clearUserStore();
   });
 }

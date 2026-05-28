@@ -1,3 +1,4 @@
+//đưa lên lambda
 /**
  * DynamoDB Service — Singleton client cho Main Process
  * 

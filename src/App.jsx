@@ -2,15 +2,16 @@ import React, { Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, signOut } from 'aws-amplify/auth';
 import 'react-toastify/dist/ReactToastify.css';
 
 import store from './store';
 import Dashboard from './features/dashboard/Dashboard';
 import AuthPage from './features/auth/AuthPage';
 import Spinner from './components/Spinner';
-import { handleLoginSuccessApi } from './services/authServices';
-import { userLogin } from './store/actions';
+import { notifyLoginSuccess, notifyLogout } from './services/ipcWindowService';
+import { getUserFromApi } from './services/userService';
+import { userLogin, userLogout } from './store/actions';
 import './index.css';
 
 class App extends Component {
@@ -25,12 +26,60 @@ class App extends Component {
     try {
       const user = await getCurrentUser();
       if (user) {
-        // Nếu đã đăng nhập, thực hiện setup ban đầu
-        handleLoginSuccessApi(); // Resize window
-        this.props.userLogin({ 
-          email: user.signInDetails?.loginId || user.username, 
-          username: user.username 
+        // 1. Setup ban đầu & resize window
+        notifyLoginSuccess();
+
+        // 2. Thử đọc user data đã cache từ electron-store
+        let userData = null;
+        if (window.api) {
+          try {
+            const storeResult = await window.api.invoke('store:getUser');
+            if (storeResult.success && storeResult.data) {
+              userData = storeResult.data;
+              console.log('[App] Đã load thông tin user từ electron-store:', userData);
+            }
+          } catch (storeError) {
+            console.error('[App] Lỗi đọc user store:', storeError);
+          }
+        }
+
+        // 3. Dispatch login tạm thời với data cache hoặc data Cognito
+        this.props.userLogin({
+          userId: userData?.UserID || user.username,
+          email: userData?.Information?.email || user.signInDetails?.loginId || user.username,
+          name: userData?.Information?.name || user.username,
+          createdAt: userData?.createdAt,
         });
+
+        // 4. Đồng bộ thông tin mới nhất từ API
+        try {
+          const apiResult = await getUserFromApi();
+          if (apiResult.success && apiResult.data) {
+            const freshData = apiResult.data;
+            if (window.api) {
+              await window.api.invoke('store:saveUser', freshData).catch(() => { });
+            }
+            this.props.userLogin({
+              userId: freshData.UserID,
+              email: freshData.Information?.email,
+              name: freshData.Information?.name,
+              createdAt: freshData.createdAt,
+            });
+          } else {
+            // Nếu API báo lỗi 401 hoặc Unauthorized, dọn dẹp session và logout
+            if (apiResult.error?.includes('401') || apiResult.error?.toLowerCase().includes('unauthorized')) {
+              console.warn('[App] Session unauthorized, logging out...');
+              await signOut().catch(() => { });
+              if (window.api) {
+                await window.api.invoke('store:clearUser').catch(() => { });
+              }
+              notifyLogout();
+              this.props.userLogout();
+            }
+          }
+        } catch (apiError) {
+          console.error('[App] Lỗi đồng bộ user từ API:', apiError);
+        }
       }
     } catch (error) {
       console.log('No active session found.');
@@ -54,17 +103,17 @@ class App extends Component {
     return (
       <BrowserRouter>
         <Routes>
-          <Route 
-            path="/login" 
-            element={isLoggedIn ? <Navigate to="/desktop" replace /> : <AuthPage />} 
+          <Route
+            path="/login"
+            element={isLoggedIn ? <Navigate to="/desktop" replace /> : <AuthPage />}
           />
-          <Route 
-            path="/desktop" 
-            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} 
+          <Route
+            path="/desktop"
+            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />}
           />
-          <Route 
-            path="*" 
-            element={<Navigate to={isLoggedIn ? "/desktop" : "/login"} replace />} 
+          <Route
+            path="*"
+            element={<Navigate to={isLoggedIn ? "/desktop" : "/login"} replace />}
           />
         </Routes>
         <ToastContainer
@@ -90,6 +139,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => ({
   userLogin: (info) => dispatch(userLogin(info)),
+  userLogout: () => dispatch(userLogout()),
 });
 
 const ConnectedApp = connect(mapStateToProps, mapDispatchToProps)(App);

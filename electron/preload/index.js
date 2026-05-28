@@ -4,16 +4,16 @@ contextBridge.exposeInMainWorld('api', {
   // ═══ Gọi Main Process (request-response) ═══
   invoke: (channel, data) => {
     const validChannels = [
-      'auth:saveToken',
-      'auth:loadToken',
-      'auth:clearToken',
       'focus:start',
       'focus:stop',
       'focus:status',
       'ai:classify',
       'ai:clearCache',
-      'db:saveUser',
-      'db:getUser'
+      // 'db:saveUser',  // [DEPRECATED] zero-trust
+      // 'db:getUser',   // [DEPRECATED] zero-trust
+      'store:saveUser',
+      'store:getUser',
+      'store:clearUser'
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
@@ -24,7 +24,6 @@ contextBridge.exposeInMainWorld('api', {
   // ═══ Gửi tín hiệu 1 chiều (fire-and-forget) ═══
   send: (channel, data) => {
     const validChannels = [
-      'login',
       'login-success',
       'logout'
     ];

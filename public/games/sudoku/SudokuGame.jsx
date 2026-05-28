@@ -86,6 +86,7 @@ const MIN_P = {
   hard: 2000,
   expert: 4000
 }
+//đưa lên lambda
 // Rank points calculation helper depending on difficulty and time spent
 const calculateRankPoints = (difficulty, time) => {
   if (difficulty === 'easy') {
