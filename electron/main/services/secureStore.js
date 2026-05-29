@@ -18,19 +18,9 @@ const store = new Store({
 });
 
 /**
- * Kiểm tra xem có nên mã hóa hay không
- * Bypass khi đang chạy Dev hoặc safeStorage không khả dụng
- */
-function shouldEncrypt() {
-  if (process.env.VITE_DEV_SERVER_URL) return false;
-  return safeStorage.isEncryptionAvailable();
-}
-
-/**
  * Mã hóa chuỗi bằng safeStorage → trả về base64
  */
 function encrypt(text) {
-  if (!shouldEncrypt()) return text;
   const buffer = safeStorage.encryptString(text);
   return buffer.toString('base64');
 }
@@ -39,7 +29,6 @@ function encrypt(text) {
  * Giải mã base64 → chuỗi gốc bằng safeStorage
  */
 function decrypt(base64String) {
-  if (!shouldEncrypt()) return base64String;
   try {
     const buffer = Buffer.from(base64String, 'base64');
     return safeStorage.decryptString(buffer);
