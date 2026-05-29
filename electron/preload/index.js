@@ -9,11 +9,10 @@ contextBridge.exposeInMainWorld('api', {
       'focus:status',
       'ai:classify',
       'ai:clearCache',
-      // 'db:saveUser',  // [DEPRECATED] zero-trust
-      // 'db:getUser',   // [DEPRECATED] zero-trust
-      'store:saveUser',
-      'store:getUser',
-      'store:clearUser'
+      'secureStore:setItem',
+      'secureStore:getItem',
+      'secureStore:removeItem',
+      'secureStore:clear'
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);

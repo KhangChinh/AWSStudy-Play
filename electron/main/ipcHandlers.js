@@ -1,17 +1,15 @@
 /**
  * IPC Handlers — Đón tín hiệu IPC từ React (Renderer Process)
- * 
+ *
  * Quy ước channel naming:
- *   - focus:*  → Focus Engine
- *   - ai:*     → AI Guard
- *   - store:*  → User Store (electron-store cache)
+ *   - focus:*       → Focus Engine
+ *   - ai:*          → AI Guard
+ *   - secureStore:* → Secure Store (tokens + timestamp, mã hóa safeStorage)
  */
 
 import { startFocus, stopFocus, getSessionStatus } from './services/focusEngine.js';
 import { classifyContent, clearCache } from './services/aiGuard.js';
-// [DEPRECATED] Client không nên truy cập DynamoDB trực tiếp — vi phạm zero-trust
-// import { saveUser, getUser } from './services/dynamoDbService.js';
-import { saveUserToStore, getUserFromStore, clearUserStore } from './services/userStore.js';
+import { secureSetItem, secureGetItem, secureRemoveItem, secureClear } from './services/secureStore.js';
 
 export function registerIpcHandlers(ipcMain, win) {
   // ═══════════════════════════════════════════
@@ -41,30 +39,22 @@ export function registerIpcHandlers(ipcMain, win) {
   });
 
   // ═══════════════════════════════════════════
-  //  DYNAMODB — [DEPRECATED] Vi phạm zero-trust
-  //  Client không nên truy cập DynamoDB trực tiếp
-  //  Dùng API Gateway + JWT thay thế (userService.js)
+  //  SECURE STORE — Tokens + Timestamp (safeStorage)
+  //  Zero-Trust: KHÔNG lưu userData, chỉ lưu tokens
   // ═══════════════════════════════════════════
-  // ipcMain.handle('db:saveUser', async (_event, { userId, email, name }) => {
-  //   return saveUser(userId, email, name);
-  // });
-
-  // ipcMain.handle('db:getUser', async (_event, userId) => {
-  //   return getUser(userId);
-  // });
-
-  // ═══════════════════════════════════════════
-  //  USER STORE — Cache user data cục bộ (electron-store)
-  // ═══════════════════════════════════════════
-  ipcMain.handle('store:saveUser', async (_event, userData) => {
-    return saveUserToStore(userData);
+  ipcMain.handle('secureStore:setItem', async (_event, { key, value }) => {
+    return secureSetItem(key, value);
   });
 
-  ipcMain.handle('store:getUser', async () => {
-    return getUserFromStore();
+  ipcMain.handle('secureStore:getItem', async (_event, key) => {
+    return secureGetItem(key);
   });
 
-  ipcMain.handle('store:clearUser', async () => {
-    return clearUserStore();
+  ipcMain.handle('secureStore:removeItem', async (_event, key) => {
+    return secureRemoveItem(key);
+  });
+
+  ipcMain.handle('secureStore:clear', async () => {
+    return secureClear();
   });
 }

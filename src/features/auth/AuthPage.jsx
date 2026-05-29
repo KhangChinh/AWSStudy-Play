@@ -32,7 +32,6 @@ class AuthPage extends Component {
     };
   }
 
-
   componentWillUnmount() {
     if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
   }
@@ -56,46 +55,33 @@ class AuthPage extends Component {
   };
   /**
    * Load thông tin user khi đăng nhập (Zero-Trust)
-   * Luồng: API Gateway (JWT) → Lambda → DynamoDB → electron-store → console.log → Redux
+   * Luồng: API Gateway (JWT) → Lambda → DynamoDB → Redux (chỉ memory, KHÔNG lưu disk)
    */
   loadUserOnLogin = async () => {
     try {
       const apiResult = await getUserFromApi();
-
       if (!apiResult.success || !apiResult.data) {
         console.error('Không lấy được thông tin user từ API:', apiResult.error);
-        // Force cleanup session & logout to avoid getting stuck in half-authenticated state
         await signOut().catch(err => console.error('Signout error:', err));
         if (window.api) {
-          await window.api.invoke('store:clearUser').catch(() => {});
+          await window.api.invoke('secureStore:clear').catch(() => { });
         }
-        this.props.userLogout(); // Clear Redux
+        this.props.userLogout();
         throw new Error(apiResult.error || 'Failed to retrieve user data from API');
       }
       const userData = apiResult.data;
-      if (window.api) {
-        const storeResult = await window.api.invoke('store:saveUser', userData);
-        console.log('[electron-store] Kết quả lưu:', storeResult);
-
-        const readResult = await window.api.invoke('store:getUser');
-        if (readResult.success && readResult.data) {
-          console.log('═══════════════════════════════════════════');
-          console.log('📋 THÔNG TIN USER TỪ ELECTRON-STORE:');
-          console.log('UserID:', readResult.data.UserID);
-          console.log('Information:', readResult.data.Information);
-          console.log('Ngày tạo:', readResult.data.createdAt);
-          console.log('Cập nhật:', readResult.data.updatedAt);
-          console.log('Lần đăng nhập:', readResult.lastLoginAt);
-          console.log('═══════════════════════════════════════════');
-        }
-      }
-
       this.props.userLogin({
         userId: userData.UserID,
         email: userData.Information?.email,
         name: userData.Information?.name,
         createdAt: userData.createdAt,
       });
+      if (window.api) {
+        await window.api.invoke('secureStore:setItem', {
+          key: 'lastActiveTimestamp',
+          value: String(Date.now()),
+        }).catch(() => { });
+      }
     } catch (error) {
       console.error('❌ Lỗi khi load thông tin user:', error);
       throw error;
@@ -278,9 +264,9 @@ class AuthPage extends Component {
       if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
         toast.info('Phát hiện phiên đăng nhập cũ chưa dọn dẹp. Đang làm sạch, vui lòng bấm đăng nhập lại...');
         try {
-          await signOut().catch(() => {});
+          await signOut().catch(() => { });
           if (window.api) {
-            await window.api.invoke('store:clearUser').catch(() => {});
+            await window.api.invoke('secureStore:clear').catch(() => { });
           }
           this.props.userLogout();
         } catch (logoutError) {

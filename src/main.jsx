@@ -1,10 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Amplify } from 'aws-amplify';
+import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito';
 
 import './index.css'
 import App from './App.jsx'
+import { cognitoSecureStorage } from './services/cognitoSecureStorage';
 
+// Cấu hình Amplify Auth
 Amplify.configure({
   Auth: {
     Cognito: {
@@ -13,6 +16,10 @@ Amplify.configure({
     },
   },
 });
+
+// Override Cognito token storage → secureStore (safeStorage)
+// Thay vì localStorage mặc định, tokens sẽ được mã hóa và lưu qua IPC
+cognitoUserPoolsTokenProvider.setKeyValueStorage(cognitoSecureStorage);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

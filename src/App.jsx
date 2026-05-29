@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
-import { getCurrentUser, signOut } from 'aws-amplify/auth';
+import { fetchAuthSession, signOut } from 'aws-amplify/auth';
 import 'react-toastify/dist/ReactToastify.css';
 
 import store from './store';
@@ -14,6 +14,11 @@ import { getUserFromApi } from './services/userService';
 import { userLogin, userLogout } from './store/actions';
 import './index.css';
 
+/**
+ * Sliding Expiration: Phiên hết hạn sau 48 giờ không hoạt động
+ */
+const SESSION_MAX_IDLE_MS = 48 * 60 * 60 * 1000; // 48 giờ
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -24,69 +29,107 @@ class App extends Component {
 
   async componentDidMount() {
     try {
-      const user = await getCurrentUser();
-      if (user) {
-        // 1. Setup ban đầu & resize window
-        notifyLoginSuccess();
-
-        // 2. Thử đọc user data đã cache từ electron-store
-        let userData = null;
-        if (window.api) {
-          try {
-            const storeResult = await window.api.invoke('store:getUser');
-            if (storeResult.success && storeResult.data) {
-              userData = storeResult.data;
-              console.log('[App] Đã load thông tin user từ electron-store:', userData);
-            }
-          } catch (storeError) {
-            console.error('[App] Lỗi đọc user store:', storeError);
-          }
-        }
-
-        // 3. Dispatch login tạm thời với data cache hoặc data Cognito
-        this.props.userLogin({
-          userId: userData?.UserID || user.username,
-          email: userData?.Information?.email || user.signInDetails?.loginId || user.username,
-          name: userData?.Information?.name || user.username,
-          createdAt: userData?.createdAt,
-        });
-
-        // 4. Đồng bộ thông tin mới nhất từ API
-        try {
-          const apiResult = await getUserFromApi();
-          if (apiResult.success && apiResult.data) {
-            const freshData = apiResult.data;
-            if (window.api) {
-              await window.api.invoke('store:saveUser', freshData).catch(() => { });
-            }
-            this.props.userLogin({
-              userId: freshData.UserID,
-              email: freshData.Information?.email,
-              name: freshData.Information?.name,
-              createdAt: freshData.createdAt,
-            });
-          } else {
-            // Nếu API báo lỗi 401 hoặc Unauthorized, dọn dẹp session và logout
-            if (apiResult.error?.includes('401') || apiResult.error?.toLowerCase().includes('unauthorized')) {
-              console.warn('[App] Session unauthorized, logging out...');
-              await signOut().catch(() => { });
-              if (window.api) {
-                await window.api.invoke('store:clearUser').catch(() => { });
-              }
-              notifyLogout();
-              this.props.userLogout();
-            }
-          }
-        } catch (apiError) {
-          console.error('[App] Lỗi đồng bộ user từ API:', apiError);
-        }
-      }
+      await this.bootstrapSession();
     } catch (error) {
-      console.log('No active session found.');
+      console.log('[App] Bootstrap failed:', error.message);
     } finally {
       this.setState({ isCheckingAuth: false });
     }
   }
+
+  /**
+   * Bootstrap Sliding Expiration — Chạy 1 lần khi app khởi động
+   *
+   * Luồng:
+   *   1. Đọc lastActiveTimestamp từ secureStore
+   *   2. Nếu không có → Không có phiên cũ → hiện Login
+   *   3. Nếu > 48h → Phiên hết hạn → clear store + sign out
+   *   4. Nếu ≤ 48h → Phiên còn hạn → renew session + load fresh user data
+   */
+  bootstrapSession = async () => {
+    // 1. Đọc lastActiveTimestamp
+    let lastActive = null;
+    if (window.api) {
+      const result = await window.api.invoke('secureStore:getItem', 'lastActiveTimestamp');
+      if (result.success && result.value) {
+        lastActive = Number(result.value);
+      }
+    }
+
+    // 2. Không có timestamp → chưa từng login hoặc đã bị clear
+    if (!lastActive) {
+      console.log('[App] Không có phiên cũ.');
+      return;
+    }
+
+    const elapsed = Date.now() - lastActive;
+
+    // 3. Quá 48h → Phiên hết hạn
+    if (elapsed > SESSION_MAX_IDLE_MS) {
+      console.warn(`[App] Phiên hết hạn (idle ${Math.round(elapsed / 3600000)}h > 48h). Force sign out.`);
+      if (window.api) {
+        await window.api.invoke('secureStore:clear').catch(() => {});
+      }
+      await signOut().catch(() => {});
+      notifyLogout();
+      this.props.userLogout();
+      return;
+    }
+
+    // 4. Còn trong 48h → Renew session
+    console.log(`[App] Phiên còn hạn (idle ${Math.round(elapsed / 60000)} phút). Đang renew...`);
+
+    // 4a. Gọi fetchAuthSession → Cognito tự dùng custom storage lấy refresh token → renew
+    const session = await fetchAuthSession();
+    if (!session.tokens?.idToken) {
+      // Token hết hạn hoặc refresh token invalid → force logout
+      console.warn('[App] Không thể renew session. Force sign out.');
+      if (window.api) {
+        await window.api.invoke('secureStore:clear').catch(() => {});
+      }
+      await signOut().catch(() => {});
+      notifyLogout();
+      this.props.userLogout();
+      return;
+    }
+
+    // 4b. Resize window cho Desktop mode
+    notifyLoginSuccess();
+
+    // 4c. Gọi API lấy userData mới nhất → nạp vào Redux (KHÔNG lưu disk)
+    const apiResult = await getUserFromApi();
+    if (apiResult.success && apiResult.data) {
+      const freshData = apiResult.data;
+      this.props.userLogin({
+        userId: freshData.UserID,
+        email: freshData.Information?.email,
+        name: freshData.Information?.name,
+        createdAt: freshData.createdAt,
+      });
+    } else {
+      // API thất bại (401, network error...) → kiểm tra có phải unauthorized
+      if (apiResult.error?.includes('401') || apiResult.error?.toLowerCase().includes('unauthorized')) {
+        console.warn('[App] Session unauthorized, logging out...');
+        if (window.api) {
+          await window.api.invoke('secureStore:clear').catch(() => {});
+        }
+        await signOut().catch(() => {});
+        notifyLogout();
+        this.props.userLogout();
+        return;
+      }
+      // Lỗi khác (network) → vẫn cho vào app nhưng log warning
+      console.warn('[App] Không thể đồng bộ user từ API:', apiResult.error);
+    }
+
+    // 4d. Update lastActiveTimestamp = now (Sliding Expiration)
+    if (window.api) {
+      await window.api.invoke('secureStore:setItem', {
+        key: 'lastActiveTimestamp',
+        value: String(Date.now()),
+      }).catch(() => {});
+    }
+  };
 
   render() {
     const { isCheckingAuth } = this.state;

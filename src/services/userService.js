@@ -16,7 +16,6 @@ const getUserFromApi = async () => {
       },
     });
     if (!response.ok) {
-      const errorText = await response.text();
       return { success: false, error: `API Error: ${response.status}` };
     }
     const result = await response.json();
