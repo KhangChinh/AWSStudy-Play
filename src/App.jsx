@@ -68,9 +68,9 @@ class App extends Component {
     if (elapsed > SESSION_MAX_IDLE_MS) {
       console.warn(`[App] Phiên hết hạn (idle ${Math.round(elapsed / 3600000)}h > 48h). Force sign out.`);
       if (window.api) {
-        await window.api.invoke('secureStore:clear').catch(() => {});
+        await window.api.invoke('secureStore:clear').catch(() => { });
       }
-      await signOut().catch(() => {});
+      await signOut().catch(() => { });
       notifyLogout();
       this.props.userLogout();
       return;
@@ -85,9 +85,9 @@ class App extends Component {
       // Token hết hạn hoặc refresh token invalid → force logout
       console.warn('[App] Không thể renew session. Force sign out.');
       if (window.api) {
-        await window.api.invoke('secureStore:clear').catch(() => {});
+        await window.api.invoke('secureStore:clear').catch(() => { });
       }
-      await signOut().catch(() => {});
+      await signOut().catch(() => { });
       notifyLogout();
       this.props.userLogout();
       return;
@@ -100,10 +100,11 @@ class App extends Component {
     const apiResult = await getUserFromApi();
     if (apiResult.success && apiResult.data) {
       const freshData = apiResult.data;
+      console.log('Fresh data from API:', freshData);
       this.props.userLogin({
-        userId: freshData.UserID,
-        email: freshData.Information?.email,
-        name: freshData.Information?.name,
+        userId: freshData.PK,
+        email: freshData.information?.email,
+        name: freshData.information?.name,
         createdAt: freshData.createdAt,
       });
     } else {
@@ -111,9 +112,9 @@ class App extends Component {
       if (apiResult.error?.includes('401') || apiResult.error?.toLowerCase().includes('unauthorized')) {
         console.warn('[App] Session unauthorized, logging out...');
         if (window.api) {
-          await window.api.invoke('secureStore:clear').catch(() => {});
+          await window.api.invoke('secureStore:clear').catch(() => { });
         }
-        await signOut().catch(() => {});
+        await signOut().catch(() => { });
         notifyLogout();
         this.props.userLogout();
         return;
@@ -127,7 +128,7 @@ class App extends Component {
       await window.api.invoke('secureStore:setItem', {
         key: 'lastActiveTimestamp',
         value: String(Date.now()),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   };
 

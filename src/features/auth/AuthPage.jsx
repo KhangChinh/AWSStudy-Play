@@ -71,9 +71,9 @@ class AuthPage extends Component {
       }
       const userData = apiResult.data;
       this.props.userLogin({
-        userId: userData.UserID,
-        email: userData.Information?.email,
-        name: userData.Information?.name,
+        userId: userData.PK,
+        email: userData.information?.email,
+        name: userData.information?.name,
         createdAt: userData.createdAt,
       });
       if (window.api) {
