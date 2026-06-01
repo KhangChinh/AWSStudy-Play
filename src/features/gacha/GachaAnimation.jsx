@@ -9,6 +9,8 @@ class GachaAnimation extends Component {
     this.state = {
       phase: 'idle', // idle | blackout | meteor | burst | reveal | done
       particles: this.generateParticles(),
+      showSkip: false,
+      isInstantReveal: false,
     };
     this.timers = [];
   }
@@ -32,11 +34,20 @@ class GachaAnimation extends Component {
   }
 
   componentWillUnmount() {
-    this.timers.forEach(t => clearTimeout(t));
+    this.clearTimers();
   }
 
+  clearTimers = () => {
+    this.timers.forEach(t => clearTimeout(t));
+    this.timers = [];
+  };
+
   startAnimation = () => {
-    this.setState({ phase: 'blackout' });
+    this.setState({ 
+      phase: 'blackout', 
+      showSkip: false,
+      isInstantReveal: false 
+    });
 
     this.timers.push(setTimeout(() => {
       this.setState({ phase: 'meteor' });
@@ -47,8 +58,40 @@ class GachaAnimation extends Component {
     }, 2200));
 
     this.timers.push(setTimeout(() => {
-      this.setState({ phase: 'reveal', particles: this.generateParticles() });
+      this.setState({ phase: 'reveal', particles: this.generateParticles(), showSkip: false });
     }, 3200));
+  };
+
+  handleOverlayClick = () => {
+    const { phase, showSkip, isInstantReveal } = this.state;
+    const { hasNewItem } = this.props;
+
+    // If in reveal phase and first click, do instant reveal
+    if (phase === 'reveal') {
+      if (!isInstantReveal) {
+        this.setState({ isInstantReveal: true });
+      } else {
+        this.handleClose();
+      }
+      return;
+    }
+    
+    // If in mid-animation, show skip button (ONLY if NO NEW ITEM)
+    if ((phase === 'meteor' || phase === 'burst') && !showSkip) {
+      if (!hasNewItem) {
+        this.setState({ showSkip: true });
+      }
+    }
+  };
+
+  handleSkip = (e) => {
+    e.stopPropagation();
+    this.clearTimers();
+    this.setState({ 
+      phase: 'reveal', 
+      particles: this.generateParticles(),
+      showSkip: false 
+    });
   };
 
   handleClose = () => {
@@ -60,21 +103,30 @@ class GachaAnimation extends Component {
   };
 
   getRarityClass = () => {
-    const r = this.props.rarity || 3;
-    if (r >= 5) return 'rarity-5';
-    if (r >= 4) return 'rarity-4';
-    return 'rarity-3';
+    const r = this.props.rarity || 'gray';
+    // Mapping string rarities to CSS classes
+    const map = {
+      'gold': 'rarity-5',
+      'purple': 'rarity-4',
+      'blue': 'rarity-3',
+      'gray': 'rarity-2'
+    };
+    return map[r] || 'rarity-2';
   };
 
   getRarityLabel = () => {
-    const r = this.props.rarity || 3;
-    if (r >= 5) return '★★★★★';
-    if (r >= 4) return '★★★★';
-    return '★★★';
+    const r = this.props.rarity || 'gray';
+    const map = {
+      'gold': '★★★★★',
+      'purple': '★★★★',
+      'blue': '★★★',
+      'gray': '★★'
+    };
+    return map[r] || '★★';
   };
 
   render() {
-    const { phase, particles } = this.state;
+    const { phase, particles, showSkip } = this.state;
     const { rewards } = this.props;
     const rarityClass = this.getRarityClass();
     const isMulti = rewards && rewards.length > 1;
@@ -82,8 +134,17 @@ class GachaAnimation extends Component {
     if (phase === 'idle') return null;
 
     return (
-      <div className={`gacha-overlay ${phase} ${rarityClass}`} onClick={phase === 'reveal' ? this.handleClose : undefined}>
+      <div 
+        className={`gacha-overlay ${phase} ${rarityClass}`} 
+        onClick={this.handleOverlayClick}
+      >
         <div className="blackout-layer" />
+
+        {showSkip && (
+          <button className="gacha-skip-btn" onClick={this.handleSkip}>
+            SKIP ❯❯
+          </button>
+        )}
 
         {(phase === 'meteor' || phase === 'burst') && (
           <div className={`meteor-wrapper ${rarityClass}`}>
@@ -137,13 +198,24 @@ class GachaAnimation extends Component {
 
             {/* Multi Reveal (x10) */}
             {isMulti && (
-              <div className="reveal-container multi-grid">
-                {rewards.map((reward, i) => (
-                  <div className={`grid-item rarity-${reward.rarity}`} key={i} style={{ animationDelay: `${i * 0.1}s` }}>
-                    <div className="grid-icon">{reward.icon}</div>
-                    <div className="grid-stars">{'★'.repeat(reward.rarity)}</div>
-                  </div>
-                ))}
+              <div className={`reveal-container multi-grid ${this.state.isInstantReveal ? 'instant' : ''}`}>
+                {rewards.map((reward, i) => {
+                  const starsMap = { 'gold': 5, 'purple': 4, 'blue': 3, 'gray': 2 };
+                  const classMap = { 'gold': '5', 'purple': '4', 'blue': '3', 'gray': '2' };
+                  const starCount = starsMap[reward.rarity] || 2;
+                  const rClass = `rarity-${classMap[reward.rarity] || '2'}`;
+                  
+                  return (
+                    <div 
+                      className={`grid-item ${rClass}`} 
+                      key={i} 
+                      style={{ animationDelay: this.state.isInstantReveal ? '0s' : `${i * 0.1}s` }}
+                    >
+                      <div className="grid-icon">{reward.icon}</div>
+                      <div className="grid-stars">{'★'.repeat(starCount)}</div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

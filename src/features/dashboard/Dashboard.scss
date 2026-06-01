@@ -221,6 +221,25 @@
     padding: 24px;
     position: relative;
   }
+
+  &.dragging {
+    transition: none !important;
+    opacity: 0.9;
+    scale: 1.01;
+    cursor: grabbing;
+    z-index: 9999 !important;
+  }
+}
+
+.drag-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9998;
+  cursor: grabbing;
+  background: transparent;
 }
 
 /* OS Taskbar */
@@ -239,8 +258,12 @@
   padding: 0 16px;
   z-index: 1000;
 
-  .taskbar-start {
-    .start-btn {
+    .taskbar-start {
+      min-width: 150px;
+      display: flex;
+      justify-content: flex-start;
+
+      .start-btn {
       width: 40px;
       height: 40px;
       display: flex;
@@ -279,6 +302,11 @@
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s;
+      user-select: none;
+
+      i, svg, .indicator, ion-icon {
+        pointer-events: none;
+      }
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
@@ -318,8 +346,10 @@
   }
 
   .taskbar-sys {
+    min-width: 150px;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 16px;
 
     .os-time {

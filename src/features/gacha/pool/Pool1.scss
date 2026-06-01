@@ -1,0 +1,35 @@
+.pool-1 {
+    .banner-card {
+        background: linear-gradient(135deg, #1a0b35 0%, #4a148c 100%);
+        border: 2px solid #7b1fa2;
+        box-shadow: 0 0 20px rgba(123, 31, 162, 0.4);
+        position: relative;
+        overflow: hidden;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            animation: rotate 10s linear infinite;
+        }
+    }
+
+    .banner-tag {
+        background: #f48fb1;
+        color: #880e4f;
+    }
+
+    .f5 {
+        background: rgba(255, 215, 0, 0.1);
+        border-left: 4px solid #ffd700;
+    }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

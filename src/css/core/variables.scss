@@ -1,0 +1,18 @@
+// Global Variables
+:root {
+  --rarity-gold: #fbbf24;
+  --rarity-purple: #a855f7;
+  --rarity-blue: #3b82f6;
+  --rarity-gray: #94a3b8;
+  
+  --bg-primary: #0c0218;
+  --bg-secondary: #1e1b3a;
+  --text-main: #ffffff;
+  --text-muted: #94a3b8;
+}
+
+// Cosmetic Tokens
+.f-gold { --frame-color: var(--rarity-gold); --frame-glow: rgba(251, 191, 36, 0.4); }
+.f-neon { --frame-color: #d946ef; --frame-glow: rgba(217, 70, 239, 0.4); }
+
+.t-legend { color: var(--rarity-gold); font-weight: 800; text-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }

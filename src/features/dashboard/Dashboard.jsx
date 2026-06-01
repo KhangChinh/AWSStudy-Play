@@ -195,7 +195,7 @@ class Dashboard extends Component {
         maximizedApp: null,
         isVacuuming: false
       });
-      toast.success('System cleanup complete!', { 
+      toast.success('System cleanup complete!', {
         icon: '🧹',
         theme: 'dark',
         autoClose: 1500
@@ -288,49 +288,61 @@ class Dashboard extends Component {
   handleDragStart = (e, appId) => {
     if (this.state.maximizedApp === appId) return;
 
+    const event = e.touches ? e.touches[0] : e;
     this.setState({
       activeApp: appId,
       isDragging: appId,
       dragOffset: {
-        x: e.clientX - (this.state.windowPositions[appId]?.x || 0),
-        y: e.clientY - (this.state.windowPositions[appId]?.y || 0)
+        x: event.clientX - (this.state.windowPositions[appId]?.x || 0),
+        y: event.clientY - (this.state.windowPositions[appId]?.y || 0)
       }
     });
 
-    window.addEventListener('mousemove', this.handleDragging);
-    window.addEventListener('mouseup', this.handleDragEnd);
+    if (e.touches) {
+      window.addEventListener('touchmove', this.handleDragging, { passive: false });
+      window.addEventListener('touchend', this.handleDragEnd);
+    } else {
+      window.addEventListener('mousemove', this.handleDragging);
+      window.addEventListener('mouseup', this.handleDragEnd);
+    }
   };
 
   handleDragging = (e) => {
     if (!this.state.isDragging) return;
-    const appId = this.state.isDragging;
+    if (e.cancelable) e.preventDefault(); // Ngăn scroll trên mobile
 
-    // GIỚI HẠN VỊ TRÍ (CONSTRAINT)
+    const appId = this.state.isDragging;
+    const event = e.touches ? e.touches[0] : e;
+
     const headerHeight = 42;
     const taskbarHeight = 48;
-    const padding = 100; // Đảm bảo còn 100px tiêu đề trong màn hình
+    const padding = 100;
 
-    let newX = e.clientX - this.state.dragOffset.x;
-    let newY = e.clientY - this.state.dragOffset.y;
+    let newX = event.clientX - this.state.dragOffset.x;
+    let newY = event.clientY - this.state.dragOffset.y;
 
-    // Giới hạn trục Y (Không vượt giới hạn trên và Taskbar)
     newY = Math.max(0, Math.min(newY, window.innerHeight - taskbarHeight - headerHeight));
-
-    // Giới hạn trục X (Đảm bảo tiêu đề không trôi mất)
     newX = Math.max(-(900 - padding), Math.min(newX, window.innerWidth - padding));
 
-    this.setState(prev => ({
-      windowPositions: {
-        ...prev.windowPositions,
-        [appId]: { x: newX, y: newY }
-      }
-    }));
+    // Dùng requestAnimationFrame để mượt hơn
+    if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
+    this.dragRaf = requestAnimationFrame(() => {
+      this.setState(prev => ({
+        windowPositions: {
+          ...prev.windowPositions,
+          [appId]: { x: newX, y: newY }
+        }
+      }));
+    });
   };
 
   handleDragEnd = () => {
     this.setState({ isDragging: null });
     window.removeEventListener('mousemove', this.handleDragging);
     window.removeEventListener('mouseup', this.handleDragEnd);
+    window.removeEventListener('touchmove', this.handleDragging);
+    window.removeEventListener('touchend', this.handleDragEnd);
+    if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
   };
 
   handleLogout = async () => {
@@ -386,6 +398,7 @@ class Dashboard extends Component {
         <div className="stars"></div>
         <div className="twinkling"></div>
         <div className="purple-nebula"></div>
+        {this.state.isDragging && <div className="drag-overlay"></div>}
         <FocusWidget />
 
         {/* Desktop Icons Array */}
@@ -412,7 +425,7 @@ class Dashboard extends Component {
           return (
             <div
               key={appId}
-              className={`os-window ${app.className} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''}`}
+              className={`os-window ${app.className} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
               style={{
                 top: isMaximized ? 0 : pos.y,
                 left: isMaximized ? 0 : pos.x,
@@ -420,7 +433,10 @@ class Dashboard extends Component {
               }}
               onMouseDown={() => this.setState({ activeApp: appId })}
             >
-              <div className="window-header" onMouseDown={(e) => this.handleDragStart(e, appId)}>
+              <div className="window-header" 
+                onMouseDown={(e) => this.handleDragStart(e, appId)}
+                onTouchStart={(e) => this.handleDragStart(e, appId)}
+              >
                 <div className="window-title">
                   {app.name}
                 </div>
@@ -449,7 +465,7 @@ class Dashboard extends Component {
         {/* Taskbar */}
         <div className="os-taskbar">
           <div className="taskbar-start">
-            <div 
+            <div
               className={`start-btn ${this.state.isVacuuming ? 'active' : ''}`}
               onClick={this.handleClearAllApps}
               title="Clean Desktop"

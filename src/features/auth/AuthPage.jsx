@@ -239,14 +239,14 @@ class AuthPage extends Component {
             <button
               className={authMode === 'login' ? 'active' : ''}
               onClick={() => this.handleToggleAuthMode('login')}
-              disabled={authMode === 'confirm' || authMode === 'forgot' || authMode === 'resetPassword'}
+              disabled={authMode === 'confirm'}
             >
               Sign In
             </button>
             <button
               className={authMode === 'register' ? 'active' : ''}
               onClick={() => this.handleToggleAuthMode('register')}
-              disabled={authMode === 'confirm' || authMode === 'forgot' || authMode === 'resetPassword'}
+              disabled={authMode === 'confirm'}
             >
               Sign Up
             </button>
@@ -385,6 +385,9 @@ class AuthPage extends Component {
                   )}
                   <button type="button" className="btn-link" onClick={() => this.handleToggleAuthMode('login')} disabled={isLoading}>
                     Back to Sign In
+                  </button>
+                  <button type="button" className="btn-link" onClick={() => this.handleToggleAuthMode('register')} disabled={isLoading}>
+                    Register New Account
                   </button>
                 </div>
               )}

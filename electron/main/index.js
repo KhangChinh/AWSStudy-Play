@@ -136,12 +136,18 @@ ipcMain.on('login-success', () => {
 
 ipcMain.on('logout', () => {
   if (!win || win.isDestroyed()) return;
+  
+  // Đảm bảo thoát chế độ phóng to/toàn màn hình trước khi chỉnh size
+  if (win.isMaximized()) win.unmaximize();
+  if (win.isFullScreen()) win.setFullScreen(false);
+
   win.setMinimumSize(450, 600);
   win.setSize(450, 600);
   win.setResizable(false);
   win.center();
   win.removeMenu();
 });
+
 
 app.whenReady().then(() => {
   // Tắt menu toàn cục ngay khi app sẵn sàng

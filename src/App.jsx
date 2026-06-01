@@ -28,9 +28,9 @@ class App extends Component {
       if (user) {
         // Nếu đã đăng nhập, thực hiện setup ban đầu
         handleLoginSuccessApi(); // Resize window
-        this.props.userLogin({ 
-          email: user.signInDetails?.loginId || user.username, 
-          username: user.username 
+        this.props.userLogin({
+          email: user.signInDetails?.loginId || user.username,
+          username: user.username
         });
       }
     } catch (error) {
@@ -55,21 +55,21 @@ class App extends Component {
     return (
       <HashRouter>
         <Routes>
-          <Route 
-            path="/login" 
-            element={isLoggedIn ? <Navigate to="/desktop" replace /> : <AuthPage />} 
+          <Route
+            path="/login"
+            element={isLoggedIn ? <Navigate to="/desktop" replace /> : <AuthPage />}
           />
-          <Route 
-            path="/desktop" 
-            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} 
+          <Route
+            path="/desktop"
+            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />}
           />
-          <Route 
-            path="/timer-widget" 
-            element={<TimerWidget />} 
+          <Route
+            path="/timer-widget"
+            element={<TimerWidget />}
           />
-          <Route 
-            path="*" 
-            element={<Navigate to={isLoggedIn ? "/desktop" : "/login"} replace />} 
+          <Route
+            path="*"
+            element={<Navigate to={isLoggedIn ? "/desktop" : "/login"} replace />}
           />
         </Routes>
         <ToastContainer
