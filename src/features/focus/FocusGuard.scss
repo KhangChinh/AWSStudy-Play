@@ -1,0 +1,484 @@
+// ═══════════════════════════════════════════
+//  FOCUS GUARD — Floating Panel Widget
+// ═══════════════════════════════════════════
+
+// Trigger Button (always visible, bottom-right)
+.focus-guard-trigger {
+  position: fixed;
+  bottom: 60px; // above 48px taskbar
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #9333ea 0%, #d946ef 100%);
+  color: #fff;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 200;
+  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5),
+              0 0 40px rgba(147, 51, 234, 0.15);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: trigger-float 3s ease-in-out infinite;
+
+  &:hover {
+    transform: scale(1.12);
+    box-shadow: 0 6px 30px rgba(147, 51, 234, 0.7),
+                0 0 60px rgba(147, 51, 234, 0.25);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%);
+    box-shadow: 0 4px 25px rgba(124, 58, 237, 0.6);
+    animation: none;
+  }
+
+  // Pulsing ring when timer is running
+  &.timer-active::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(147, 51, 234, 0.6);
+    animation: pulse-ring 2s ease-out infinite;
+  }
+}
+
+@keyframes trigger-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+// ═══ Panel ═══
+.focus-guard-panel {
+  position: fixed;
+  bottom: 118px; // 48 taskbar + 60 trigger gap + 10 spacing
+  right: 20px;
+  width: 320px;
+  max-height: 420px;
+  background: rgba(15, 10, 30, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6),
+              0 0 30px rgba(139, 92, 246, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  z-index: 200;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  // Slide-up animation
+  animation: panel-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  &.closing {
+    animation: panel-slide-down 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+}
+
+@keyframes panel-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes panel-slide-down {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+}
+
+// ═══ Header ═══
+.fg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
+
+  .fg-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.3px;
+
+    .fg-title-icon {
+      font-size: 18px;
+      color: #c084fc;
+    }
+  }
+
+  .fg-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+  }
+}
+
+// ═══ Body ═══
+.fg-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 2px;
+  }
+}
+
+// ═══ Status Badges ═══
+.fg-status-row {
+  display: flex;
+  gap: 12px;
+}
+
+.fg-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &.green {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+    }
+    &.red {
+      background: #ef4444;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+    }
+  }
+}
+
+// ═══ Duration Selector ═══
+.fg-duration-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: -8px;
+}
+
+.fg-duration-group {
+  display: flex;
+  gap: 8px;
+
+  .fg-duration-btn {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: rgba(139, 92, 246, 0.4);
+      color: #c4b5fd;
+      background: rgba(139, 92, 246, 0.08);
+    }
+
+    &.active {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.5);
+      color: #c084fc;
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+    }
+  }
+}
+
+// ═══ Mode Toggle ═══
+.fg-mode-toggle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  .fg-mode-btn {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+
+    .mode-label { font-size: 13px; }
+    .mode-desc {
+      font-size: 9px;
+      font-weight: 400;
+      opacity: 0.7;
+    }
+
+    &.active {
+      background: rgba(139, 92, 246, 0.15);
+      color: #c084fc;
+      box-shadow: 0 2px 10px rgba(139, 92, 246, 0.15);
+
+      .mode-desc { opacity: 1; color: #a78bfa; }
+    }
+
+    &:hover:not(.active) {
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.03);
+    }
+  }
+}
+
+// ═══ Start Button ═══
+.fg-start-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #9333ea 0%, #d946ef 50%, #ec4899 100%);
+  background-size: 200% 200%;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+
+  &:hover {
+    background-position: 100% 0;
+    box-shadow: 0 6px 28px rgba(147, 51, 234, 0.5);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+// ═══ Timer Display (Active State) ═══
+.fg-timer-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.fg-countdown {
+  font-size: 56px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, #c084fc 0%, #f0abfc 40%, #e879f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+  letter-spacing: 2px;
+  text-shadow: none;
+  filter: drop-shadow(0 0 20px rgba(192, 132, 252, 0.3));
+}
+
+.fg-timer-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+// ═══ Mode Badge (in active state) ═══
+.fg-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+
+  &.casual {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+  }
+
+  &.rank {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+  }
+}
+
+// ═══ Strike Counter ═══
+.fg-strikes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  &.strikes-0 { color: #64748b; }
+  &.strikes-1 { color: #fbbf24; border-color: rgba(251, 191, 36, 0.2); }
+  &.strikes-2 { color: #f97316; border-color: rgba(249, 115, 22, 0.2); }
+  &.strikes-3 {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+    animation: strike-pulse 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes strike-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+}
+
+// ═══ Stop / Resume Button ═══
+.fg-stop-btn {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+}
+
+.fg-resume-btn {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+  }
+}
+
+// Hard mode lock label
+.fg-hardmode-label {
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+// Paused state
+.fg-paused-label {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fbbf24;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: paused-blink 1.5s ease-in-out infinite;
+}
+
+@keyframes paused-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

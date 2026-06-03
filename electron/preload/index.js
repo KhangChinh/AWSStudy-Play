@@ -7,8 +7,14 @@ contextBridge.exposeInMainWorld('api', {
       'focus:start',
       'focus:stop',
       'focus:status',
+      'focus:setConfig',
       'ai:classify',
       'ai:clearCache',
+      'ai:status',
+      'ai:saveGroqKey',
+      'ai:getGroqKey',
+      'ai:getAllowedCategories',
+      'ai:saveAllowedCategories',
       'secureStore:setItem',
       'secureStore:getItem',
       'secureStore:removeItem',
@@ -36,7 +42,13 @@ contextBridge.exposeInMainWorld('api', {
     const validChannels = [
       'focus:warning',
       'focus:forceClose',
-      'focus:sessionEnd'
+      'focus:sessionEnd',
+      'focus-mode-changed',
+      'gate-status',
+      'timer-expired',
+      'strike-recorded',
+      'session-failed',
+      'ai-status-lost'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (_event, ...args) => callback(...args));

@@ -10,7 +10,7 @@ import {
   copyOutline
 } from 'ionicons/icons';
 
-import FocusWidget from '../focus/FocusWidget';
+import FocusGuard from '../focus/FocusGuard';
 import Inventory from '../inventory/Inventory';
 import GachaStation from '../gacha/GachaStation';
 import GachaTestApp from '../gacha/GachaTestApp';
@@ -365,7 +365,7 @@ class Dashboard extends Component {
         <div className="stars"></div>
         <div className="twinkling"></div>
         <div className="purple-nebula"></div>
-        <FocusWidget />
+
 
         {/* Desktop Icons Array */}
         <div className="desktop-icons">
@@ -458,6 +458,8 @@ class Dashboard extends Component {
             </button>
           </div>
         </div>
+
+        <FocusGuard />
       </div>
     );
   }
