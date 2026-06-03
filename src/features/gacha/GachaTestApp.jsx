@@ -25,6 +25,7 @@ class GachaTestApp extends Component {
       activeBanner: bannerManager.getActiveBanner(),
       timeLeftStr: '',
       inventoryItems: [],
+      pendingRolls: null,
     };
     this.timer = null;
   }
@@ -63,7 +64,7 @@ class GachaTestApp extends Component {
     let tempPity4 = pity4;
     let maxRarity = 'gray';
 
-    const rarityOrder = ['gray', 'blue', 'purple', 'gold'];
+    const rarityOrder = ['R', 'SR', 'SSR'];
 
     for (let i = 0; i < count; i++) {
       // Logic driven by manager
@@ -80,10 +81,10 @@ class GachaTestApp extends Component {
       }
 
       // Simple pity reset logic (could be moved to manager)
-      if (rarity === 'gold') tempPity5 = 0;
+      if (rarity === 'SSR') tempPity5 = 0;
       else tempPity5++;
 
-      if (rarity === 'purple') tempPity4 = 0;
+      if (rarity === 'SR') tempPity4 = 0;
       else tempPity4++;
     }
 
@@ -98,10 +99,13 @@ class GachaTestApp extends Component {
       hasNewItem: hasNewItem, // Save to pass to GachaAnimation
       currentRarity: maxRarity,
       rewards: newRewards,
-      pity5: tempPity5,
-      pity4: tempPity4,
-      totalRolls: this.state.totalRolls + count,
-      inventoryItems: inventoryManager.getItems()
+      // Store pending updates but don't show yet
+      pendingRolls: {
+        pity5: tempPity5,
+        pity4: tempPity4,
+        totalRolls: this.state.totalRolls + count,
+        inventory: inventoryManager.getItems()
+      }
     });
   };
 
@@ -127,20 +131,20 @@ class GachaTestApp extends Component {
               <div className="banner-tag">{activeBanner.type.toUpperCase()} EVENT</div>
               <div className="banner-content">
                  <div className="featured-display">
-                    <div className="item gold">★ Gold: {ITEMS[activeBanner.featured.gold[0]]?.name || activeBanner.featured.gold[0]}</div>
-                    <div className="item purple">★ Purple: {ITEMS[activeBanner.featured.purple[0]]?.name || activeBanner.featured.purple[0]}</div>
+                    <div className="item gold">★ SSR: {ITEMS[activeBanner.featured.SSR[0]]?.name || activeBanner.featured.SSR[0]}</div>
+                    <div className="item purple">★ SR: {ITEMS[activeBanner.featured.SR[0]]?.name || activeBanner.featured.SR[0]}</div>
                  </div>
               </div>
             </div>
 
             <div className="pity-stats">
               <div className="stat-box">
-                <label>Gold Pity</label>
+                <label>SSR Pity</label>
                 <div className="value">{pity5} / 90</div>
                 {pity5 >= 74 && <span className="soft-pity-tag">Soft Pity!</span>}
               </div>
               <div className="stat-box">
-                <label>Purple Pity</label>
+                <label>SR Pity</label>
                 <div className="value">{pity4} / 10</div>
               </div>
               <div className="stat-box">
@@ -184,7 +188,16 @@ class GachaTestApp extends Component {
           hasNewItem={this.state.hasNewItem}
           rarity={currentRarity}
           rewards={rewards}
-          onComplete={() => this.setState({ isPlaying: false })}
+          onComplete={() => {
+            const { pendingRolls } = this.state;
+            this.setState({
+              isPlaying: false,
+              pity5: pendingRolls.pity5,
+              pity4: pendingRolls.pity4,
+              totalRolls: pendingRolls.totalRolls,
+              inventoryItems: pendingRolls.inventory
+            });
+          }}
         />
       </div>
     );

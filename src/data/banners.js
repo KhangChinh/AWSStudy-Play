@@ -14,13 +14,13 @@ export const BANNERS = [
     theme: 'theme-nebula',
     effect: 'effect-stars',
     featured: {
-      gold: ['item_nebula_wings_5s'],
-      purple: ['item_pulse_blade_4s', 'item_cosmic_dust_4s'],
+      SSR: ['item_nebula_wings_5s'],
+      SR: ['item_pulse_blade_4s', 'item_cosmic_dust_4s'],
     },
     rates: {
-      gold: 0.006,
-      purple: 0.051,
-      blue: 0.943
+      SSR: 0.006,
+      SR: 0.051,
+      R: 0.943
     }
   },
   {
@@ -33,13 +33,13 @@ export const BANNERS = [
     theme: 'theme-solar',
     effect: 'effect-fire',
     featured: {
-      gold: ['item_solaris_arch_5s'],
-      purple: ['item_blaze_dagger_4s'],
+      SSR: ['item_solaris_arch_5s'],
+      SR: ['item_blaze_dagger_4s'],
     },
     rates: {
-      gold: 0.006,
-      purple: 0.051,
-      blue: 0.943
+      SSR: 0.006,
+      SR: 0.051,
+      R: 0.943
     }
   },
   {
@@ -52,13 +52,13 @@ export const BANNERS = [
     theme: 'theme-lunar',
     effect: 'effect-moon',
     featured: {
-      gold: ['item_nebula_wings_5s'], // Reusing item for demo
-      purple: ['item_moon_shard_4s'],
+      SSR: ['item_nebula_wings_5s'], // Reusing item for demo
+      SR: ['item_moon_shard_4s'],
     },
     rates: {
-      gold: 0.01,
-      purple: 0.1,
-      blue: 0.89
+      SSR: 0.01,
+      SR: 0.1,
+      R: 0.89
     }
   }
 ];

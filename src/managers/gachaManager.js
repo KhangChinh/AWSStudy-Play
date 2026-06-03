@@ -1,50 +1,52 @@
 class GachaManager {
   constructor() {
     this.RARITIES = {
-      GOLD: { id: 'gold', name: '5-Star', color: '#fbbf24' },
-      PURPLE: { id: 'purple', name: '4-Star', color: '#a855f7' },
-      BLUE: { id: 'blue', name: '3-Star', color: '#3b82f6' },
-      GRAY: { id: 'gray', name: '2-Star', color: '#94a3b8' }
+      SSR: { id: 'SSR', name: 'SSR', color: '#fbbf24' },
+      SR: { id: 'SR', name: 'SR', color: '#a855f7' },
+      R: { id: 'R', name: 'R', color: '#94a3b8' }
     };
   }
 
   calculateRoll(bannerConfig, pityState) {
     const { rates } = bannerConfig;
-    const { pity5, pity4 } = pityState;
+    const { pityState: pity5, pity4 } = pityState; // Based on Dashboard state naming if applicable, but usually passed as args
     
-    let currentRate5 = rates.gold; // e.g. 0.006
-    let currentRate4 = rates.purple; // e.g. 0.051
+    // Fallback if rates don't match new names
+    const goldRate = rates.SSR || rates.gold || 0.006;
+    const purpleRate = rates.SR || rates.purple || 0.051;
     
-    // --- 5-Star Pity (Genshin Style) ---
-    const p5Count = pity5 + 1;
+    let currentRate5 = goldRate;
+    let currentRate4 = purpleRate;
+    
+    // --- SSR Pity (90 rolls) ---
+    const p5Count = (pityState.pity5 || 0) + 1;
     if (p5Count >= 90) {
-      currentRate5 = 1.0; // Hard Pity
+      currentRate5 = 1.0;
     } else if (p5Count >= 74) {
-      // Soft Pity: Increase rate by ~6% per pull
-      currentRate5 = rates.gold + 0.06 * (p5Count - 73);
+      currentRate5 = goldRate + 0.06 * (p5Count - 73);
     }
     
-    // --- 4-Star Pity ---
-    const p4Count = pity4 + 1;
+    // --- SR Pity (10 rolls) ---
+    const p4Count = (pityState.pity4 || 0) + 1;
     if (p4Count >= 10) {
-      currentRate4 = 1.0; // Hard Pity for 4-star
+      currentRate4 = 1.0;
     } else if (p4Count >= 8) {
-      // Soft Pity for 4-star
-      currentRate4 = rates.purple + 0.3;
+      currentRate4 = purpleRate + 0.3;
     }
 
     const rand = Math.random();
 
-    if (rand < currentRate5) return 'gold';
-    if (rand < (currentRate5 + currentRate4)) return 'purple';
-    if (rand < (currentRate5 + currentRate4 + rates.blue)) return 'blue';
-    return 'gray';
+    if (rand < currentRate5) return 'SSR';
+    if (rand < (currentRate5 + currentRate4)) return 'SR';
+    return 'R';
   }
 
-  // Driven by banner config
   getRandomItem(rarity, bannerConfig) {
-    const pool = bannerConfig.featured[rarity] || [];
-    // If no featured for this rarity, fallback to a standard pool (could also be in data)
+    if (rarity === 'R') return 'pcoin_bundle'; // R chỉ có Coin
+    
+    // SSR and SR
+    const poolKey = rarity === 'SSR' ? 'SSR' : (rarity === 'SR' ? 'SR' : rarity);
+    const pool = bannerConfig.featured[poolKey] || bannerConfig.featured[rarity.toLowerCase()] || [];
     return pool[Math.floor(Math.random() * pool.length)] || 'standard_item';
   }
 }

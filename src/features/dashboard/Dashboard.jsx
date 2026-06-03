@@ -7,11 +7,12 @@ import {
   settingsOutline, cubeOutline, ticketOutline, gameControllerOutline,
   cartOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
   imageOutline, personOutline, globeOutline, cart, planetOutline, starOutline,
-  copyOutline
+  copyOutline, listOutline, flagOutline, compassOutline
 } from 'ionicons/icons';
 
 import FocusWidget from '../focus/FocusWidget';
-import Inventory from '../inventory/Inventory';
+import Profile from '../profile/Profile';
+import cosmeticManager from '../../managers/cosmeticManager';
 import GachaStation from '../gacha/GachaStation';
 import GachaTestApp from '../gacha/GachaTestApp';
 import MinigameHub from '../minihub/MinigameHub';
@@ -20,18 +21,9 @@ import { handleLogoutApi } from '../../services/authServices';
 import { userLogout } from '../../store/actions';
 import './Dashboard.scss';
 
-const TITLES = [
-  { id: 'newbie', name: 'Tân Thủ', color: '#94a3b8', hint: 'Danh hiệu mặc định cho người mới' },
-  { id: 'scholar', name: 'Học Giả', color: '#60a5fa', hint: 'Điều kiện: Tổng thời gian học > 10 giờ' },
-  { id: 'warrior', name: 'Chiến Thần', color: '#f87171', hint: 'Điều kiện: Thắng 100 trận Minigames' },
-  { id: 'collector', name: 'Nhà Sưu Tầm', color: '#fbbf24', hint: 'Điều kiện: Thu thập 50 vật phẩm Inventory' },
-  { id: 'whale', name: 'Đại Gia', color: '#a855f7', hint: 'Điều kiện: Tiêu phí 1.000.000 P-Coin' },
-  { id: 'admin', name: 'Người Điều Hành', color: '#ef4444', hint: 'Danh hiệu dành cho Quản trị viên' },
-];
-
 // ═══ Settings App ═══
-const SettingsApp = ({ currentTitle, onTitleChange }) => {
-  const selectedTitleData = TITLES.find(t => t.id === currentTitle) || TITLES[0];
+const SettingsApp = ({ currentTitle }) => {
+  const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
 
   return (
     <div className="app-container settings-app">
@@ -68,60 +60,17 @@ const SettingsApp = ({ currentTitle, onTitleChange }) => {
       </div>
 
       <div className="section">
-        <h3><IonIcon icon={starOutline} /> Danh Hiệu (Titles)</h3>
-        <p className="section-desc">Chọn danh hiệu hiển thị phía sau tên của bạn.</p>
-        <div className="titles-grid">
-          {TITLES.map(title => (
-            <div
-              key={title.id}
-              className={`title-badge ${currentTitle === title.id ? 'active' : ''}`}
-              style={{ '--title-color': title.color }}
-              onClick={() => onTitleChange(title.id)}
-            >
-              <div className="badge-bg"></div>
-              <span className="badge-name">{title.name}</span>
-              <div className="badge-info">
-                <IonIcon icon={ticketOutline} />
-                <span>{title.hint}</span>
-              </div>
-            </div>
-          ))}
+        <h3><IonIcon icon={globeOutline} /> Preferences</h3>
+        <p className="section-desc">Quick adjustments for your experience.</p>
+        <div className="settings-options">
+           <div className="option">
+              <label>Language</label>
+              <select className="language-select">
+                <option value="en">English</option>
+                <option value="vi">Tiếng Việt</option>
+              </select>
+           </div>
         </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={cubeOutline} /> Avatar Frame / Khung Avatar</h3>
-        <div className="frame-grid">
-          {['None', 'Neon', 'Gold', 'Galactic'].map(frame => (
-            <div className="frame-option" key={frame}>
-              <div className={`frame-preview ${frame.toLowerCase()}`}>
-                <IonIcon icon={personOutline} />
-              </div>
-              <span>{frame}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* RE-ADDED SECTION: Profile Effect */}
-      <div className="section">
-        <h3><IonIcon icon={ticketOutline} /> Profile Effect / Hiệu ứng</h3>
-        <div className="effect-list">
-          <select className="effect-select">
-            <option value="none" style={{ color: 'white' }}>No Effect</option>
-            <option value="sparkle" style={{ color: 'white' }}>✨ Sparkle Particles</option>
-            <option value="fire" style={{ color: 'white' }}>🔥 Phoenix Flame</option>
-            <option value="snow" style={{ color: 'white' }}>❄️ Winter Frost</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={globeOutline} /> Language / Ngôn ngữ</h3>
-        <select className="language-select">
-          <option value="en" style={{ color: 'black' }}>English</option>
-          <option value="vi" style={{ color: 'black' }}>Tiếng Việt</option>
-        </select>
       </div>
     </div>
   );
@@ -154,7 +103,7 @@ const StoreApp = () => (
 // ═══ App Registry ═══
 const APPS = [
   { id: 'settings', name: 'Settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
-  { id: 'inventory', name: 'Inventory', className: 'inventory', icon: cubeOutline, content: <Inventory /> },
+  { id: 'profile', name: 'Profile', className: 'profile', icon: personOutline, content: <Profile /> },
   { id: 'gacha', name: 'Gacha', className: 'gacha', icon: ticketOutline, content: <GachaStation /> },
   { id: 'gacha-test', name: 'Gacha Test', className: 'gacha-test', icon: starOutline, content: <GachaTestApp /> },
   { id: 'minigame', name: 'Mini Games', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
@@ -175,10 +124,20 @@ class Dashboard extends Component {
       disabledButtons: { logout: false },
       isDragging: null,
       dragOffset: { x: 0, y: 0 },
-      selectedTitle: 'newbie',
-      isVacuuming: false
+      currentTitle: 'title_newbie',
+      currentFrame: 'frame_none',
+      isVacuuming: false,
+      isMissionsOpen: false,
+      missions: [
+        { id: 1, title: 'Mission 1', desc: 'Sơ khai thế giới', status: '0/1' },
+        { id: 2, title: 'Mission 2', desc: 'Thử thách tân thủ', status: '0/4' },
+        { id: 3, title: 'Mission 3', desc: 'Nhà sưu tầm', status: '1/3' },
+        { id: 4, title: 'Mission 4', desc: 'Đại gia lộ diện', status: '0/1' },
+      ]
     };
     this.timerInterval = null;
+    this.missionsPanelRef = React.createRef();
+    this.missionsBtnRef = React.createRef();
   }
 
   handleClearAllApps = () => {
@@ -204,19 +163,25 @@ class Dashboard extends Component {
   };
 
   handleTitleChange = (newTitleId) => {
-    this.setState({ selectedTitle: newTitleId });
+    this.setState({ currentTitle: newTitleId });
   };
 
-  componentDidMount() {
+  handleFrameChange = (newFrameId) => {
+    this.setState({ currentFrame: newFrameId });
+  };
+
+  toggleMissions = () => {
     this.timerInterval = setInterval(() => {
       this.setState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
     }, 60000);
+    document.addEventListener('mousedown', this.handleClickOutside);
   }
 
   componentWillUnmount() {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    document.removeEventListener('mousedown', this.handleClickOutside);
     window.removeEventListener('mousemove', this.handleDragging);
     window.removeEventListener('mouseup', this.handleDragEnd);
   }
@@ -277,11 +242,63 @@ class Dashboard extends Component {
     });
   };
 
+  handleTaskbarClick = (e, appId) => {
+    e.stopPropagation();
+    const { activeApp, minimizedApps } = this.state;
+    const isMinimized = minimizedApps.includes(appId);
+
+    if (isMinimized) {
+      this.setState(prev => ({
+        minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+        activeApp: appId
+      }));
+    } else if (activeApp !== appId) {
+      this.setState({ activeApp: appId });
+    } else {
+      this.setState(prev => ({
+        minimizedApps: [...prev.minimizedApps, appId],
+        activeApp: prev.openApps.find(id => id !== appId && !prev.minimizedApps.includes(id)) || null
+      }));
+    }
+  };
+
+  handleMinimizeAll = () => {
+    const { openApps, minimizedApps } = this.state;
+    if (openApps.length === 0) return;
+    
+    // Nếu tất cả đã thu nhỏ rồi thì Restore all? 
+    // Thường Minimize All chỉ là thu nhỏ hết.
+    this.setState({
+      minimizedApps: [...openApps],
+      activeApp: null
+    });
+    
+    toast.info('All windows minimized', {
+      icon: '⏬',
+      theme: 'dark',
+      autoClose: 1000
+    });
+  };
+
   toggleMaximize = (e, appId) => {
     e.stopPropagation();
     this.setState(prev => ({
       maximizedApp: prev.maximizedApp === appId ? null : appId
     }));
+  };
+
+  toggleMissions = () => {
+    this.setState({ isMissionsOpen: !this.state.isMissionsOpen });
+  };
+
+  handleClickOutside = (event) => {
+    if (this.state.isMissionsOpen && 
+        this.missionsPanelRef.current && 
+        !this.missionsPanelRef.current.contains(event.target) &&
+        this.missionsBtnRef.current &&
+        !this.missionsBtnRef.current.contains(event.target)) {
+      this.setState({ isMissionsOpen: false });
+    }
   };
 
   // --- LOGIC KÉO THẢ (DRAG) ---
@@ -454,8 +471,10 @@ class Dashboard extends Component {
               </div>
               <div className="window-content">
                 {React.cloneElement(app.content, {
-                  currentTitle: this.state.selectedTitle,
-                  onTitleChange: this.handleTitleChange
+                  currentTitle: this.state.currentTitle,
+                  currentFrame: this.state.currentFrame,
+                  onTitleChange: this.handleTitleChange,
+                  onFrameChange: this.handleFrameChange
                 })}
               </div>
             </div>
@@ -465,6 +484,13 @@ class Dashboard extends Component {
         {/* Taskbar */}
         <div className="os-taskbar">
           <div className="taskbar-start">
+            <div
+              className="minimize-all-btn"
+              onClick={this.handleMinimizeAll}
+              title="Minimize All"
+            >
+              <IonIcon icon={removeOutline} />
+            </div>
             <div
               className={`start-btn ${this.state.isVacuuming ? 'active' : ''}`}
               onClick={this.handleClearAllApps}
@@ -481,7 +507,7 @@ class Dashboard extends Component {
                 <div
                   key={appId}
                   className={`taskbar-icon ${activeApp === appId ? 'active' : ''} ${minimizedApps.includes(appId) ? 'minimized' : ''}`}
-                  onClick={(e) => this.toggleMinimize(e, appId)}
+                  onClick={(e) => this.handleTaskbarClick(e, appId)}
                   title={app.name}
                 >
                   <IonIcon icon={app.icon} style={{ fontSize: 22 }} />
@@ -492,6 +518,34 @@ class Dashboard extends Component {
           </div>
 
           <div className="taskbar-sys">
+            {this.state.isMissionsOpen && (
+              <div className="missions-panel" ref={this.missionsPanelRef}>
+                <div className="panel-header">
+                  <IonIcon icon={flagOutline} />
+                  <span>Nhiệm vụ hệ thống</span>
+                </div>
+                <div className="panel-list">
+                  {this.state.missions.map(m => (
+                    <div key={m.id} className="mission-item">
+                      <div className="m-info">
+                        <span className="m-title">{m.title}</span>
+                        <span className="m-desc">{m.desc}</span>
+                      </div>
+                      <div className="m-action">
+                        <span className="m-status">{m.status}</span>
+                        <button className="btn-go">Go</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="btn-missions" onClick={this.toggleMissions} ref={this.missionsBtnRef}>
+              <IonIcon icon={listOutline} />
+              <span className="count">{this.state.missions.filter(m => m.status.split('/')[0] !== m.status.split('/')[1]).length}/4</span>
+            </div>
+            
             <span className="os-time">{time}</span>
             <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout}>
               <IonIcon icon={logOutOutline} />

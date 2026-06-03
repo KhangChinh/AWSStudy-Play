@@ -7,35 +7,35 @@ export const ITEMS = {
   item_nebula_wings_5s: {
     id: 'item_nebula_wings_5s',
     name: 'Super Nova Wings',
-    rarity: 'gold',
+    rarity: 'SSR',
     type: 'cosmetic',
     icon: '🌌'
   },
   item_solaris_arch_5s: {
     id: 'item_solaris_arch_5s',
     name: 'Solaris Arch',
-    rarity: 'gold',
+    rarity: 'SSR',
     type: 'cosmetic',
     icon: '☀️'
   },
   item_pulse_blade_4s: {
     id: 'item_pulse_blade_4s',
     name: 'Pulse Blade',
-    rarity: 'purple',
+    rarity: 'SR',
     type: 'weapon',
     icon: '⚔️'
   },
   pcoin_bundle: {
     id: 'pcoin_bundle',
     name: 'P-Coin Pack',
-    rarity: 'blue',
+    rarity: 'R',
     type: 'currency',
     icon: '🪙'
   },
   item_moon_shard_4s: {
     id: 'item_moon_shard_4s',
     name: 'Moon Shard',
-    rarity: 'purple',
+    rarity: 'SR',
     type: 'material',
     icon: '🌙'
   }

@@ -262,6 +262,32 @@
       min-width: 150px;
       display: flex;
       justify-content: flex-start;
+      gap: 10px;
+
+      .minimize-all-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #fff;
+          transform: translateY(-2px);
+        }
+
+        &:active {
+          transform: translateY(0) scale(0.95);
+        }
+      }
 
       .start-btn {
       width: 40px;
@@ -351,6 +377,127 @@
     align-items: center;
     justify-content: flex-end;
     gap: 16px;
+    position: relative; 
+
+    .btn-missions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #94a3b8;
+
+      ion-icon {
+        font-size: 18px;
+        color: #c084fc;
+      }
+
+      .count {
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border-color: #c084fc;
+      }
+    }
+
+    .missions-panel {
+      position: absolute;
+      bottom: 54px;
+      right: 0;
+      width: 280px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      animation: panel-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1001;
+
+      .panel-header {
+        padding: 12px 16px;
+        background: rgba(192, 132, 252, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #c084fc;
+      }
+
+      .panel-list {
+        padding: 8px;
+        max-height: 350px;
+        overflow-y: auto;
+
+        .mission-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          border-radius: 8px;
+          transition: background 0.2s;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.03);
+          }
+
+          .m-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            .m-title {
+              font-size: 13px;
+              font-weight: 600;
+              color: #e2e8f0;
+            }
+
+            .m-desc {
+              font-size: 11px;
+              color: #64748b;
+            }
+          }
+
+          .m-action {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+
+            .m-status {
+              font-size: 10px;
+              font-weight: 800;
+              color: #fbbf24;
+            }
+
+            .btn-go {
+              padding: 4px 10px;
+              background: #9333ea;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 700;
+              cursor: pointer;
+
+              &:hover {
+                background: #a855f7;
+              }
+            }
+          }
+        }
+      }
+    }
 
     .os-time {
       font-size: 13px;

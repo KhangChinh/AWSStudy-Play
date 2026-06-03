@@ -103,26 +103,18 @@ class GachaAnimation extends Component {
   };
 
   getRarityClass = () => {
-    const r = this.props.rarity || 'gray';
-    // Mapping string rarities to CSS classes
+    const r = this.props.rarity || 'R';
     const map = {
-      'gold': 'rarity-5',
-      'purple': 'rarity-4',
-      'blue': 'rarity-3',
-      'gray': 'rarity-2'
+      'SSR': 'rarity-ssr',
+      'SR': 'rarity-sr',
+      'R': 'rarity-r'
     };
-    return map[r] || 'rarity-2';
+    return map[r] || 'rarity-r';
   };
 
   getRarityLabel = () => {
-    const r = this.props.rarity || 'gray';
-    const map = {
-      'gold': '★★★★★',
-      'purple': '★★★★',
-      'blue': '★★★',
-      'gray': '★★'
-    };
-    return map[r] || '★★';
+    const r = this.props.rarity || 'R';
+    return r; // Now just returns labels R, SR, SSR
   };
 
   render() {
@@ -200,10 +192,8 @@ class GachaAnimation extends Component {
             {isMulti && (
               <div className={`reveal-container multi-grid ${this.state.isInstantReveal ? 'instant' : ''}`}>
                 {rewards.map((reward, i) => {
-                  const starsMap = { 'gold': 5, 'purple': 4, 'blue': 3, 'gray': 2 };
-                  const classMap = { 'gold': '5', 'purple': '4', 'blue': '3', 'gray': '2' };
-                  const starCount = starsMap[reward.rarity] || 2;
-                  const rClass = `rarity-${classMap[reward.rarity] || '2'}`;
+                  const classMap = { 'SSR': 'ssr', 'SR': 'sr', 'R': 'r' };
+                  const rClass = `rarity-${classMap[reward.rarity] || 'r'}`;
                   
                   return (
                     <div 
@@ -212,7 +202,7 @@ class GachaAnimation extends Component {
                       style={{ animationDelay: this.state.isInstantReveal ? '0s' : `${i * 0.1}s` }}
                     >
                       <div className="grid-icon">{reward.icon}</div>
-                      <div className="grid-stars">{'★'.repeat(starCount)}</div>
+                      <div className="grid-stars">{reward.rarity}</div>
                     </div>
                   );
                 })}
