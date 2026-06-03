@@ -103,6 +103,105 @@
     }
   }
 
+  // ═══ Independent Difficulty Selection Screen ═══
+  .difficulty-screen {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+
+    .difficulty-screen-inner {
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+
+      h2 {
+        font-size: 28px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .difficulty-subtitle {
+        font-size: 14px;
+        color: #94a3b8;
+        margin-bottom: 28px;
+      }
+
+      .difficulty-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .btn-diff {
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 14px;
+          padding: 16px 20px;
+          color: #fff;
+          font-weight: 700;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          text-align: left;
+          cursor: pointer;
+
+          .diff-icon {
+            font-size: 28px;
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+          }
+
+          .diff-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            .diff-name {
+              font-size: 15px;
+              font-weight: 700;
+            }
+
+            .diff-desc {
+              font-size: 11px;
+              color: #94a3b8;
+              font-weight: 400;
+            }
+          }
+
+          &:hover {
+            transform: translateX(6px) scale(1.01);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+          }
+
+          &.easy {
+            border-left: 4px solid #10b981;
+            &:hover { background: rgba(16, 185, 129, 0.12); border-color: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); }
+          }
+          &.medium {
+            border-left: 4px solid #3b82f6;
+            &:hover { background: rgba(59, 130, 246, 0.12); border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.15); }
+          }
+          &.hard {
+            border-left: 4px solid #f59e0b;
+            &:hover { background: rgba(245, 158, 11, 0.12); border-color: #f59e0b; box-shadow: 0 0 20px rgba(245, 158, 11, 0.15); }
+          }
+          &.expert {
+            border-left: 4px solid #ef4444;
+            &:hover { background: rgba(239, 68, 68, 0.12); border-color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.15); }
+          }
+        }
+      }
+    }
+  }
+
   // Stats Panel
   .sudoku-stats {
     display: grid;
@@ -492,7 +591,7 @@
   // Top action buttons (Undo, Erase, Pencil, Hint)
   .action-buttons {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
 
     .btn-ctrl {

@@ -8,7 +8,7 @@ import { setHighscores } from '../../store/actions';
 import { handleGetLeaderboardApi } from '../../services/socialServices';
 import { toast } from 'react-toastify';
 import SudokuGame from '../../../public/games/sudoku/SudokuGame';
-
+import MinesweeperGame from '../../../public/games/minesweeper/MineSweeperGame';
 const MINIGAMES = [
   { id: 'all', label: 'Tổng Wins', icon: '🏅' },
   { id: 'minesweeper', label: 'Minesweeper', icon: '💣' },
@@ -27,7 +27,7 @@ const ArcadeList = ({ onPlayGame }) => (
     <h3><IonIcon icon={gameControllerOutline} /> Available Games</h3>
     <div className="store-grid">
       {[
-        { name: 'Minesweeper', price: 100, icon: '💣', disabled: true },
+        { name: 'Minesweeper', price: 100, icon: '💣', disabled: false },
         { name: 'Sudoku', price: 'Free', icon: '🔢', disabled: false },
       ].map(game => (
         <div className="store-item" key={game.name}>
@@ -170,6 +170,12 @@ class MinigameHub extends Component {
     if (activeGame === 'sudoku') {
       return (
         <SudokuGame onClose={() => this.setState({ activeGame: null })} />
+      );
+    }
+
+    if (activeGame === 'minesweeper') {
+      return (
+        <MinesweeperGame onClose={() => this.setState({ activeGame: null })} />
       );
     }
 

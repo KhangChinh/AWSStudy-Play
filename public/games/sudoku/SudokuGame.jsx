@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
-  closeOutline, refreshOutline, pauseOutline, playOutline,
+  closeOutline, refreshOutline,
   pencilOutline, trashOutline, helpCircleOutline, arrowBackOutline,
   trophyOutline, heartOutline, timeOutline, alertCircleOutline
 } from 'ionicons/icons';
@@ -124,11 +124,10 @@ const SudokuGame = ({ onClose }) => {
 
   const [selectedCell, setSelectedCell] = useState(null); // { row, col }
   const [mistakes, setMistakes] = useState(0);
-  const [status, setStatus] = useState('paused'); // 'playing', 'paused', 'won', 'lost'
+  const [status, setStatus] = useState('idle'); // 'idle', 'playing', 'won', 'lost'
   const [timer, setTimer] = useState(0);
   const [hintsLeft, setHintsLeft] = useState(3);
   const [isNoteMode, setIsNoteMode] = useState(false);
-  const [history, setHistory] = useState([]); // Stack of board states for Undo
 
   // ═══ Timer Effect ═══
   useEffect(() => {
@@ -150,7 +149,6 @@ const SudokuGame = ({ onClose }) => {
     setMistakes(0);
     setTimer(0);
     setHintsLeft(3);
-    setHistory([]);
     setSelectedCell(null);
     setIsSelectingDifficulty(false);
     setStatus('playing');
@@ -184,11 +182,7 @@ const SudokuGame = ({ onClose }) => {
     // Check if cell is pre-filled/locked
     if (initialBoard[row][col] !== 0) return;
 
-    // Save history for Undo before modification
-    setHistory(prev => [...prev, {
-      board: board.map(r => [...r]),
-      notes: notes.map(r => r.map(c => [...c]))
-    }]);
+
 
     if (isNoteMode) {
       // Notes mode: toggle note value
@@ -243,10 +237,7 @@ const SudokuGame = ({ onClose }) => {
 
     if (initialBoard[row][col] !== 0) return; // Locked
 
-    setHistory(prev => [...prev, {
-      board: board.map(r => [...r]),
-      notes: notes.map(r => r.map(c => [...c]))
-    }]);
+
 
     const updatedBoard = board.map((r, rIdx) =>
       r.map((val, cIdx) => (rIdx === row && cIdx === col ? 0 : val))
@@ -259,14 +250,7 @@ const SudokuGame = ({ onClose }) => {
     setNotes(updatedNotes);
   };
 
-  // Undo last move
-  const handleUndo = () => {
-    if (status !== 'playing' || history.length === 0) return;
-    const previousState = history[history.length - 1];
-    setBoard(previousState.board);
-    setNotes(previousState.notes);
-    setHistory(prev => prev.slice(0, prev.length - 1));
-  };
+
 
   // Reveal hint
   const handleHint = () => {
@@ -284,10 +268,7 @@ const SudokuGame = ({ onClose }) => {
       return;
     }
 
-    setHistory(prev => [...prev, {
-      board: board.map(r => [...r]),
-      notes: notes.map(r => r.map(c => [...c]))
-    }]);
+
 
     const correctVal = solution[row][col];
 
@@ -409,150 +390,141 @@ const SudokuGame = ({ onClose }) => {
           <IonIcon icon={arrowBackOutline} /> Thoát
         </button>
         <span className="game-title">🔢 Sudoku Cosmic</span>
-        <div className="header-actions">
-          {status === 'playing' && (
-            <button className="btn-action" onClick={() => setStatus('paused')}>
-              <IonIcon icon={pauseOutline} /> Tạm dừng
-            </button>
-          )}
-        </div>
+        <div className="header-actions"></div>
       </div>
 
       {/* Main Content Area */}
       <div className="sudoku-content">
 
-        {/* Game Stats Panel */}
-        <div className="sudoku-stats">
-          <div className="stat-card">
-            <span className="label">Độ khó</span>
-            <span className="value text-gradient">{difficulty.toUpperCase()}</span>
-          </div>
-          <div className="stat-card">
-            <span className="label"><IonIcon icon={timeOutline} /> Thời gian</span>
-            <span className="value timer">{formatTime(timer)}</span>
-          </div>
-          <div className="stat-card">
-            <span className="label"><IonIcon icon={alertCircleOutline} /> Số lỗi</span>
-            <span className={`value mistakes ${mistakes > 0 ? 'alert' : ''}`}>
-              {mistakes}
-            </span>
-          </div>
-          <div className="stat-card">
-            <span className="label"><IonIcon icon={trophyOutline} /> Điểm Rank</span>
-            <span className="value coins">🏆 {calculateRankPoints(difficulty, timer).toLocaleString()}</span>
-          </div>
-        </div>
-
-        {/* Board & Control Panel */}
-        <div className="board-and-controls">
-
-          {/* Sudoku 9x9 Grid */}
-          <div className="sudoku-board-wrapper">
-            <div className={`sudoku-board ${status !== 'playing' ? 'blur' : ''}`}>
-              {board.map((r, rIdx) =>
-                r.map((val, cIdx) => {
-                  const isLocked = initialBoard[rIdx][cIdx] !== 0;
-                  const isSelected = selectedCell && selectedCell.row === rIdx && selectedCell.col === cIdx;
-                  const isPeer = isCellHighlighted(rIdx, cIdx);
-                  const isMatch = isValueMatch(rIdx, cIdx);
-                  const isWrong = val !== 0 && val !== solution[rIdx][cIdx];
-
-                  let cellClass = 'sudoku-cell';
-                  if (isLocked) cellClass += ' cell-locked';
-                  if (isSelected) cellClass += ' cell-selected';
-                  else if (isMatch) cellClass += ' cell-match';
-                  else if (isPeer) cellClass += ' cell-peer';
-                  if (isWrong) cellClass += ' cell-wrong';
-
-                  return (
-                    <div
-                      key={`${rIdx}-${cIdx}`}
-                      className={cellClass}
-                      onClick={() => handleCellClick(rIdx, cIdx)}
-                    >
-                      {val !== 0 ? (
-                        <span className="cell-value">{val}</span>
-                      ) : (
-                        // Render 3x3 tiny notes grid inside empty cell
-                        <div className="notes-grid">
-                          {notes[rIdx][cIdx].map((hasNote, noteIdx) => (
-                            <span
-                              key={noteIdx}
-                              className={`note-digit ${hasNote ? 'visible' : ''}`}
-                            >
-                              {noteIdx + 1}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Overlays (Pause / Win / Lose) */}
-            {status === 'paused' && !isSelectingDifficulty && (
-              <div className="board-overlay glass">
-                <h3>Game Tạm Dừng</h3>
-                <p>Nhấp nút bên dưới để tiếp tục so tài!</p>
-                <button className="btn-glow green" onClick={() => setStatus('playing')}>
-                  <IonIcon icon={playOutline} /> Tiếp tục
+        {/* ═══ Difficulty Selection Screen (Independent) ═══ */}
+        {isSelectingDifficulty ? (
+          <div className="difficulty-screen animate-fade-in">
+            <div className="difficulty-screen-inner">
+              <h2 className="text-gradient">Chọn độ khó Sudoku</h2>
+              <p className="difficulty-subtitle">Chọn cấp độ phù hợp để bắt đầu thử thách!</p>
+              <div className="difficulty-grid">
+                <button className="btn-diff easy" onClick={() => handleDifficultySelect('easy')}>
+                  <div className="diff-icon">💡</div>
+                  <div className="diff-info">
+                    <span className="diff-name">DỄ (Easy)</span>
+                    <span className="diff-desc">41 Clues | 🏆 Tối đa 5,000 Rank</span>
+                  </div>
+                </button>
+                <button className="btn-diff medium" onClick={() => handleDifficultySelect('medium')}>
+                  <div className="diff-icon">⚡</div>
+                  <div className="diff-info">
+                    <span className="diff-name">TRUNG BÌNH (Medium)</span>
+                    <span className="diff-desc">33 Clues | 🏆 Tối đa 10,000 Rank</span>
+                  </div>
+                </button>
+                <button className="btn-diff hard" onClick={() => handleDifficultySelect('hard')}>
+                  <div className="diff-icon">🧠</div>
+                  <div className="diff-info">
+                    <span className="diff-name">KHÓ (Hard)</span>
+                    <span className="diff-desc">27 Clues | 🏆 Tối đa 20,000 Rank</span>
+                  </div>
+                </button>
+                <button className="btn-diff expert" onClick={() => handleDifficultySelect('expert')}>
+                  <div className="diff-icon">🔥</div>
+                  <div className="diff-info">
+                    <span className="diff-name">CHUYÊN GIA (Expert)</span>
+                    <span className="diff-desc">23 Clues | 🏆 Tối đa 40,000 Rank</span>
+                  </div>
                 </button>
               </div>
-            )}
-
-            {status === 'won' && (
-              <div className="board-overlay glass won-overlay animate-bounce-in">
-                <IonIcon icon={trophyOutline} style={{ fontSize: 60, color: '#fbbf24' }} />
-                <h3 className="text-gradient">Chiến Thắng!</h3>
-                <p>Bạn đã hoàn thành câu đố ở cấp độ {difficulty.toUpperCase()} trong {formatTime(timer)} với {mistakes} lỗi!</p>
-                <p className="earned-pcoin">🏆 +{calculateRankPoints(difficulty, timer).toLocaleString()} Điểm Rank</p>
-                <div className="overlay-actions">
-                  <button className="btn-glow green" onClick={onClose}>
-                    Quay lại Hub
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {isSelectingDifficulty && (
-              <div className="board-overlay glass diff-overlay">
-                <h3 className="text-gradient">Chọn độ khó Sudoku</h3>
-                <div className="difficulty-grid">
-                  <button className="btn-diff easy" onClick={() => handleDifficultySelect('easy')}>
-                    DỄ (Easy)
-                    <span>💡 41 Clues | 🏆 Tối đa 5,000 Rank</span>
-                  </button>
-                  <button className="btn-diff medium" onClick={() => handleDifficultySelect('medium')}>
-                    TRUNG BÌNH (Medium)
-                    <span>⚡ 33 Clues | 🏆 Tối đa 10,000 Rank</span>
-                  </button>
-                  <button className="btn-diff hard" onClick={() => handleDifficultySelect('hard')}>
-                    KHÓ (Hard)
-                    <span>🧠 27 Clues | 🏆 Tối đa 20,000 Rank</span>
-                  </button>
-                  <button className="btn-diff expert" onClick={() => handleDifficultySelect('expert')}>
-                    CHUYÊN GIA (Expert)
-                    <span>🔥 23 Clues | 🏆 Tối đa 40,000 Rank</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
+        ) : (
+          <>
+            {/* Game Stats Panel */}
+            <div className="sudoku-stats">
+              <div className="stat-card">
+                <span className="label">Độ khó</span>
+                <span className="value text-gradient">{difficulty.toUpperCase()}</span>
+              </div>
+              <div className="stat-card">
+                <span className="label"><IonIcon icon={timeOutline} /> Thời gian</span>
+                <span className="value timer">{formatTime(timer)}</span>
+              </div>
+              <div className="stat-card">
+                <span className="label"><IonIcon icon={alertCircleOutline} /> Số lỗi</span>
+                <span className={`value mistakes ${mistakes > 0 ? 'alert' : ''}`}>
+                  {mistakes}
+                </span>
+              </div>
+              <div className="stat-card">
+                <span className="label"><IonIcon icon={trophyOutline} /> Điểm Rank</span>
+                <span className="value coins">🏆 {calculateRankPoints(difficulty, timer).toLocaleString()}</span>
+              </div>
+            </div>
 
-          {/* Action Pad & Number Pad */}
-          <div className="controls-pad">
-            <div className="action-buttons">
-              <button
-                className="btn-ctrl"
-                onClick={handleUndo}
-                disabled={history.length === 0}
-                title="Quay lại bước trước"
-              >
-                <IonIcon icon={arrowBackOutline} />
-                <span>Undo</span>
-              </button>
+            {/* Board & Control Panel */}
+            <div className="board-and-controls">
+
+              {/* Sudoku 9x9 Grid */}
+              <div className="sudoku-board-wrapper">
+                <div className={`sudoku-board ${status !== 'playing' ? 'blur' : ''}`}>
+                  {board.map((r, rIdx) =>
+                    r.map((val, cIdx) => {
+                      const isLocked = initialBoard[rIdx][cIdx] !== 0;
+                      const isSelected = selectedCell && selectedCell.row === rIdx && selectedCell.col === cIdx;
+                      const isPeer = isCellHighlighted(rIdx, cIdx);
+                      const isMatch = isValueMatch(rIdx, cIdx);
+                      const isWrong = val !== 0 && val !== solution[rIdx][cIdx];
+
+                      let cellClass = 'sudoku-cell';
+                      if (isLocked) cellClass += ' cell-locked';
+                      if (isSelected) cellClass += ' cell-selected';
+                      else if (isMatch) cellClass += ' cell-match';
+                      else if (isPeer) cellClass += ' cell-peer';
+                      if (isWrong) cellClass += ' cell-wrong';
+
+                      return (
+                        <div
+                          key={`${rIdx}-${cIdx}`}
+                          className={cellClass}
+                          onClick={() => handleCellClick(rIdx, cIdx)}
+                        >
+                          {val !== 0 ? (
+                            <span className="cell-value">{val}</span>
+                          ) : (
+                            // Render 3x3 tiny notes grid inside empty cell
+                            <div className="notes-grid">
+                              {notes[rIdx][cIdx].map((hasNote, noteIdx) => (
+                                <span
+                                  key={noteIdx}
+                                  className={`note-digit ${hasNote ? 'visible' : ''}`}
+                                >
+                                  {noteIdx + 1}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Win Overlay */}
+                {status === 'won' && (
+                  <div className="board-overlay glass won-overlay animate-bounce-in">
+                    <IonIcon icon={trophyOutline} style={{ fontSize: 60, color: '#fbbf24' }} />
+                    <h3 className="text-gradient">Chiến Thắng!</h3>
+                    <p>Bạn đã hoàn thành câu đố ở cấp độ {difficulty.toUpperCase()} trong {formatTime(timer)} với {mistakes} lỗi!</p>
+                    <p className="earned-pcoin">🏆 +{calculateRankPoints(difficulty, timer).toLocaleString()} Điểm Rank</p>
+                    <div className="overlay-actions">
+                      <button className="btn-glow green" onClick={onClose}>
+                        Quay lại Hub
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Pad & Number Pad */}
+              <div className="controls-pad">
+                <div className="action-buttons">
               <button
                 className="btn-ctrl"
                 onClick={eraseCell}
@@ -607,6 +579,8 @@ const SudokuGame = ({ onClose }) => {
           </div>
 
         </div>
+          </>
+        )}
       </div>
     </div>
   );
