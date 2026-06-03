@@ -3,7 +3,7 @@ import { IonIcon } from '@ionic/react';
 import { flagOutline, giftOutline } from 'ionicons/icons';
 import './MissionsWidget.scss';
 
-const MissionsWidget = ({ missions, onClaimAll }) => {
+const MissionsWidget = ({ missions, onClaimAll, onClaimMission }) => {
   const completedCount = missions.filter(m => {
     const [curr, total] = m.status.split('/').map(Number);
     return curr >= total;
@@ -27,7 +27,13 @@ const MissionsWidget = ({ missions, onClaimAll }) => {
             <div key={m.id} className={`mini-item ${isDone ? 'done' : ''}`}>
               <div className="indicator-dot" />
               <span className="name">{m.title}</span>
-              <span className="prog">{m.status}</span>
+              {!isAllCompleted && (
+                isDone ? (
+                  <button className="btn-mini-claim" onClick={() => onClaimMission(m.id)}>Claim</button>
+                ) : (
+                  <span className="prog">{m.status}</span>
+                )
+              )}
             </div>
           );
         })}

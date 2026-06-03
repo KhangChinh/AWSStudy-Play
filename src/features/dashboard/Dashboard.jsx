@@ -26,7 +26,7 @@ import './Dashboard.scss';
 // ═══ User Profile Widget ═══
 const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
-  
+
   return (
     <div className="user-profile-widget" onClick={onClick}>
       <div className={`avatar-container ${currentFrame}`}>
@@ -133,10 +133,10 @@ class Dashboard extends Component {
       isVacuuming: false,
       isMissionsOpen: false,
       missions: [
-        { id: 1, title: 'Mission 1', desc: 'Sơ khai thế giới', status: '0/1' },
-        { id: 2, title: 'Mission 2', desc: 'Thử thách tân thủ', status: '0/4' },
-        { id: 3, title: 'Mission 3', desc: 'Nhà sưu tầm', status: '1/3' },
-        { id: 4, title: 'Mission 4', desc: 'Đại gia lộ diện', status: '0/1' },
+        { id: 1, title: 'Mission 1', desc: 'Sơ khai thế giới', status: '1/1' },
+        { id: 2, title: 'Mission 2', desc: 'Thử thách tân thủ', status: '4/4' },
+        { id: 3, title: 'Mission 3', desc: 'Nhà sưu tầm', status: '3/3' },
+        { id: 4, title: 'Mission 4', desc: 'Đại gia lộ diện', status: '1/1' },
       ]
     };
     this.timerInterval = null;
@@ -297,11 +297,19 @@ class Dashboard extends Component {
   };
 
   handleClaimAllMissions = () => {
-    toast.success('All rewards claimed! +1000 P-Coin', {
+    toast.success('All rewards claimed! +160 P-Coin', {
       icon: '🎁',
       theme: 'dark'
     });
     // Reset or update missions state? Just toast for now per user request for button appearance.
+  };
+
+  handleClaimMission = (missionId) => {
+    const mission = this.state.missions.find(m => m.id === missionId);
+    toast.success(`Claimed: +40 P-Coin!`, {
+      icon: '✅',
+      theme: 'dark'
+    });
   };
 
   handleClickOutside = (event) => {
@@ -424,26 +432,37 @@ class Dashboard extends Component {
 
     return (
       <div className="os-desktop">
-        {/* Background Layers */}
-        <div className="stars"></div>
-        <div className="twinkling"></div>
-        <div className="purple-nebula"></div>
+        {/* Resolution-independent generated line background */}
+        <div className="desktop-line-bg" aria-hidden="true">
+          <div className="aurora-field aurora-cyan"></div>
+          <div className="aurora-field aurora-magenta"></div>
+          <div className="aurora-field aurora-gold"></div>
+          <div className="holo-orbit holo-orbit-one"></div>
+          <div className="holo-orbit holo-orbit-two"></div>
+          <div className="holo-panel holo-panel-one"></div>
+          <div className="holo-panel holo-panel-two"></div>
+          <div className="line-grid line-grid-primary"></div>
+          <div className="line-grid line-grid-secondary"></div>
+          <div className="line-scan"></div>
+        </div>
+        <div className="desktop-bg-dim"></div>
         {this.state.isDragging && <div className="drag-overlay"></div>}
-        
-        <UserProfileWidget 
+
+        <UserProfileWidget
           currentTitle={this.state.currentTitle}
           currentFrame={this.state.currentFrame}
           onClick={() => this.openApp('profile')}
         />
 
-        <MissionsWidget 
+        <MissionsWidget
           missions={this.state.missions}
           onClaimAll={this.handleClaimAllMissions}
+          onClaimMission={this.handleClaimMission}
         />
 
         {/* Desktop Icons Array */}
         <div className="desktop-icons">
-          {APPS.map(app => (
+          {APPS.filter(app => app.id !== 'profile').map(app => (
             <div className={`icon ${app.className}`} key={app.id} onClick={() => this.openApp(app.id)}>
               <div className="icon-img">
                 <IonIcon icon={app.icon} style={{ color: 'white', fontSize: 28 }} />

@@ -3,22 +3,268 @@
   height: 100vh;
   position: relative;
   overflow: hidden;
-  background: radial-gradient(ellipse at bottom, #2b0c3d 0%, #0c0218 100%);
-  font-family: 'Inter', sans-serif;
+  background: #0b1028;
+  font-family: Inter, system-ui, sans-serif;
   color: #fff;
 }
 
-/* Cosmic Background Elements */
+/* Resolution-independent generated line background */
+.desktop-line-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(34, 211, 238, 0.38) 0%, transparent 28%),
+    radial-gradient(circle at 82% 20%, rgba(217, 70, 239, 0.34) 0%, transparent 30%),
+    radial-gradient(circle at 68% 78%, rgba(251, 191, 36, 0.24) 0%, transparent 30%),
+    linear-gradient(135deg, rgba(9, 16, 43, 0.98) 0%, rgba(13, 37, 67, 0.96) 42%, rgba(26, 12, 53, 0.96) 100%),
+    repeating-linear-gradient(115deg, rgba(125, 211, 252, 0.2) 0 1px, transparent 1px 112px),
+    repeating-linear-gradient(64deg, rgba(244, 114, 182, 0.12) 0 1px, transparent 1px 148px);
+  pointer-events: none;
+
+  .aurora-field,
+  .holo-orbit,
+  .holo-panel,
+  .line-grid,
+  .line-scan {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .aurora-field {
+    width: 46vw;
+    height: 46vw;
+    min-width: 460px;
+    min-height: 460px;
+    border-radius: 999px;
+    filter: blur(56px);
+    opacity: 0.64;
+    mix-blend-mode: screen;
+    transform: translate3d(0, 0, 0);
+    animation: aurora-float 18s ease-in-out infinite alternate;
+  }
+
+  .aurora-cyan {
+    top: -15%;
+    left: -10%;
+    background: rgba(34, 211, 238, 0.58);
+  }
+
+  .aurora-magenta {
+    top: -18%;
+    right: -8%;
+    background: rgba(217, 70, 239, 0.52);
+    animation-delay: -6s;
+  }
+
+  .aurora-gold {
+    right: 8%;
+    bottom: -28%;
+    background: rgba(251, 191, 36, 0.42);
+    animation-delay: -11s;
+  }
+
+  .holo-orbit {
+    width: 38vw;
+    height: 38vw;
+    min-width: 430px;
+    min-height: 430px;
+    border-radius: 50%;
+    border: 1px solid rgba(186, 230, 253, 0.24);
+    box-shadow:
+      inset 0 0 42px rgba(56, 189, 248, 0.14),
+      0 0 56px rgba(217, 70, 239, 0.16);
+    transform-style: preserve-3d;
+  }
+
+  .holo-orbit::before,
+  .holo-orbit::after {
+    content: "";
+    position: absolute;
+    inset: 11%;
+    border-radius: inherit;
+    border: 1px solid rgba(244, 114, 182, 0.18);
+  }
+
+  .holo-orbit::after {
+    inset: 25%;
+    border-color: rgba(251, 191, 36, 0.18);
+  }
+
+  .holo-orbit-one {
+    top: 9%;
+    left: 28%;
+    animation: orbit-tilt-one 24s linear infinite;
+  }
+
+  .holo-orbit-two {
+    right: -7%;
+    bottom: 6%;
+    opacity: 0.72;
+    animation: orbit-tilt-two 32s linear infinite;
+  }
+
+  .holo-panel {
+    width: 330px;
+    height: 190px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 22px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.025)),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 38px),
+      repeating-linear-gradient(0deg, rgba(125, 211, 252, 0.14) 0 1px, transparent 1px 38px);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.2),
+      0 28px 90px rgba(0, 0, 0, 0.24),
+      0 0 42px rgba(34, 211, 238, 0.16);
+    opacity: 0.58;
+    transform-style: preserve-3d;
+  }
+
+  .holo-panel-one {
+    left: 18%;
+    bottom: 13%;
+    animation: panel-float-one 14s ease-in-out infinite alternate;
+  }
+
+  .holo-panel-two {
+    top: 24%;
+    right: 18%;
+    width: 280px;
+    height: 160px;
+    opacity: 0.48;
+    animation: panel-float-two 17s ease-in-out infinite alternate;
+  }
+
+  .line-grid-primary {
+    inset: -18%;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(186, 230, 253, 0.16) 0 1px, transparent 1px 96px),
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 96px);
+    opacity: 0.66;
+    transform: rotate(-8deg) translate3d(0, 0, 0);
+    animation: line-drift 30s linear infinite;
+  }
+
+  .line-grid-secondary {
+    inset: -18%;
+    background-image:
+      repeating-linear-gradient(118deg, rgba(94, 234, 212, 0.24) 0 1px, transparent 1px 142px),
+      repeating-linear-gradient(62deg, rgba(244, 114, 182, 0.18) 0 1px, transparent 1px 184px);
+    opacity: 0.68;
+    transform: rotate(7deg) translate3d(0, 0, 0);
+    animation: line-drift-secondary 42s linear infinite;
+  }
+
+  .line-scan {
+    inset: 0;
+    background:
+      linear-gradient(90deg, transparent 0%, transparent 34%, rgba(45, 212, 191, 0.16) 50%, transparent 66%, transparent 100%),
+      repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 118px);
+    opacity: 0.54;
+    transform: translateX(-38%);
+    animation: line-scan 16s ease-in-out infinite alternate;
+  }
+}
+
+.desktop-bg-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(circle at 50% 42%, transparent 0%, rgba(1, 8, 18, 0.08) 62%, rgba(1, 8, 18, 0.24) 100%),
+    linear-gradient(180deg, rgba(1, 8, 18, 0) 0%, rgba(1, 8, 18, 0.14) 100%);
+  pointer-events: none;
+}
+
+@keyframes aurora-float {
+  from {
+    transform: translate3d(-4%, -3%, 0) scale(0.96);
+  }
+
+  to {
+    transform: translate3d(7%, 6%, 0) scale(1.08);
+  }
+}
+
+@keyframes orbit-tilt-one {
+  from {
+    transform: rotateX(68deg) rotateZ(0deg) translate3d(0, 0, -80px);
+  }
+
+  to {
+    transform: rotateX(68deg) rotateZ(360deg) translate3d(0, 0, -80px);
+  }
+}
+
+@keyframes orbit-tilt-two {
+  from {
+    transform: rotateX(58deg) rotateY(18deg) rotateZ(360deg) translate3d(0, 0, -120px);
+  }
+
+  to {
+    transform: rotateX(58deg) rotateY(18deg) rotateZ(0deg) translate3d(0, 0, -120px);
+  }
+}
+
+@keyframes panel-float-one {
+  from {
+    transform: rotateX(62deg) rotateZ(-13deg) translate3d(0, 0, -40px);
+  }
+
+  to {
+    transform: rotateX(62deg) rotateZ(-7deg) translate3d(28px, -18px, 40px);
+  }
+}
+
+@keyframes panel-float-two {
+  from {
+    transform: rotateX(58deg) rotateY(-18deg) rotateZ(14deg) translate3d(0, 0, -90px);
+  }
+
+  to {
+    transform: rotateX(58deg) rotateY(-18deg) rotateZ(20deg) translate3d(-24px, 22px, 20px);
+  }
+}
+
+@keyframes line-drift {
+  from {
+    transform: rotate(-8deg) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: rotate(-8deg) translate3d(-96px, -96px, 0);
+  }
+}
+
+@keyframes line-drift-secondary {
+  from {
+    transform: rotate(7deg) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: rotate(7deg) translate3d(142px, -142px, 0);
+  }
+}
+
+@keyframes line-scan {
+  from {
+    transform: translateX(-38%);
+  }
+
+  to {
+    transform: translateX(38%);
+  }
+}
+
+/* Legacy decorative layers are disabled in favor of the generated line background. */
 .stars,
 .twinkling,
 .purple-nebula {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
+  display: none;
 }
 
 .purple-nebula {
@@ -258,43 +504,43 @@
 
     .window-controls {
       display: flex;
-      gap: 10px; // Spacing between circles
+      gap: 12px; // More air between controls
 
       .control {
-        width: 14px;
-        height: 14px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         border: none;
         cursor: pointer;
-        font-size: 10px; // Tăng size chữ
-        color: rgba(0, 0, 0, 0.7); // Hiện rõ icon mặc định
-        transition: all 0.2s;
-        font-weight: 800;
+        font-size: 11px;
+        color: rgba(0, 0, 0, 0.4); 
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 900;
+        position: relative;
 
         &:hover {
-          color: rgba(0, 0, 0, 1);
-          filter: brightness(1.2);
-          transform: scale(1.1);
+          color: rgba(0, 0, 0, 0.8);
+          transform: scale(1.15);
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
         }
 
         &.minimize {
-          background: #ffbd2e;
+          background: #ffbd2e; // macOS Yellow
+          box-shadow: 0 0 8px rgba(255, 189, 46, 0.2);
         }
 
-        // Vàng
         &.maximize {
-          background: #27c93f;
+          background: #27c93f; // macOS Green
+          box-shadow: 0 0 8px rgba(39, 201, 63, 0.2);
         }
 
-        // Xanh
         &.close {
-          background: #ff5f56;
+          background: #ff5f56; // macOS Red
+          box-shadow: 0 0 8px rgba(255, 95, 86, 0.2);
         }
-
-        // Đỏ
       }
     }
   }
@@ -1422,6 +1668,203 @@
           color: #64748b;
           font-size: 12px;
         }
+      }
+    }
+  }
+}
+
+/* Cinematic focus desktop refinements */
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-profile-widget,
+.missions-widget,
+.os-window,
+.desktop-icons .icon {
+  animation: fade-rise 0.8s ease-out both;
+}
+
+.user-profile-widget,
+.missions-widget,
+.os-window,
+.desktop-icons .icon-img,
+.os-taskbar,
+.taskbar-icon,
+.minimize-all-btn,
+.start-btn {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    0 18px 50px rgba(0, 0, 0, 0.35);
+}
+
+.user-profile-widget,
+.missions-widget,
+.desktop-icons {
+  z-index: 10;
+}
+
+.user-profile-widget {
+  background: rgba(3, 12, 28, 0.58);
+  border-radius: 18px;
+
+  &:hover {
+    background: rgba(3, 12, 28, 0.72);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.2),
+      0 22px 58px rgba(0, 0, 0, 0.42);
+  }
+}
+
+.missions-widget {
+  background: rgba(3, 12, 28, 0.56);
+  border-radius: 18px;
+
+  .widget-header .title {
+    color: rgba(255, 255, 255, 0.9);
+
+    ion-icon {
+      color: rgba(255, 255, 255, 0.82);
+    }
+  }
+
+  .mission-mini-list .mini-item {
+    border-radius: 10px;
+    padding: 7px 8px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+}
+
+.desktop-icons {
+  z-index: 10;
+
+  .icon {
+    transition: transform 0.22s ease, filter 0.22s ease;
+
+    .icon-img {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border-radius: 16px;
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.18),
+        0 14px 32px rgba(0, 0, 0, 0.34);
+    }
+
+    span {
+      color: rgba(255, 255, 255, 0.92);
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
+    }
+
+    &:hover {
+      transform: scale(1.05);
+
+      .icon-img {
+        border-color: rgba(255, 255, 255, 0.28);
+        transform: none;
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.22),
+          0 20px 42px rgba(0, 0, 0, 0.42);
+      }
+    }
+  }
+}
+
+.os-window {
+  background: rgba(3, 12, 28, 0.66);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    0 28px 72px rgba(0, 0, 0, 0.56);
+  z-index: 50;
+
+  &.active {
+    border-color: rgba(255, 255, 255, 0.24);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.2),
+      0 34px 86px rgba(0, 0, 0, 0.64);
+  }
+
+  .window-header {
+    background: rgba(1, 8, 18, 0.58);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .window-content {
+    background: rgba(3, 12, 28, 0.78);
+    color: rgba(255, 255, 255, 0.92);
+  }
+}
+
+.os-taskbar {
+  z-index: 1000;
+  background: rgba(3, 12, 28, 0.58);
+  border-top-color: rgba(255, 255, 255, 0.14);
+
+  .taskbar-start {
+    .minimize-all-btn,
+    .start-btn {
+      color: rgba(255, 255, 255, 0.86);
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+    }
+
+    .start-btn {
+      font-size: 24px;
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.18),
+        0 14px 32px rgba(0, 0, 0, 0.35);
+
+      &:hover {
+        transform: translateY(-2px) scale(1.04);
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.22),
+          0 18px 40px rgba(0, 0, 0, 0.42);
+      }
+    }
+  }
+
+  .taskbar-apps {
+    .taskbar-icon {
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      &:hover,
+      &.active {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      &.active .indicator {
+        background: rgba(255, 255, 255, 0.9);
+      }
+    }
+  }
+
+  .taskbar-sys {
+    .os-time {
+      color: rgba(255, 255, 255, 0.84);
+    }
+
+    .btn-logout {
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.68);
+
+      &:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
       }
     }
   }

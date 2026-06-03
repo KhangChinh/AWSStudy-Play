@@ -2,126 +2,168 @@
 
   .gacha-main-layout {
     display: flex;
-    gap: 24px;
-    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
   }
 
   .gacha-main {
-    flex: 1.5;
+    flex: 1;
+    max-width: 600px;
+    background: rgba(15, 23, 42, 0.4);
+    padding: 20px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: 10px;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .inventory {
-    flex: 1;
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 16px;
-    height: 520px;
-    display: flex;
-    flex-direction: column;
+  /* SSR Styles Update */
+  .featured-display .item.gold,
+  .inv-item.SSR,
+  .detail-item.SSR,
+  .reward-item.SSR {
+    color: #fbbf24 !important; 
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+  }
 
-    h3 {
-      font-size: 16px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #94a3b8;
+  .detail-item.SSR {
+     background: #fff !important;
+     border: 2px solid transparent !important;
+     position: relative;
+     
+     &::before {
+       content: '';
+       position: absolute;
+       top: -2px; left: -2px; right: -2px; bottom: -2px;
+       background: linear-gradient(45deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) border-box;
+       background-size: 400%;
+       z-index: -1;
+       border-radius: 10px;
+       animation: rainbow-border 3s linear infinite;
+     }
+
+     .name { color: #000 !important; font-weight: 800; }
+     .rarity-tag { background: #fbbf24; color: #fff; }
+     .item-icon { filter: drop-shadow(0 0 5px rgba(0,0,0,0.2)); }
+  }
+
+  .btn-detail-inv {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #fbbf24;
+    }
+  }
+
+  /* Modal Styles */
+  /* Modal Styles */
+  .gacha-details-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      border-radius: 12px;
     }
 
-    .inventory-list {
-      flex: 1;
-      overflow-y: auto;
+    .modal-content {
+      position: relative;
+      width: 440px;
+      height: 90%;
+      max-height: 520px;
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding-right: 4px;
+      box-shadow: 0 50px 100px rgba(0, 0, 0, 0.9);
 
-      .empty {
-        font-size: 13px;
-        color: #64748b;
-        text-align: center;
-        margin-top: 40px;
-        font-style: italic;
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        h3 { font-size: 18px; color: #fff; margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 800; }
+        .close-btn { background: none; border: none; font-size: 32px; color: #334155; cursor: pointer; transition: 0.2s; &:hover { color: #f43f5e; } }
       }
 
-      .inv-item {
+      .detail-list {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow-y: auto;
+        padding-right: 4px;
+
+        &::-webkit-scrollbar { width: 4px; }
+        &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+
+        .detail-item {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          background: rgba(255, 255, 255, 0.03);
+          padding: 14px 18px;
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.02);
+          flex-shrink: 0;
+          transition: 0.2s;
+
+          &:hover { transform: translateX(5px); background: rgba(255, 255, 255, 0.06); }
+
+          .item-icon { font-size: 32px; }
+          .item-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; .name { font-size: 14px; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .rarity-tag { font-size: 9px; width: fit-content; padding: 2px 6px; border-radius: 5px; margin-top: 4px; font-weight: 800; } }
+          .qty { font-size: 14px; color: #94a3b8; font-family: monospace; font-weight: 700; }
+          
+          &.SSR { border-left: 4px solid #fbbf24; .rarity-tag { background: #fbbf24; color: #fff; } }
+          &.SR { border-left: 4px solid #a855f7; .rarity-tag { background: #a855f7; color: #fff; } }
+          &.R { border-left: 4px solid #475569; .rarity-tag { background: #475569; color: #fff; } }
+        }
+      }
+
+      .pagination {
+        margin-top: 24px;
         display: flex;
         align-items: center;
-        gap: 12px;
-        background: rgba(255, 255, 255, 0.03);
-        padding: 8px 12px;
-        border-radius: 10px;
-        border-left: 3px solid transparent;
-
-        .icon {
-          font-size: 24px;
-        }
-
-        .details {
-          display: flex;
-          flex-direction: column;
-
-          .name {
-            font-size: 13px;
-            font-weight: 600;
-            color: white;
-          }
-
-          .count {
-            font-size: 11px;
-            color: #94a3b8;
-          }
-        }
-
-        &.SSR {
-          border-left-color: #fbbf24;
-          background: linear-gradient(90deg, rgba(251, 191, 36, 0.1), transparent);
-          position: relative;
-
-          &::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            border: 1px solid transparent;
-            background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) border-box;
-            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-            mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: destination-out;
-            mask-composite: exclude;
-            animation: rainbow-border 3s linear infinite;
-          }
-        }
-
-        &.SR {
-          border-left-color: #a855f7;
-          background: rgba(168, 85, 247, 0.05);
-        }
-
-        &.R {
-          border-left-color: #94a3b8;
-        }
+        justify-content: center;
+        gap: 20px;
+        button { background: rgba(255, 255, 255, 0.1); border: none; border-radius: 8px; padding: 6px; color: #fff; cursor: pointer; display: flex; align-items: center; &:disabled { opacity: 0.2; cursor: not-allowed; } &:hover:not(:disabled) { background: #fbbf24; color: #000; } }
+        span { font-size: 14px; color: #94a3b8; font-weight: 600; }
       }
     }
   }
 
   @keyframes rainbow-border {
-    0% {
-      background-position: 0% 50%;
-    }
-
-    50% {
-      background-position: 100% 50%;
-    }
-
-    100% {
-      background-position: 0% 50%;
-    }
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 
   .watermark {
@@ -249,29 +291,34 @@
   /* Pity Stats */
   .pity-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
 
     .stat-box {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px 4px;
+      border-radius: 10px;
       text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(5px);
       position: relative;
 
-      label {
-        font-size: 11px;
-        color: #64748b;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-        display: block;
-      }
+      label { font-size: 8px; color: #64748b; display: block; margin-bottom: 4px; font-weight: 700; text-transform: uppercase; }
+      .value, .value-label { font-size: 13px; font-weight: 800; color: #fff; }
+      .value-label { color: #fbbf24; font-size: 10px; }
 
-      .value {
-        font-size: 18px;
-        font-weight: 800;
+      .soft-pity-tag {
+        position: absolute;
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ef4444;
         color: white;
+        font-size: 7px;
+        padding: 1px 4px;
+        border-radius: 10px;
+        white-space: nowrap;
+        z-index: 2;
       }
     }
   }

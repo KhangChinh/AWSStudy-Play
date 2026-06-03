@@ -1,42 +1,70 @@
 /**
  * Item Database
  * Mapping IDs to metadata
+ * Updated: Only Avatar Frames and Titles
  */
 
 export const ITEMS = {
-  item_nebula_wings_5s: {
-    id: 'item_nebula_wings_5s',
-    name: 'Super Nova Wings',
+  // SSR - Titles
+  item_title_legend: {
+    id: 'item_title_legend',
+    name: 'Huyền Thoại (Title)',
     rarity: 'SSR',
-    type: 'cosmetic',
+    type: 'title',
+    cosmeticId: 'title_legend',
+    icon: '👑'
+  },
+  item_title_admin: {
+    id: 'item_title_admin',
+    name: 'Admin (Title)',
+    rarity: 'SSR',
+    type: 'title',
+    cosmeticId: 'title_admin',
+    icon: '🛡️'
+  },
+  // SSR - Frames
+  item_frame_galactic: {
+    id: 'item_frame_galactic',
+    name: 'Galactic Horizon (Frame)',
+    rarity: 'SSR',
+    type: 'frame',
+    cosmeticId: 'frame_galactic',
     icon: '🌌'
   },
-  item_solaris_arch_5s: {
-    id: 'item_solaris_arch_5s',
-    name: 'Solaris Arch',
+  item_frame_gold: {
+    id: 'item_frame_gold',
+    name: 'Golden Royalty (Frame)',
     rarity: 'SSR',
-    type: 'cosmetic',
-    icon: '☀️'
+    type: 'frame',
+    cosmeticId: 'frame_gold',
+    icon: '🔱'
   },
-  item_pulse_blade_4s: {
-    id: 'item_pulse_blade_4s',
-    name: 'Pulse Blade',
+  // SR - Titles
+  item_title_scholar: {
+    id: 'item_title_scholar',
+    name: 'Học Giả (Title)',
     rarity: 'SR',
-    type: 'weapon',
-    icon: '⚔️'
+    type: 'title',
+    cosmeticId: 'title_scholar',
+    icon: '📚'
   },
-  pcoin_bundle: {
-    id: 'pcoin_bundle',
-    name: 'P-Coin Pack',
+  // SR - Frames
+  item_frame_neon: {
+    id: 'item_frame_neon',
+    name: 'Neon Pulse (Frame)',
+    rarity: 'SR',
+    type: 'frame',
+    cosmeticId: 'frame_neon',
+    icon: '💠'
+  },
+  // R - Default (Just for filling pool if needed, or coins as R if allowed, but user said only frame/title)
+  // Let's create some R titles
+  item_title_newbie: {
+    id: 'item_title_newbie',
+    name: 'Tân Thủ (Title)',
     rarity: 'R',
-    type: 'currency',
-    icon: '🪙'
-  },
-  item_moon_shard_4s: {
-    id: 'item_moon_shard_4s',
-    name: 'Moon Shard',
-    rarity: 'SR',
-    type: 'material',
-    icon: '🌙'
+    type: 'title',
+    cosmeticId: 'title_newbie',
+    icon: '🌱'
   }
 };
