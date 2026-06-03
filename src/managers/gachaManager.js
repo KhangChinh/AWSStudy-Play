@@ -9,11 +9,8 @@ class GachaManager {
 
   calculateRoll(bannerConfig, pityState) {
     const { rates } = bannerConfig;
-    const { pityState: pity5, pity4 } = pityState; // Based on Dashboard state naming if applicable, but usually passed as args
-    
-    // Fallback if rates don't match new names
-    const goldRate = rates.SSR || rates.gold || 0.006;
-    const purpleRate = rates.SR || rates.purple || 0.051;
+    const goldRate = rates.SSR || 0.006;
+    const purpleRate = rates.SR || 0.051;
     
     let currentRate5 = goldRate;
     let currentRate4 = purpleRate;
@@ -41,13 +38,25 @@ class GachaManager {
     return 'R';
   }
 
-  getRandomItem(rarity, bannerConfig) {
-    if (rarity === 'R') return 'pcoin_bundle'; // R chỉ có Coin
+  getRandomItem(rarity, bannerConfig, isGuaranteed) {
+    if (rarity === 'R') return 'item_title_newbie'; // R placeholder
     
-    // SSR and SR
-    const poolKey = rarity === 'SSR' ? 'SSR' : (rarity === 'SR' ? 'SR' : rarity);
-    const pool = bannerConfig.featured[poolKey] || bannerConfig.featured[rarity.toLowerCase()] || [];
-    return pool[Math.floor(Math.random() * pool.length)] || 'standard_item';
+    const poolKey = rarity === 'SSR' ? 'SSR' : 'SR';
+    const pool = bannerConfig.featured[poolKey] || [];
+    
+    if (rarity === 'SSR') {
+      // 50/50 Logic
+      if (isGuaranteed) {
+        return pool[Math.floor(Math.random() * pool.length)];
+      } else {
+        const win5050 = Math.random() < 0.5;
+        if (win5050) return pool[Math.floor(Math.random() * pool.length)];
+        // Lost 50/50 - Return a "Standard" SSR (I'll just pick item_title_admin if not in pool, or same)
+        return 'item_title_admin'; // Example standard SSR
+      }
+    }
+
+    return pool[Math.floor(Math.random() * pool.length)] || 'item_frame_neon';
   }
 }
 

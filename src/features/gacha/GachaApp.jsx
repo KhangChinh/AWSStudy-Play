@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
-import { starOutline, timeOutline, cubeOutline } from 'ionicons/icons';
+import { starOutline, timeOutline, cubeOutline, listOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import './GachaApp.scss';
 
 // Import System Managers
@@ -20,12 +20,14 @@ class GachaApp extends Component {
       rewards: [],
       pity5: 0,
       pity4: 0,
-      guaranteed5: false,
+      guaranteedSSR: false, // 50/50 state
       totalRolls: 0,
       activeBanner: bannerManager.getActiveBanner(),
       timeLeftStr: '',
       inventoryItems: [],
       pendingRolls: null,
+      showDetails: false,
+      detailPage: 0,
     };
     this.timer = null;
   }
@@ -62,17 +64,27 @@ class GachaApp extends Component {
     const newRewards = [];
     let tempPity5 = pity5;
     let tempPity4 = pity4;
+    let tempGuaranteed = this.state.guaranteedSSR;
     let maxRarity = 'gray';
 
     const rarityOrder = ['R', 'SR', 'SSR'];
 
     for (let i = 0; i < count; i++) {
-      // Logic driven by manager
       const rarity = gachaManager.calculateRoll(activeBanner, { pity5: tempPity5, pity4: tempPity4 });
-      const itemId = gachaManager.getRandomItem(rarity, activeBanner);
+      const itemId = gachaManager.getRandomItem(rarity, activeBanner, tempGuaranteed);
+
+      if (rarity === 'SSR') {
+        const isFeatured = activeBanner.featured.SSR.includes(itemId);
+        tempGuaranteed = !isFeatured; // If didn't get featured, next is guaranteed
+        tempPity5 = 0;
+      } else {
+        tempPity5++;
+      }
+
+      if (rarity === 'SR') tempPity4 = 0;
+      else tempPity4++;
 
       const itemData = ITEMS[itemId] || { id: itemId, name: itemId, icon: '📦' };
-
       newRewards.push({ ...itemData, rarity });
 
       // Update local max rarity for animation
@@ -103,6 +115,7 @@ class GachaApp extends Component {
       pendingRolls: {
         pity5: tempPity5,
         pity4: tempPity4,
+        guaranteedSSR: tempGuaranteed,
         totalRolls: this.state.totalRolls + count,
         inventory: inventoryManager.getItems()
       }
@@ -148,6 +161,10 @@ class GachaApp extends Component {
                 <div className="value">{pity4} / 10</div>
               </div>
               <div className="stat-box">
+                <label>Pity Status</label>
+                <div className="value-label">{this.state.guaranteedSSR ? 'GUARANTEED' : '50 / 50'}</div>
+              </div>
+              <div className="stat-box">
                 <label>Total Rolls</label>
                 <div className="value">{totalRolls}</div>
               </div>
@@ -161,27 +178,59 @@ class GachaApp extends Component {
                 Roll x10
               </button>
             </div>
-          </div>
-
-          <div className="inventory">
-            <h3><IonIcon icon={cubeOutline} /> Inventory</h3>
-            <div className="inventory-list">
-              {inventoryItems.length === 0 && <p className="empty">Inventory is empty. Start rolling!</p>}
-              {inventoryItems.map((item, idx) => {
-                const meta = ITEMS[item.id] || { name: item.id, icon: '📦', rarity: 'gray' };
-                return (
-                  <div key={`${item.id}-${idx}`} className={`inv-item ${meta.rarity}`}>
-                    <span className="icon">{meta.icon}</span>
-                    <div className="details">
-                      <span className="name">{meta.name}</span>
-                      <span className="count">x{item.amount}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            
+            <button className="btn-detail-inv" onClick={() => this.setState({ showDetails: true, detailPage: 0 })}>
+              <IonIcon icon={listOutline} /> Details
+            </button>
           </div>
         </div>
+
+        {this.state.showDetails && (
+          <div className="gacha-details-modal">
+            <div className="modal-overlay" onClick={() => this.setState({ showDetails: false })} />
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3><IonIcon icon={cubeOutline} /> Roll History / Inventory</h3>
+                <button className="close-btn" onClick={() => this.setState({ showDetails: false })}>&times;</button>
+              </div>
+              <div className="detail-list">
+                {(() => {
+                  const start = this.state.detailPage * 5;
+                  const pageItems = inventoryItems.slice(start, start + 5);
+                  if (inventoryItems.length === 0) return <p className="empty">No items yet.</p>;
+                  return pageItems.map((item, idx) => {
+                    const meta = ITEMS[item.id] || { name: item.id, icon: '📦', rarity: 'R' };
+                    return (
+                      <div key={item.id} className={`detail-item ${meta.rarity}`}>
+                        <span className="item-icon">{meta.icon}</span>
+                        <div className="item-info">
+                          <span className="name">{meta.name}</span>
+                          <span className="rarity-tag">{meta.rarity}</span>
+                        </div>
+                        <span className="qty">x{item.amount}</span>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+              <div className="pagination">
+                <button 
+                  disabled={this.state.detailPage === 0}
+                  onClick={() => this.setState({ detailPage: this.state.detailPage - 1 })}
+                >
+                  <IonIcon icon={chevronBackOutline} />
+                </button>
+                <span>Page {this.state.detailPage + 1} / {Math.ceil(inventoryItems.length / 5) || 1}</span>
+                <button 
+                  disabled={this.state.detailPage >= Math.ceil(inventoryItems.length / 5) - 1}
+                  onClick={() => this.setState({ detailPage: this.state.detailPage + 1 })}
+                >
+                  <IonIcon icon={chevronForwardOutline} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <GachaAnimation
           isPlaying={isPlaying}
@@ -194,6 +243,7 @@ class GachaApp extends Component {
               isPlaying: false,
               pity5: pendingRolls.pity5,
               pity4: pendingRolls.pity4,
+              guaranteedSSR: pendingRolls.guaranteedSSR,
               totalRolls: pendingRolls.totalRolls,
               inventoryItems: pendingRolls.inventory
             });

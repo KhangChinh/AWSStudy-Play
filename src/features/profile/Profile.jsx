@@ -32,6 +32,10 @@ class Profile extends Component {
             <div className="bg-name">Add File</div>
           </div>
           <div className="bg-item-card">
+            <div className="bg-preview" style={{ background: 'radial-gradient(ellipse at bottom, #2b0c3d 0%, #0c0218 100%)' }} />
+            <div className="bg-name">Default</div>
+          </div>
+          <div className="bg-item-card">
             <div className="bg-preview" style={{ background: '#000' }} />
             <div className="bg-name">Black</div>
           </div>

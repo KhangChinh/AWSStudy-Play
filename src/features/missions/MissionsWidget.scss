@@ -73,6 +73,23 @@
         font-family: monospace;
       }
 
+      .btn-mini-claim {
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background: #059669;
+          transform: scale(1.05);
+        }
+      }
+
       &.done {
         .indicator-dot {
           background: #10b981;
