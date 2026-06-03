@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
 import { starOutline, timeOutline, cubeOutline } from 'ionicons/icons';
-import './GachaTestApp.scss';
+import './GachaApp.scss';
 
 // Import System Managers
 import bannerManager from '../../managers/bannerManager';
@@ -11,7 +11,7 @@ import rewardManager from '../../managers/rewardManager';
 import inventoryManager from '../../managers/inventoryManager';
 import { ITEMS } from '../../data/items';
 
-class GachaTestApp extends Component {
+class GachaApp extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -44,13 +44,13 @@ class GachaTestApp extends Component {
   updateTimeDisplay = () => {
     const banner = bannerManager.getActiveBanner();
     const ms = bannerManager.getTimeRemaining(banner.id);
-    
+
     // Format ms to HH:mm:ss
     const totalSecs = Math.floor(ms / 1000);
     const m = Math.floor(totalSecs / 60);
     const s = totalSecs % 60;
-    
-    this.setState({ 
+
+    this.setState({
       activeBanner: banner,
       timeLeftStr: `${m}m ${s}s`,
       inventoryItems: inventoryManager.getItems()
@@ -70,11 +70,11 @@ class GachaTestApp extends Component {
       // Logic driven by manager
       const rarity = gachaManager.calculateRoll(activeBanner, { pity5: tempPity5, pity4: tempPity4 });
       const itemId = gachaManager.getRandomItem(rarity, activeBanner);
-      
+
       const itemData = ITEMS[itemId] || { id: itemId, name: itemId, icon: '📦' };
-      
+
       newRewards.push({ ...itemData, rarity });
-      
+
       // Update local max rarity for animation
       if (rarityOrder.indexOf(rarity) > rarityOrder.indexOf(maxRarity)) {
         maxRarity = rarity;
@@ -113,8 +113,8 @@ class GachaTestApp extends Component {
     const { isPlaying, currentRarity, rewards, pity5, pity4, totalRolls, activeBanner, timeLeftStr, inventoryItems } = this.state;
 
     return (
-      <div className={`app-container gacha-test-app ${activeBanner.theme}`}>
-        <div className="test-watermark">Live Simulation: {activeBanner.id}</div>
+      <div className={`app-container gacha-app ${activeBanner.theme}`}>
+        <div className="watermark">Live Simulation: {activeBanner.id}</div>
 
         <h2 className="app-title">
           <div className="title-left">
@@ -124,16 +124,16 @@ class GachaTestApp extends Component {
             <IonIcon icon={timeOutline} /> New Pool in: {timeLeftStr}
           </div>
         </h2>
-        
+
         <div className="gacha-main-layout">
           <div className="gacha-main">
             <div className={`banner-card ${activeBanner.background}`}>
               <div className="banner-tag">{activeBanner.type.toUpperCase()} EVENT</div>
               <div className="banner-content">
-                 <div className="featured-display">
-                    <div className="item gold">★ SSR: {ITEMS[activeBanner.featured.SSR[0]]?.name || activeBanner.featured.SSR[0]}</div>
-                    <div className="item purple">★ SR: {ITEMS[activeBanner.featured.SR[0]]?.name || activeBanner.featured.SR[0]}</div>
-                 </div>
+                <div className="featured-display">
+                  <div className="item gold">★ SSR: {ITEMS[activeBanner.featured.SSR[0]]?.name || activeBanner.featured.SSR[0]}</div>
+                  <div className="item purple">★ SR: {ITEMS[activeBanner.featured.SR[0]]?.name || activeBanner.featured.SR[0]}</div>
+                </div>
               </div>
             </div>
 
@@ -154,17 +154,17 @@ class GachaTestApp extends Component {
             </div>
 
             <div className="roll-controls">
-              <button className="btn-roll-test x1" onClick={() => this.handleRoll(1)} disabled={isPlaying}>
+              <button className="btn-roll x1" onClick={() => this.handleRoll(1)} disabled={isPlaying}>
                 Roll x1
               </button>
-              <button className="btn-roll-test x10" onClick={() => this.handleRoll(10)} disabled={isPlaying}>
+              <button className="btn-roll x10" onClick={() => this.handleRoll(10)} disabled={isPlaying}>
                 Roll x10
               </button>
             </div>
           </div>
 
-          <div className="test-inventory">
-            <h3><IonIcon icon={cubeOutline} /> Test Inventory</h3>
+          <div className="inventory">
+            <h3><IonIcon icon={cubeOutline} /> Inventory</h3>
             <div className="inventory-list">
               {inventoryItems.length === 0 && <p className="empty">Inventory is empty. Start rolling!</p>}
               {inventoryItems.map((item, idx) => {
@@ -204,4 +204,4 @@ class GachaTestApp extends Component {
   }
 }
 
-export default GachaTestApp;
+export default GachaApp;

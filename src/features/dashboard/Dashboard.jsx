@@ -13,9 +13,9 @@ import {
 import FocusWidget from '../focus/FocusWidget';
 import Profile from '../profile/Profile';
 import cosmeticManager from '../../managers/cosmeticManager';
-import GachaStation from '../gacha/GachaStation';
-import GachaTestApp from '../gacha/GachaTestApp';
+import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
+import Store from '../store/Store';
 import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authServices';
 import { userLogout } from '../../store/actions';
@@ -63,13 +63,13 @@ const SettingsApp = ({ currentTitle }) => {
         <h3><IonIcon icon={globeOutline} /> Preferences</h3>
         <p className="section-desc">Quick adjustments for your experience.</p>
         <div className="settings-options">
-           <div className="option">
-              <label>Language</label>
-              <select className="language-select">
-                <option value="en">English</option>
-                <option value="vi">Tiếng Việt</option>
-              </select>
-           </div>
+          <div className="option">
+            <label>Language</label>
+            <select className="language-select">
+              <option value="en">English</option>
+              <option value="vi">Tiếng Việt</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -77,37 +77,14 @@ const SettingsApp = ({ currentTitle }) => {
 };
 
 // ═══ Cosmetics Store ═══
-const StoreApp = () => (
-  <div className="app-container">
-    <h2 className="app-title"><IonIcon icon={cartOutline} /> Cosmetics Store</h2>
-    <div className="store-grid">
-      {[
-        { name: 'Neon Frame', price: 1500, icon: '🖼️' },
-        { name: 'VIP Badge', price: 5000, icon: '🛡️' },
-        { name: 'Galaxy Trail', price: 3000, icon: '✨' },
-        { name: 'Golden Name', price: 10000, icon: '👑' }
-      ].map(item => (
-        <div className="store-item" key={item.name}>
-          <div className="item-cover">{item.icon}</div>
-          <div className="item-info">
-            <span className="item-title">{item.name}</span>
-            <span className="item-price">🪙 {item.price} P-Coin</span>
-            <button style={{ background: '#10b981' }}><IonIcon icon={cart} /> Purchase</button>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 // ═══ App Registry ═══
 const APPS = [
   { id: 'settings', name: 'Settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
   { id: 'profile', name: 'Profile', className: 'profile', icon: personOutline, content: <Profile /> },
-  { id: 'gacha', name: 'Gacha', className: 'gacha', icon: ticketOutline, content: <GachaStation /> },
-  { id: 'gacha-test', name: 'Gacha Test', className: 'gacha-test', icon: starOutline, content: <GachaTestApp /> },
+  { id: 'gacha', name: 'Gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
   { id: 'minigame', name: 'Mini Games', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
-  { id: 'store', name: 'Store', className: 'store', icon: cartOutline, content: <StoreApp /> },
+  { id: 'store', name: 'Store', className: 'store', icon: cartOutline, content: <Store /> },
 ];
 
 // ═══ MAIN DASHBOARD COMPONENT ═══
@@ -265,14 +242,14 @@ class Dashboard extends Component {
   handleMinimizeAll = () => {
     const { openApps, minimizedApps } = this.state;
     if (openApps.length === 0) return;
-    
+
     // Nếu tất cả đã thu nhỏ rồi thì Restore all? 
     // Thường Minimize All chỉ là thu nhỏ hết.
     this.setState({
       minimizedApps: [...openApps],
       activeApp: null
     });
-    
+
     toast.info('All windows minimized', {
       icon: '⏬',
       theme: 'dark',
@@ -292,11 +269,11 @@ class Dashboard extends Component {
   };
 
   handleClickOutside = (event) => {
-    if (this.state.isMissionsOpen && 
-        this.missionsPanelRef.current && 
-        !this.missionsPanelRef.current.contains(event.target) &&
-        this.missionsBtnRef.current &&
-        !this.missionsBtnRef.current.contains(event.target)) {
+    if (this.state.isMissionsOpen &&
+      this.missionsPanelRef.current &&
+      !this.missionsPanelRef.current.contains(event.target) &&
+      this.missionsBtnRef.current &&
+      !this.missionsBtnRef.current.contains(event.target)) {
       this.setState({ isMissionsOpen: false });
     }
   };
@@ -450,7 +427,7 @@ class Dashboard extends Component {
               }}
               onMouseDown={() => this.setState({ activeApp: appId })}
             >
-              <div className="window-header" 
+              <div className="window-header"
                 onMouseDown={(e) => this.handleDragStart(e, appId)}
                 onTouchStart={(e) => this.handleDragStart(e, appId)}
               >
@@ -545,7 +522,7 @@ class Dashboard extends Component {
               <IonIcon icon={listOutline} />
               <span className="count">{this.state.missions.filter(m => m.status.split('/')[0] !== m.status.split('/')[1]).length}/4</span>
             </div>
-            
+
             <span className="os-time">{time}</span>
             <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout}>
               <IonIcon icon={logOutOutline} />

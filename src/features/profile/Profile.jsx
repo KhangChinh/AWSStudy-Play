@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
-import { 
-  personCircleOutline, starOutline, cubeOutline, 
-  cashOutline, imageOutline 
+import {
+  personCircleOutline, starOutline, cubeOutline,
+  cashOutline, imageOutline, addOutline
 } from 'ionicons/icons';
 import cosmeticManager from '../../managers/cosmeticManager';
 import inventoryManager from '../../managers/inventoryManager';
@@ -14,7 +14,7 @@ class Profile extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      activeTab: 'inventory', // inventory | titles | frames
+      activeTab: 'backgrounds', // backgrounds | titles | frames
     };
   }
 
@@ -22,25 +22,23 @@ class Profile extends Component {
     const { activeTab } = this.state;
     const { currentTitle, currentFrame, onTitleChange, onFrameChange } = this.props;
 
-    if (activeTab === 'inventory') {
-      const items = inventoryManager.getItems();
-      if (!items || items.length === 0) return <div className="empty-msg">No items in your storage yet.</div>;
-      
+    if (activeTab === 'backgrounds') {
       return (
-        <div className="inventory-grid">
-          {items.map(i => {
-            const data = ITEMS[i.id] || { name: i.id, icon: '📦', rarity: 'R' };
-            const rClass = (data.rarity || 'R').toUpperCase();
-            return (
-              <div key={i.id} className={`item-card ${rClass}`}>
-                <div className="item-icon">{data.icon}</div>
-                <div className="item-details">
-                  <div className="name">{data.name}</div>
-                  <div className="qty">Qty: {i.amount || 0}</div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="backgrounds-grid">
+          <div className="bg-item-card add-btn">
+            <div className="bg-preview add-icon">
+              <IonIcon icon={addOutline} />
+            </div>
+            <div className="bg-name">Add File</div>
+          </div>
+          <div className="bg-item-card">
+            <div className="bg-preview" style={{ background: '#000' }} />
+            <div className="bg-name">Black</div>
+          </div>
+          <div className="bg-item-card">
+            <div className="bg-preview" style={{ background: '#fff' }} />
+            <div className="bg-name">White</div>
+          </div>
         </div>
       );
     }
@@ -50,8 +48,8 @@ class Profile extends Component {
       return (
         <div className="titles-list">
           {titles.map(t => (
-            <div 
-              key={t.id} 
+            <div
+              key={t.id}
               className={`profile-title-item ${currentTitle === t.id ? 'active' : ''}`}
               onClick={() => onTitleChange(t.id)}
             >
@@ -70,21 +68,21 @@ class Profile extends Component {
       const frames = cosmeticManager.getAllInCategory('frames');
       return (
         <div className="frames-grid">
-           {frames.map(f => (
-             <div 
-               key={f.id} 
-               className={`frame-item-card ${currentFrame === f.id ? 'active' : ''}`}
-               onClick={() => onFrameChange(f.id)}
-             >
-                <div className={`frame-preview-outer ${f.id}`}>
-                   <div className="frame-icon-wrap">
-                      <IonIcon icon={personCircleOutline} />
-                   </div>
+          {frames.map(f => (
+            <div
+              key={f.id}
+              className={`frame-item-card ${currentFrame === f.id ? 'active' : ''}`}
+              onClick={() => onFrameChange(f.id)}
+            >
+              <div className={`frame-preview-outer ${f.id}`}>
+                <div className="frame-icon-wrap">
+                  <IonIcon icon={personCircleOutline} />
                 </div>
-                <div className="frame-name">{f.name}</div>
-                {currentFrame === f.id && <div className="active-dot" />}
-             </div>
-           ))}
+              </div>
+              <div className="frame-name">{f.name}</div>
+              {currentFrame === f.id && <div className="active-dot" />}
+            </div>
+          ))}
         </div>
       );
     }
@@ -99,32 +97,32 @@ class Profile extends Component {
     return (
       <div className="app-container profile-app">
         <div className="profile-header">
-           <div className="user-profile-section">
-              <div className={`large-avatar-frame ${currentFrame}`}>
-                <div className="avatar-content">
-                  <IonIcon icon={personCircleOutline} />
+          <div className="user-profile-section">
+            <div className={`large-avatar-frame ${currentFrame}`}>
+              <div className="avatar-content">
+                <IonIcon icon={personCircleOutline} />
+              </div>
+            </div>
+            <div className="user-main-info">
+              <div className="username-line">
+                <span className="name">Player_9999</span>
+                <span className="title-badge" style={{ color: equippedTitle?.color }}>
+                  [{equippedTitle?.name}]
+                </span>
+              </div>
+              <div className="wallet-info">
+                <div className="coin-pill">
+                  <span className="coin-icon">🪙</span>
+                  <span className="coin-val">{pCoins.toLocaleString()}</span>
                 </div>
               </div>
-              <div className="user-main-info">
-                <div className="username-line">
-                  <span className="name">Player_9999</span>
-                  <span className="title-badge" style={{ color: equippedTitle?.color }}>
-                    [{equippedTitle?.name}]
-                  </span>
-                </div>
-                <div className="wallet-info">
-                  <div className="coin-pill">
-                    <span className="coin-icon">🪙</span>
-                    <span className="coin-val">{pCoins.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-           </div>
+            </div>
+          </div>
         </div>
 
         <div className="profile-nav-tabs">
-          <button className={`nav-tab ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'inventory' })}>
-            <IonIcon icon={cubeOutline} /> Inventory
+          <button className={`nav-tab ${activeTab === 'backgrounds' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'backgrounds' })}>
+            <IonIcon icon={imageOutline} /> Background
           </button>
           <button className={`nav-tab ${activeTab === 'titles' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'titles' })}>
             <IonIcon icon={starOutline} /> Titles

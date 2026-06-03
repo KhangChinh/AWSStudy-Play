@@ -1,4 +1,4 @@
-.gacha-test-app {
+.gacha-app {
 
   .gacha-main-layout {
     display: flex;
@@ -14,7 +14,7 @@
     padding: 10px;
   }
 
-  .test-inventory {
+  .inventory {
     flex: 1;
     background: rgba(15, 23, 42, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -78,10 +78,11 @@
           }
         }
 
-        &.SSR { 
-          border-left-color: #fbbf24; 
+        &.SSR {
+          border-left-color: #fbbf24;
           background: linear-gradient(90deg, rgba(251, 191, 36, 0.1), transparent);
           position: relative;
+
           &::after {
             content: '';
             position: absolute;
@@ -96,19 +97,34 @@
             animation: rainbow-border 3s linear infinite;
           }
         }
-        &.SR { border-left-color: #a855f7; background: rgba(168, 85, 247, 0.05); }
-        &.R { border-left-color: #94a3b8; }
+
+        &.SR {
+          border-left-color: #a855f7;
+          background: rgba(168, 85, 247, 0.05);
+        }
+
+        &.R {
+          border-left-color: #94a3b8;
+        }
       }
     }
   }
 
   @keyframes rainbow-border {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
   }
 
-  .test-watermark {
+  .watermark {
     position: absolute;
     top: 5px;
     right: 60px;

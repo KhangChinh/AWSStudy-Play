@@ -258,38 +258,38 @@
   padding: 0 16px;
   z-index: 1000;
 
-    .taskbar-start {
-      min-width: 150px;
+  .taskbar-start {
+    min-width: 150px;
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+
+    .minimize-all-btn {
+      width: 40px;
+      height: 40px;
       display: flex;
-      justify-content: flex-start;
-      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
 
-      .minimize-all-btn {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        color: rgba(255, 255, 255, 0.7);
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.2s;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: #fff;
-          transform: translateY(-2px);
-        }
-
-        &:active {
-          transform: translateY(0) scale(0.95);
-        }
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        transform: translateY(-2px);
       }
 
-      .start-btn {
+      &:active {
+        transform: translateY(0) scale(0.95);
+      }
+    }
+
+    .start-btn {
       width: 40px;
       height: 40px;
       display: flex;
@@ -330,7 +330,10 @@
       transition: all 0.2s;
       user-select: none;
 
-      i, svg, .indicator, ion-icon {
+      i,
+      svg,
+      .indicator,
+      ion-icon {
         pointer-events: none;
       }
 
@@ -377,7 +380,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 16px;
-    position: relative; 
+    position: relative;
 
     .btn-missions {
       display: flex;
@@ -880,61 +883,6 @@
       .item-name {
         font-size: 13px;
         font-weight: 500;
-      }
-    }
-  }
-}
-
-/* Store & Minigame (Shared Grid Style) */
-.store-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-
-  .store-item {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    overflow: hidden;
-
-    .item-cover {
-      height: 120px;
-      background: rgba(255, 255, 255, 0.05);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-    }
-
-    .item-info {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-
-      .item-title {
-        font-size: 16px;
-        font-weight: 600;
-      }
-
-      .item-price {
-        color: #fbbf24;
-        font-weight: 700;
-        font-size: 14px;
-      }
-
-      button {
-        padding: 8px;
-        border-radius: 6px;
-        border: none;
-        background: #9333ea;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-
-        &:hover {
-          background: #a855f7;
-        }
       }
     }
   }

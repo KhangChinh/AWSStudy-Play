@@ -32,9 +32,10 @@
         }
 
         // Frame classes
-        &.frame_neon { 
-          border-color: #c084fc; 
+        &.frame_neon {
+          border-color: #c084fc;
           box-shadow: 0 0 20px #a855f7;
+
           &::before {
             content: '';
             position: absolute;
@@ -44,9 +45,14 @@
             animation: pulse-frame 2s infinite;
           }
         }
-        &.frame_gold { border-color: #fbbf24; box-shadow: 0 0 20px #fbbf24; }
-        &.frame_galactic { 
-          border-color: #3b82f6; 
+
+        &.frame_gold {
+          border-color: #fbbf24;
+          box-shadow: 0 0 20px #fbbf24;
+        }
+
+        &.frame_galactic {
+          border-color: #3b82f6;
           background: linear-gradient(45deg, #1e293b, #3b82f6);
           box-shadow: 0 0 30px #3b82f6;
         }
@@ -84,9 +90,16 @@
             border: 1px solid rgba(251, 191, 36, 0.2);
             padding: 6px 16px;
             border-radius: 20px;
-            
-            .coin-icon { font-size: 18px; }
-            .coin-val { font-size: 16px; font-weight: 800; color: #fbbf24; }
+
+            .coin-icon {
+              font-size: 18px;
+            }
+
+            .coin-val {
+              font-size: 16px;
+              font-weight: 800;
+              color: #fbbf24;
+            }
           }
         }
       }
@@ -113,9 +126,14 @@
       cursor: pointer;
       transition: all 0.2s;
 
-      ion-icon { font-size: 18px; }
+      ion-icon {
+        font-size: 18px;
+      }
 
-      &:hover { color: #fff; }
+      &:hover {
+        color: #fff;
+      }
+
       &.active {
         color: #c084fc;
         border-bottom-color: #c084fc;
@@ -136,37 +154,58 @@
       font-style: italic;
     }
 
-    /* Inventory Grid */
-    .inventory-grid {
+    .backgrounds-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       gap: 16px;
 
-      .item-card {
+      .bg-item-card {
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
-        padding: 16px;
+        padding: 12px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        text-align: center;
-        transition: transform 0.2s;
+        gap: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
 
-        &:hover { transform: translateY(-4px); background: rgba(255, 255, 255, 0.06); }
-
-        .item-icon { font-size: 40px; margin-bottom: 12px; }
-        .item-details {
-          .name { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
-          .qty { font-size: 11px; color: #64748b; }
+        &:hover {
+          transform: translateY(-4px);
+          background: rgba(255, 255, 255, 0.06);
         }
 
-        &.SSR { 
-           border-bottom: 3px solid #fbbf24;
-           box-shadow: 0 0 15px rgba(251, 191, 36, 0.1);
+        .bg-preview {
+          width: 100%;
+          height: 80px;
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+
+          &.add-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #9333ea;
+            border-style: dashed;
+            border-width: 2px;
+            background: rgba(147, 51, 234, 0.05);
+          }
         }
-        &.SR { border-bottom: 3px solid #a855f7; }
-        &.R { border-bottom: 3px solid #94a3b8; }
+
+        .bg-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: #e2e8f0;
+        }
+
+        &.add-btn {
+          &:hover .add-icon {
+            background: rgba(147, 51, 234, 0.15);
+            color: #a855f7;
+          }
+        }
       }
     }
 
@@ -187,7 +226,10 @@
         cursor: pointer;
         transition: all 0.2s;
 
-        &:hover { background: rgba(255, 255, 255, 0.06); }
+        &:hover {
+          background: rgba(255, 255, 255, 0.06);
+        }
+
         &.active {
           background: rgba(192, 132, 252, 0.08);
           border-color: rgba(192, 132, 252, 0.3);
@@ -198,11 +240,24 @@
           flex-direction: column;
           gap: 4px;
 
-          .title-preview { font-size: 18px; font-weight: 800; letter-spacing: 1px; }
-          .title-desc { font-size: 13px; color: #94a3b8; }
+          .title-preview {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 1px;
+          }
+
+          .title-desc {
+            font-size: 13px;
+            color: #94a3b8;
+          }
         }
 
-        .active-tag { font-size: 11px; color: #c084fc; font-weight: 800; text-transform: uppercase; }
+        .active-tag {
+          font-size: 11px;
+          color: #c084fc;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
       }
     }
 
@@ -225,8 +280,14 @@
         position: relative;
         transition: all 0.2s;
 
-        &:hover { background: rgba(255, 255, 255, 0.06); }
-        &.active { border-color: #c084fc; background: rgba(192, 132, 252, 0.05); }
+        &:hover {
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        &.active {
+          border-color: #c084fc;
+          background: rgba(192, 132, 252, 0.05);
+        }
 
         .frame-preview-outer {
           width: 70px;
@@ -237,14 +298,33 @@
           justify-content: center;
           border: 2px solid rgba(255, 255, 255, 0.1);
 
-          .frame-icon-wrap { font-size: 32px; color: #64748b; }
+          .frame-icon-wrap {
+            font-size: 32px;
+            color: #64748b;
+          }
 
-          &.frame_neon { border-color: #c084fc; box-shadow: 0 0 10px #c084fc; }
-          &.frame_gold { border-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
-          &.frame_galactic { border-color: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
+          &.frame_neon {
+            border-color: #c084fc;
+            box-shadow: 0 0 10px #c084fc;
+          }
+
+          &.frame_gold {
+            border-color: #fbbf24;
+            box-shadow: 0 0 10px #fbbf24;
+          }
+
+          &.frame_galactic {
+            border-color: #3b82f6;
+            box-shadow: 0 0 10px #3b82f6;
+          }
         }
 
-        .frame-name { font-size: 13px; font-weight: 600; color: #cbd5e1; }
+        .frame-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: #cbd5e1;
+        }
+
         .active-dot {
           position: absolute;
           top: 8px;
@@ -260,7 +340,18 @@
 }
 
 @keyframes pulse-frame {
-  0% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.1); opacity: 0.4; }
-  100% { transform: scale(1); opacity: 0.8; }
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
 }
