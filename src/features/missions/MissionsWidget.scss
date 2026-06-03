@@ -1,0 +1,117 @@
+.missions-widget {
+  position: absolute;
+  top: 118px; 
+  left: 24px;
+  width: 240px;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
+  .widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      color: #cbd5e1;
+
+      ion-icon {
+        color: #c084fc;
+      }
+    }
+
+    .count {
+      font-size: 11px;
+      font-weight: 800;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+  }
+
+  .mission-mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .mini-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+
+      .indicator-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #334155;
+      }
+
+      .name {
+        flex: 1;
+        font-size: 12px;
+        color: #94a3b8;
+        font-weight: 500;
+      }
+
+      .prog {
+        font-size: 11px;
+        color: #64748b;
+        font-family: monospace;
+      }
+
+      &.done {
+        .indicator-dot {
+          background: #10b981;
+          box-shadow: 0 0 8px #10b981;
+        }
+        .name {
+          color: #10b981;
+          text-decoration: line-through;
+          opacity: 0.7;
+        }
+      }
+    }
+  }
+
+  .btn-claim-all {
+    margin-top: 4px;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #9333ea 0%, #c026d3 100%);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(147, 51, 234, 0.5);
+      filter: brightness(1.1);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}

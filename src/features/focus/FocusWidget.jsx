@@ -42,43 +42,34 @@ class FocusWidget extends Component {
   };
   //render
   render() {
-    const { isExpanded } = this.state;
     return (
-      <div className={`app-blocker-widget ${isExpanded ? 'expanded' : 'collapsed'}`}>
-        <div
-          className="widget-header"
-          onClick={this.handleToggle}
-          title="Toggle Focus Mode"
-        >
-          <h3>
-            <IonIcon icon={lockClosedOutline} /> Focus Mode
-          </h3>
-          <IonIcon icon={isExpanded ? chevronDownOutline : chevronForwardOutline} className="toggle-icon" />
+      <div className="app-container focus-app">
+        <div className="focus-header-section">
+          <IonIcon icon={lockClosedOutline} />
+          <h3>Focus Mode Settings</h3>
         </div>
 
-        {isExpanded && (
-          <div className="widget-content">
-            <p className="description">Select apps to block:</p>
-            <div className="app-list">
-              {['Mini Games', 'Store', 'Social Media', 'Web Browser'].map(app => (
-                <div className="app-item" key={app}>
-                  <div className="app-name">
-                    <input type="checkbox" />
-                    <span>{app}</span>
-                  </div>
-                  <div className="time-range">
-                    <input type="time" defaultValue="20:00" />
-                    <span>-</span>
-                    <input type="time" defaultValue="22:00" />
-                  </div>
+        <div className="widget-content">
+          <p className="description">Select applications to restrict during your session:</p>
+          <div className="app-list">
+            {['Mini Games', 'Store', 'Social Media', 'Web Browser'].map(app => (
+              <div className="app-item" key={app}>
+                <div className="app-name">
+                  <input type="checkbox" />
+                  <span>{app}</span>
                 </div>
-              ))}
-            </div>
-            <button className="btn-start-focus" onClick={this.handleStartFocus}>
-              <IonIcon icon={rocketOutline} /> Start Focus Session
-            </button>
+                <div className="time-range">
+                  <input type="time" defaultValue="20:00" />
+                  <span>-</span>
+                  <input type="time" defaultValue="22:00" />
+                </div>
+              </div>
+            ))}
           </div>
-        )}
+          <button className="btn-start-focus" onClick={this.handleStartFocus}>
+            <IonIcon icon={rocketOutline} /> Start Focus Session
+          </button>
+        </div>
       </div>
     );
   }

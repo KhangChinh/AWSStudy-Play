@@ -7,11 +7,13 @@ import {
   settingsOutline, cubeOutline, ticketOutline, gameControllerOutline,
   cartOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
   imageOutline, personOutline, globeOutline, cart, planetOutline, starOutline,
-  copyOutline, listOutline, flagOutline, compassOutline
+  copyOutline, listOutline, flagOutline, compassOutline, lockClosedOutline,
+  giftOutline
 } from 'ionicons/icons';
 
 import FocusWidget from '../focus/FocusWidget';
 import Profile from '../profile/Profile';
+import MissionsWidget from '../missions/MissionsWidget';
 import cosmeticManager from '../../managers/cosmeticManager';
 import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
@@ -20,6 +22,30 @@ import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authServices';
 import { userLogout } from '../../store/actions';
 import './Dashboard.scss';
+
+// ═══ User Profile Widget ═══
+const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
+  const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
+  
+  return (
+    <div className="user-profile-widget" onClick={onClick}>
+      <div className={`avatar-container ${currentFrame}`}>
+        <div className="avatar-content">
+          <IonIcon icon={personOutline} />
+        </div>
+      </div>
+      <div className="user-info">
+        <div className="user-name-line">
+          <span className="username">Player_9999</span>
+        </div>
+        <div className="title-rank-line">
+          <span className="user-title" style={{ color: titleData.color }}>[{titleData.name}]</span>
+          <span className="user-rank">Rank: Diamond</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ═══ Settings App ═══
 const SettingsApp = ({ currentTitle }) => {
@@ -85,6 +111,7 @@ const APPS = [
   { id: 'gacha', name: 'Gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
   { id: 'minigame', name: 'Mini Games', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
   { id: 'store', name: 'Store', className: 'store', icon: cartOutline, content: <Store /> },
+  { id: 'focus', name: 'Focus Mode', className: 'focus', icon: lockClosedOutline, content: <FocusWidget /> },
 ];
 
 // ═══ MAIN DASHBOARD COMPONENT ═══
@@ -265,7 +292,16 @@ class Dashboard extends Component {
   };
 
   toggleMissions = () => {
+    // Logic for toggling is no longer needed for taskbar panel, but we keep the method name if referenced or repurpose
     this.setState({ isMissionsOpen: !this.state.isMissionsOpen });
+  };
+
+  handleClaimAllMissions = () => {
+    toast.success('All rewards claimed! +1000 P-Coin', {
+      icon: '🎁',
+      theme: 'dark'
+    });
+    // Reset or update missions state? Just toast for now per user request for button appearance.
   };
 
   handleClickOutside = (event) => {
@@ -393,7 +429,17 @@ class Dashboard extends Component {
         <div className="twinkling"></div>
         <div className="purple-nebula"></div>
         {this.state.isDragging && <div className="drag-overlay"></div>}
-        <FocusWidget />
+        
+        <UserProfileWidget 
+          currentTitle={this.state.currentTitle}
+          currentFrame={this.state.currentFrame}
+          onClick={() => this.openApp('profile')}
+        />
+
+        <MissionsWidget 
+          missions={this.state.missions}
+          onClaimAll={this.handleClaimAllMissions}
+        />
 
         {/* Desktop Icons Array */}
         <div className="desktop-icons">
@@ -495,34 +541,6 @@ class Dashboard extends Component {
           </div>
 
           <div className="taskbar-sys">
-            {this.state.isMissionsOpen && (
-              <div className="missions-panel" ref={this.missionsPanelRef}>
-                <div className="panel-header">
-                  <IonIcon icon={flagOutline} />
-                  <span>Nhiệm vụ hệ thống</span>
-                </div>
-                <div className="panel-list">
-                  {this.state.missions.map(m => (
-                    <div key={m.id} className="mission-item">
-                      <div className="m-info">
-                        <span className="m-title">{m.title}</span>
-                        <span className="m-desc">{m.desc}</span>
-                      </div>
-                      <div className="m-action">
-                        <span className="m-status">{m.status}</span>
-                        <button className="btn-go">Go</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="btn-missions" onClick={this.toggleMissions} ref={this.missionsBtnRef}>
-              <IonIcon icon={listOutline} />
-              <span className="count">{this.state.missions.filter(m => m.status.split('/')[0] !== m.status.split('/')[1]).length}/4</span>
-            </div>
-
             <span className="os-time">{time}</span>
             <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout}>
               <IonIcon icon={logOutOutline} />
