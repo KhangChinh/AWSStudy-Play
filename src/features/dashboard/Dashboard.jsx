@@ -8,7 +8,11 @@ import {
   cartOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
   imageOutline, personOutline, globeOutline, cart, planetOutline, starOutline,
   copyOutline, listOutline, flagOutline, compassOutline, lockClosedOutline,
-  giftOutline
+  giftOutline, bookOutline, schoolOutline, calculatorOutline, pencilOutline,
+  bulbOutline, libraryOutline, readerOutline, documentTextOutline,
+  journalOutline, newspaperOutline, createOutline, flaskOutline,
+  telescopeOutline, easelOutline, statsChartOutline, ribbonOutline,
+  medalOutline, trophyOutline, hourglassOutline, clipboardOutline
 } from 'ionicons/icons';
 
 import FocusWidget from '../focus/FocusWidget';
@@ -18,6 +22,7 @@ import cosmeticManager from '../../managers/cosmeticManager';
 import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
 import Store from '../store/Store';
+import RankFrame from '../../components/RankFrame';
 import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authServices';
 import { userLogout } from '../../store/actions';
@@ -26,21 +31,23 @@ import './Dashboard.scss';
 // ═══ User Profile Widget ═══
 const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
+  const currentRank = 'diamond';
+  const rankLabel = 'Diamond';
+
+  const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
 
   return (
-    <div className="user-profile-widget" onClick={onClick}>
-      <div className={`avatar-container ${currentFrame}`}>
-        <div className="avatar-content">
-          <IonIcon icon={personOutline} />
-        </div>
-      </div>
+    <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
+      <RankFrame tier={frameTier} size={64} className="widget-rank-frame">
+        <IonIcon icon={personOutline} />
+      </RankFrame>
       <div className="user-info">
         <div className="user-name-line">
           <span className="username">Player_9999</span>
         </div>
         <div className="title-rank-line">
           <span className="user-title" style={{ color: titleData.color }}>[{titleData.name}]</span>
-          <span className="user-rank">Rank: Diamond</span>
+          <span className={`user-rank rank-${currentRank}`}>Rank: {rankLabel}</span>
         </div>
       </div>
     </div>
@@ -114,6 +121,29 @@ const APPS = [
   { id: 'focus', name: 'Focus Mode', className: 'focus', icon: lockClosedOutline, content: <FocusWidget /> },
 ];
 
+const STUDY_FLOAT_ICONS = [
+  { icon: bookOutline, top: '9%', color: '#67e8f9', duration: '24s', delay: '-3s', direction: 'right' },
+  { icon: schoolOutline, top: '18%', color: '#f0abfc', duration: '28s', delay: '-15s', direction: 'left' },
+  { icon: calculatorOutline, top: '29%', color: '#fde68a', duration: '31s', delay: '-8s', direction: 'right' },
+  { icon: pencilOutline, top: '40%', color: '#a7f3d0', duration: '26s', delay: '-5s', direction: 'left' },
+  { icon: bulbOutline, top: '51%', color: '#fda4af', duration: '34s', delay: '-20s', direction: 'right' },
+  { icon: libraryOutline, top: '63%', color: '#bfdbfe', duration: '36s', delay: '-22s', direction: 'left' },
+  { icon: readerOutline, top: '75%', color: '#c4b5fd', duration: '29s', delay: '-17s', direction: 'right' },
+  { icon: documentTextOutline, top: '14%', color: '#99f6e4', duration: '33s', delay: '-11s', direction: 'right' },
+  { icon: journalOutline, top: '23%', color: '#f9a8d4', duration: '30s', delay: '-24s', direction: 'left' },
+  { icon: newspaperOutline, top: '35%', color: '#bae6fd', duration: '38s', delay: '-13s', direction: 'right' },
+  { icon: createOutline, top: '47%', color: '#fed7aa', duration: '27s', delay: '-19s', direction: 'left' },
+  { icon: flaskOutline, top: '58%', color: '#86efac', duration: '35s', delay: '-27s', direction: 'right' },
+  { icon: telescopeOutline, top: '69%', color: '#ddd6fe', duration: '32s', delay: '-9s', direction: 'left' },
+  { icon: easelOutline, top: '82%', color: '#fef08a', duration: '40s', delay: '-30s', direction: 'right' },
+  { icon: statsChartOutline, top: '6%', color: '#93c5fd', duration: '37s', delay: '-26s', direction: 'left' },
+  { icon: ribbonOutline, top: '88%', color: '#fb7185', duration: '29s', delay: '-6s', direction: 'left' },
+  { icon: medalOutline, top: '32%', color: '#fcd34d', duration: '42s', delay: '-33s', direction: 'right' },
+  { icon: trophyOutline, top: '55%', color: '#fdba74', duration: '39s', delay: '-16s', direction: 'left' },
+  { icon: hourglassOutline, top: '78%', color: '#7dd3fc', duration: '44s', delay: '-35s', direction: 'right' },
+  { icon: clipboardOutline, top: '66%', color: '#d8b4fe', duration: '41s', delay: '-28s', direction: 'left' }
+];
+
 // ═══ MAIN DASHBOARD COMPONENT ═══
 class Dashboard extends Component {
   constructor(props) {
@@ -129,7 +159,7 @@ class Dashboard extends Component {
       isDragging: null,
       dragOffset: { x: 0, y: 0 },
       currentTitle: 'title_newbie',
-      currentFrame: 'frame_none',
+      currentFrame: 'frame_gold',
       isVacuuming: false,
       isMissionsOpen: false,
       missions: [
@@ -441,6 +471,22 @@ class Dashboard extends Component {
           <div className="holo-orbit holo-orbit-two"></div>
           <div className="holo-panel holo-panel-one"></div>
           <div className="holo-panel holo-panel-two"></div>
+          <div className="study-float-icons">
+            {STUDY_FLOAT_ICONS.map((item, index) => (
+              <div
+                className={`study-float-icon float-${item.direction}`}
+                key={index}
+                style={{
+                  '--float-top': item.top,
+                  '--float-color': item.color,
+                  '--float-duration': item.duration,
+                  '--float-delay': item.delay
+                }}
+              >
+                <IonIcon icon={item.icon} />
+              </div>
+            ))}
+          </div>
           <div className="line-grid line-grid-primary"></div>
           <div className="line-grid line-grid-secondary"></div>
           <div className="line-scan"></div>
