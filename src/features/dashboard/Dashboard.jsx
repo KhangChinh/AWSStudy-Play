@@ -29,10 +29,102 @@ import { userLogout } from '../../store/actions';
 import './Dashboard.scss';
 
 // ═══ User Profile Widget ═══
-const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
+const RANK_LABELS = {
+  en: {
+    bronze: 'Bronze',
+    silver: 'Silver',
+    gold: 'Gold',
+    platinum: 'Platinum',
+    diamond: 'Diamond',
+    master: 'Master',
+  },
+  vi: {
+    bronze: 'Đồng',
+    silver: 'Bạc',
+    gold: 'Vàng',
+    platinum: 'Bạch kim',
+    diamond: 'Kim cương',
+    master: 'Cao thủ',
+  },
+};
+
+const UI_TEXT = {
+  en: {
+    rankPrefix: 'Rank',
+    apps: {
+      settings: 'Settings',
+      profile: 'Profile',
+      gacha: 'Gacha',
+      minigame: 'Mini Games',
+      store: 'Store',
+      focus: 'Focus Mode',
+    },
+    controls: {
+      minimizeAll: 'Minimize All',
+      cleanDesktop: 'Clean Desktop',
+      restore: 'Restore',
+      maximize: 'Maximize',
+    },
+    settings: {
+      title: 'User Preferences',
+      profileAvatar: 'Profile Avatar',
+      uploadAvatar: 'Upload new avatar',
+      uploadHint: 'Optimal size 256x256. Max 2MB.',
+      accountDetails: 'Account Details',
+      username: 'Username',
+      renameNote: '* Rename costs 10,000 P-Coin',
+      rename: 'Rename',
+      preferences: 'Preferences',
+      preferencesDesc: 'Quick adjustments for your experience.',
+      language: 'Language',
+      english: 'English',
+      vietnamese: 'Vietnamese',
+    },
+  },
+  vi: {
+    rankPrefix: 'Hạng',
+    apps: {
+      settings: 'Cài đặt',
+      profile: 'Hồ sơ',
+      gacha: 'Gacha',
+      minigame: 'Mini Games',
+      store: 'Cửa hàng',
+      focus: 'Tập trung',
+    },
+    controls: {
+      minimizeAll: 'Thu nhỏ tất cả',
+      cleanDesktop: 'Dọn desktop',
+      restore: 'Khôi phục',
+      maximize: 'Phóng to',
+    },
+    settings: {
+      title: 'Tùy chỉnh người dùng',
+      profileAvatar: 'Avatar hồ sơ',
+      uploadAvatar: 'Tải avatar mới',
+      uploadHint: 'Kích thước tốt nhất 256x256. Tối đa 2MB.',
+      accountDetails: 'Thông tin tài khoản',
+      username: 'Tên người dùng',
+      renameNote: '* Đổi tên tốn 10.000 P-Coin',
+      rename: 'Đổi tên',
+      preferences: 'Tùy chọn',
+      preferencesDesc: 'Điều chỉnh nhanh trải nghiệm của bạn.',
+      language: 'Ngôn ngữ',
+      english: 'Tiếng Anh',
+      vietnamese: 'Tiếng Việt',
+    },
+  },
+};
+
+const getText = (language) => UI_TEXT[language] || UI_TEXT.en;
+const getInitialLanguage = () => {
+  if (typeof window === 'undefined') return 'vi';
+  return window.localStorage.getItem('studyPlayLanguage') || 'vi';
+};
+
+const UserProfileWidget = ({ currentTitle, currentFrame, currentRank = 'diamond', language = 'vi', onClick }) => {
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
-  const currentRank = 'diamond';
-  const rankLabel = 'Diamond';
+  const text = getText(language);
+  const rankLabel = RANK_LABELS[language]?.[currentRank] || RANK_LABELS.en[currentRank] || RANK_LABELS.en.diamond;
 
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
 
@@ -47,7 +139,7 @@ const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
         </div>
         <div className="title-rank-line">
           <span className="user-title" style={{ color: titleData.color }}>[{titleData.name}]</span>
-          <span className={`user-rank rank-${currentRank}`}>Rank: {rankLabel}</span>
+          <span className={`user-rank rank-${currentRank}`}>{text.rankPrefix}: {rankLabel}</span>
         </div>
       </div>
     </div>
@@ -55,6 +147,11 @@ const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
 };
 
 // ═══ Settings App ═══
+const resolveBackground = (background) => {
+  if (background && typeof background === 'object') return background;
+  return cosmeticManager.getCosmeticInfo('backgrounds', background);
+};
+
 const SettingsApp = ({ currentTitle }) => {
   const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
 
@@ -158,6 +255,8 @@ class Dashboard extends Component {
       disabledButtons: { logout: false },
       isDragging: null,
       dragOffset: { x: 0, y: 0 },
+      currentRank: 'diamond',
+      currentBackground: 'bg_default',
       currentTitle: 'title_newbie',
       currentFrame: 'frame_gold',
       isVacuuming: false,
@@ -202,6 +301,10 @@ class Dashboard extends Component {
 
   handleFrameChange = (newFrameId) => {
     this.setState({ currentFrame: newFrameId });
+  };
+
+  handleBackgroundChange = (newBackground) => {
+    this.setState({ currentBackground: newBackground });
   };
 
   toggleMissions = () => {
@@ -459,9 +562,14 @@ class Dashboard extends Component {
 
   render() {
     const { openApps, activeApp, minimizedApps, maximizedApp, windowPositions, time, disabledButtons } = this.state;
+    const selectedBackground = resolveBackground(this.state.currentBackground);
+    const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
+    const desktopStyle = selectedBackground?.desktopBackground
+      ? { '--desktop-user-background': selectedBackground.desktopBackground }
+      : undefined;
 
     return (
-      <div className="os-desktop">
+      <div className={`os-desktop ${isProfileOpen ? 'profile-open' : ''}`} style={desktopStyle}>
         {/* Resolution-independent generated line background */}
         <div className="desktop-line-bg" aria-hidden="true">
           <div className="aurora-field aurora-cyan"></div>
@@ -492,11 +600,13 @@ class Dashboard extends Component {
           <div className="line-scan"></div>
         </div>
         <div className="desktop-bg-dim"></div>
+        {isProfileOpen && <div className="profile-focus-overlay" aria-hidden="true"></div>}
         {this.state.isDragging && <div className="drag-overlay"></div>}
 
         <UserProfileWidget
           currentTitle={this.state.currentTitle}
           currentFrame={this.state.currentFrame}
+          currentRank={this.state.currentRank}
           onClick={() => this.openApp('profile')}
         />
 
@@ -530,7 +640,7 @@ class Dashboard extends Component {
           return (
             <div
               key={appId}
-              className={`os-window ${app.className} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
+              className={`os-window ${app.className} ${appId === 'profile' ? `rank-${this.state.currentRank}` : ''} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
               style={{
                 top: isMaximized ? 0 : pos.y,
                 left: isMaximized ? 0 : pos.x,
@@ -559,8 +669,11 @@ class Dashboard extends Component {
               </div>
               <div className="window-content">
                 {React.cloneElement(app.content, {
+                  currentBackground: this.state.currentBackground,
                   currentTitle: this.state.currentTitle,
                   currentFrame: this.state.currentFrame,
+                  currentRank: this.state.currentRank,
+                  onBackgroundChange: this.handleBackgroundChange,
                   onTitleChange: this.handleTitleChange,
                   onFrameChange: this.handleFrameChange
                 })}

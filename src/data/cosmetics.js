@@ -3,6 +3,28 @@
  */
 
 export const COSMETICS = {
+  backgrounds: [
+    {
+      id: 'bg_default',
+      name: 'Default',
+      preview: 'radial-gradient(ellipse at bottom, #2b0c3d 0%, #0c0218 100%)',
+      profileBackground: 'linear-gradient(180deg, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.46) 100%), radial-gradient(ellipse at bottom, #2b0c3d 0%, #0c0218 100%)',
+    },
+    {
+      id: 'bg_black',
+      name: 'Black',
+      preview: '#000',
+      profileBackground: 'linear-gradient(180deg, rgba(0, 0, 0, 0.72) 0%, rgba(15, 23, 42, 0.7) 100%), #000',
+      desktopBackground: 'linear-gradient(135deg, #020617 0%, #000 100%)',
+    },
+    {
+      id: 'bg_white',
+      name: 'White',
+      preview: '#fff',
+      profileBackground: 'linear-gradient(180deg, rgba(2, 6, 23, 0.58) 0%, rgba(2, 6, 23, 0.86) 100%), #f8fafc',
+      desktopBackground: 'linear-gradient(180deg, rgba(2, 6, 23, 0.48), rgba(2, 6, 23, 0.7)), linear-gradient(135deg, #e2e8f0 0%, #f8fafc 52%, #cbd5e1 100%)',
+    },
+  ],
   frames: [
     { id: 'frame_none', name: 'None', className: 'rf-none', rarity: 'gray', tier: 'none' },
     { id: 'frame_neon', name: 'Neon Pulse', className: 'rf-neon', rarity: 'purple', tier: 'neon' },

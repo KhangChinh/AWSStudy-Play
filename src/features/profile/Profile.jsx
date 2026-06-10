@@ -13,39 +13,124 @@ import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
 
+const RANK_LABELS = {
+  bronze: 'Bronze',
+  silver: 'Silver',
+  gold: 'Gold',
+  platinum: 'Platinum',
+  diamond: 'Diamond',
+  master: 'Master',
+};
+
+const backgroundId = (background) => (
+  typeof background === 'string' ? background : background?.id
+);
+
+const resolveBackground = (background) => {
+  if (background && typeof background === 'object') return background;
+  return cosmeticManager.getCosmeticInfo('backgrounds', background);
+};
+
 class Profile extends Component {
   constructor(props) {
     super(props);
     this.state = {
       activeTab: 'backgrounds', // backgrounds | titles | frames
+      customBackgrounds: [],
     };
+    this.fileInputRef = React.createRef();
   }
+
+  getBackgrounds = () => {
+    const baseBackgrounds = cosmeticManager.getAllInCategory('backgrounds');
+    const selectedBackground = resolveBackground(this.props.currentBackground);
+    const customBackgrounds = selectedBackground?.custom
+      ? [selectedBackground, ...this.state.customBackgrounds]
+      : this.state.customBackgrounds;
+
+    const uniqueCustomBackgrounds = customBackgrounds.filter((background, index, list) => (
+      list.findIndex(item => item.id === background.id) === index
+    ));
+
+    return [...uniqueCustomBackgrounds, ...baseBackgrounds];
+  };
+
+  handleCoverEdit = () => {
+    this.setState({ activeTab: 'backgrounds' });
+  };
+
+  handleCoverKeyDown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.handleCoverEdit();
+  };
+
+  handleAddBackground = () => {
+    this.fileInputRef.current?.click();
+  };
+
+  handleBackgroundFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const imageUrl = `url("${reader.result}")`;
+      const customBackground = {
+        id: `custom_bg_${Date.now()}`,
+        name: file.name.replace(/\.[^.]+$/, '').slice(0, 24) || 'Custom',
+        preview: `${imageUrl} center / cover`,
+        profileBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.38) 0%, rgba(2, 6, 23, 0.84) 100%), ${imageUrl} center / cover no-repeat`,
+        desktopBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.34) 0%, rgba(2, 6, 23, 0.68) 100%), ${imageUrl} center / cover no-repeat`,
+        custom: true,
+      };
+
+      this.setState(
+        (prev) => ({ customBackgrounds: [customBackground, ...prev.customBackgrounds] }),
+        () => this.props.onBackgroundChange?.(customBackground)
+      );
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
 
   renderTabContent = () => {
     const { activeTab } = this.state;
-    const { currentTitle, currentFrame, onTitleChange, onFrameChange } = this.props;
+    const { currentBackground, currentTitle, currentFrame, onBackgroundChange, onTitleChange, onFrameChange } = this.props;
 
     if (activeTab === 'backgrounds') {
+      const backgrounds = this.getBackgrounds();
+      const activeBackgroundId = backgroundId(currentBackground);
+
       return (
         <div className="backgrounds-grid">
-          <div className="bg-item-card add-btn">
+          <input
+            ref={this.fileInputRef}
+            className="background-file-input"
+            type="file"
+            accept="image/*"
+            onChange={this.handleBackgroundFileChange}
+          />
+          <div className="bg-item-card add-btn" onClick={this.handleAddBackground}>
             <div className="bg-preview add-icon">
               <IonIcon icon={addOutline} />
             </div>
             <div className="bg-name">Add File</div>
           </div>
-          <div className="bg-item-card">
-            <div className="bg-preview" style={{ background: 'radial-gradient(ellipse at bottom, #2b0c3d 0%, #0c0218 100%)' }} />
-            <div className="bg-name">Default</div>
-          </div>
-          <div className="bg-item-card">
-            <div className="bg-preview" style={{ background: '#000' }} />
-            <div className="bg-name">Black</div>
-          </div>
-          <div className="bg-item-card">
-            <div className="bg-preview" style={{ background: '#fff' }} />
-            <div className="bg-name">White</div>
-          </div>
+          {backgrounds.map(background => (
+            <div
+              key={background.id}
+              className={`bg-item-card ${activeBackgroundId === background.id ? 'active' : ''}`}
+              onClick={() => onBackgroundChange?.(background.custom ? background : background.id)}
+            >
+              <div
+                className="bg-preview"
+                style={{ background: background.preview || background.profileBackground }}
+              />
+              <div className="bg-name">{background.name}</div>
+              {activeBackgroundId === background.id && <div className="bg-active-dot" />}
+            </div>
+          ))}
         </div>
       );
     }
@@ -94,14 +179,30 @@ class Profile extends Component {
   };
 
   render() {
-    const { economy, currentTitle, currentFrame } = this.props;
+    const { economy, currentBackground, currentTitle, currentFrame, currentRank = 'diamond' } = this.props;
     const { activeTab } = this.state;
     const pCoins = economy?.pCoins || 0;
+    const rankLabel = RANK_LABELS[currentRank] || RANK_LABELS.diamond;
     const equippedTitle = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
+    const selectedBackground = resolveBackground(currentBackground);
+    const profileHeaderStyle = selectedBackground?.profileBackground
+      ? { background: selectedBackground.profileBackground }
+      : undefined;
 
     return (
-      <div className="app-container profile-app">
-        <div className="profile-header">
+      <div className={`app-container profile-app rank-${currentRank}`}>
+        <div
+          className="profile-header"
+          style={profileHeaderStyle}
+          role="button"
+          tabIndex={0}
+          aria-label="Change profile background"
+          onClick={this.handleCoverEdit}
+          onKeyDown={this.handleCoverKeyDown}
+        >
+          <div className="profile-cover-edit" aria-hidden="true">
+            <IonIcon icon={imageOutline} />
+          </div>
           <div className="user-profile-section">
             <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
               <IonIcon icon={personCircleOutline} />
@@ -114,6 +215,7 @@ class Profile extends Component {
                 <span className="title-badge" style={{ color: equippedTitle?.color }}>
                   [{equippedTitle?.name}]
                 </span>
+                <span className="rank-chip">{rankLabel}</span>
               </div>
               <div className="wallet-info">
                 <div className="coin-pill">
