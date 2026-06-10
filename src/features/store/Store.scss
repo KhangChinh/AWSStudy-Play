@@ -15,6 +15,23 @@
       background: rgba(255, 255, 255, 0.03);
     }
 
+    &.coming-soon {
+      opacity: 0.6;
+      filter: grayscale(0.8);
+      cursor: not-allowed;
+      
+      &:hover {
+        transform: none;
+      }
+
+      button {
+        cursor: not-allowed;
+        &:hover {
+          background: #475569 !important;
+        }
+      }
+    }
+
     .item-cover {
       height: 120px;
       background: rgba(255, 255, 255, 0.05);
