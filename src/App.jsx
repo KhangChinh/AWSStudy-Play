@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import 'react-toastify/dist/ReactToastify.css';
 
 import store from './store';
@@ -25,12 +25,13 @@ class App extends Component {
   async componentDidMount() {
     try {
       const user = await getCurrentUser();
+      const attributes = await fetchUserAttributes();
       if (user) {
         // Nếu đã đăng nhập, thực hiện setup ban đầu
         handleLoginSuccessApi(); // Resize window
         this.props.userLogin({
-          email: user.signInDetails?.loginId || user.username,
-          username: user.username
+          email: attributes.email || user.signInDetails?.loginId || user.username,
+          username: attributes.name || attributes.nickname || user.username
         });
       }
     } catch (error) {

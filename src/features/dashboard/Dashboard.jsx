@@ -29,12 +29,13 @@ import { userLogout } from '../../store/actions';
 import './Dashboard.scss';
 
 // ═══ User Profile Widget ═══
-const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
+const UserProfileWidget = ({ currentTitle, currentFrame, userInfo, onClick }) => {
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
   const currentRank = 'diamond';
   const rankLabel = 'Diamond';
 
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
+  const displayName = userInfo?.username || 'Player_9999';
 
   return (
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
@@ -43,7 +44,7 @@ const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
       </RankFrame>
       <div className="user-info">
         <div className="user-name-line">
-          <span className="username">Player_9999</span>
+          <span className="username">{displayName}</span>
         </div>
         <div className="title-rank-line">
           <span className="user-title" style={{ color: titleData.color }}>[{titleData.name}]</span>
@@ -55,8 +56,9 @@ const UserProfileWidget = ({ currentTitle, currentFrame, onClick }) => {
 };
 
 // ═══ Settings App ═══
-const SettingsApp = ({ currentTitle }) => {
+const SettingsApp = ({ currentTitle, animationsEnabled, userInfo, onToggleAnimations }) => {
   const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
+  const displayName = userInfo?.username || 'Player_9999';
 
   return (
     <div className="app-container settings-app">
@@ -81,7 +83,7 @@ const SettingsApp = ({ currentTitle }) => {
           <div className="info">
             <p className="label">Username</p>
             <div className="name-wrapper">
-              <span className="name">Player_9999</span>
+              <span className="name">{displayName}</span>
               <span className="user-title" style={{ color: selectedTitleData.color }}>
                 [{selectedTitleData.name}]
               </span>
@@ -102,6 +104,12 @@ const SettingsApp = ({ currentTitle }) => {
               <option value="en">English</option>
               <option value="vi">Tiếng Việt</option>
             </select>
+          </div>
+          <div className="option">
+            <label>App Animations</label>
+            <div className={`toggle-switch ${animationsEnabled ? 'active' : ''}`} onClick={onToggleAnimations}>
+              <div className="slider"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -162,6 +170,10 @@ class Dashboard extends Component {
       currentFrame: 'frame_gold',
       isVacuuming: false,
       isMissionsOpen: false,
+      isMissionsCollapsed: true,
+      animationsEnabled: true,
+      currentBackground: 'bg_default',
+      currentSystemIcon: 'icon_default',
       missions: [
         { id: 1, title: 'Mission 1', desc: 'Sơ khai thế giới', status: '1/1' },
         { id: 2, title: 'Mission 2', desc: 'Thử thách tân thủ', status: '4/4' },
@@ -172,6 +184,15 @@ class Dashboard extends Component {
     this.timerInterval = null;
     this.missionsPanelRef = React.createRef();
     this.missionsBtnRef = React.createRef();
+  }
+
+  componentDidMount() {
+    this.timerInterval = setInterval(() => {
+      this.setState({
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+    }, 60000);
+    document.addEventListener('mousedown', this.handleClickOutside);
   }
 
   handleClearAllApps = () => {
@@ -204,14 +225,21 @@ class Dashboard extends Component {
     this.setState({ currentFrame: newFrameId });
   };
 
+  handleToggleAnimations = () => {
+    this.setState(prev => ({ animationsEnabled: !prev.animationsEnabled }));
+  };
+
+  handleBackgroundChange = (id) => {
+    this.setState({ currentBackground: id });
+  };
+
+  handleSystemIconChange = (id) => {
+    this.setState({ currentSystemIcon: id });
+  };
+
   toggleMissions = () => {
-    this.timerInterval = setInterval(() => {
-      this.setState({
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-    }, 60000);
-    document.addEventListener('mousedown', this.handleClickOutside);
-  }
+    this.setState({ isMissionsCollapsed: !this.state.isMissionsCollapsed });
+  };
 
   componentWillUnmount() {
     if (this.timerInterval) clearInterval(this.timerInterval);
@@ -322,8 +350,7 @@ class Dashboard extends Component {
   };
 
   toggleMissions = () => {
-    // Logic for toggling is no longer needed for taskbar panel, but we keep the method name if referenced or repurpose
-    this.setState({ isMissionsOpen: !this.state.isMissionsOpen });
+    this.setState({ isMissionsCollapsed: !this.state.isMissionsCollapsed });
   };
 
   handleClaimAllMissions = () => {
@@ -458,50 +485,57 @@ class Dashboard extends Component {
   };
 
   render() {
-    const { openApps, activeApp, minimizedApps, maximizedApp, windowPositions, time, disabledButtons } = this.state;
+    const { openApps, activeApp, minimizedApps, maximizedApp, windowPositions, time, disabledButtons, animationsEnabled, currentBackground, currentSystemIcon } = this.state;
+    const bgData = cosmeticManager.getCosmeticInfo('backgrounds', currentBackground) || cosmeticManager.getAllInCategory('backgrounds')[0];
+    const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon) || cosmeticManager.getAllInCategory('systemIcons')[0];
 
     return (
-      <div className="os-desktop">
-        {/* Resolution-independent generated line background */}
-        <div className="desktop-line-bg" aria-hidden="true">
-          <div className="aurora-field aurora-cyan"></div>
-          <div className="aurora-field aurora-magenta"></div>
-          <div className="aurora-field aurora-gold"></div>
-          <div className="holo-orbit holo-orbit-one"></div>
-          <div className="holo-orbit holo-orbit-two"></div>
-          <div className="holo-panel holo-panel-one"></div>
-          <div className="holo-panel holo-panel-two"></div>
-          <div className="study-float-icons">
-            {STUDY_FLOAT_ICONS.map((item, index) => (
-              <div
-                className={`study-float-icon float-${item.direction}`}
-                key={index}
-                style={{
-                  '--float-top': item.top,
-                  '--float-color': item.color,
-                  '--float-duration': item.duration,
-                  '--float-delay': item.delay
-                }}
-              >
-                <IonIcon icon={item.icon} />
-              </div>
-            ))}
+      <div className={`os-desktop ${!animationsEnabled ? 'no-animations' : ''} icon-style-${iconData.type}`} style={{ background: bgData.preview }}>
+        {/* Resolution-independent generated line background (ONLY IF DEFAULT BG) */}
+        {currentBackground === 'bg_default' && (
+          <div className="desktop-line-bg" aria-hidden="true">
+            <div className="aurora-field aurora-cyan"></div>
+            <div className="aurora-field aurora-magenta"></div>
+            <div className="aurora-field aurora-gold"></div>
+            <div className="holo-orbit holo-orbit-one"></div>
+            <div className="holo-orbit holo-orbit-two"></div>
+            <div className="holo-panel holo-panel-one"></div>
+            <div className="holo-panel holo-panel-two"></div>
+            <div className="study-float-icons">
+              {STUDY_FLOAT_ICONS.map((item, index) => (
+                <div
+                  className={`study-float-icon float-${item.direction}`}
+                  key={index}
+                  style={{
+                    '--float-top': item.top,
+                    '--float-color': item.color,
+                    '--float-duration': item.duration,
+                    '--float-delay': item.delay
+                  }}
+                >
+                  <IonIcon icon={item.icon} />
+                </div>
+              ))}
+            </div>
+            <div className="line-grid line-grid-primary"></div>
+            <div className="line-grid line-grid-secondary"></div>
+            <div className="line-scan"></div>
           </div>
-          <div className="line-grid line-grid-primary"></div>
-          <div className="line-grid line-grid-secondary"></div>
-          <div className="line-scan"></div>
-        </div>
+        )}
         <div className="desktop-bg-dim"></div>
         {this.state.isDragging && <div className="drag-overlay"></div>}
 
         <UserProfileWidget
           currentTitle={this.state.currentTitle}
           currentFrame={this.state.currentFrame}
+          userInfo={this.props.userInfo}
           onClick={() => this.openApp('profile')}
         />
 
         <MissionsWidget
           missions={this.state.missions}
+          isCollapsed={this.state.isMissionsCollapsed}
+          onToggle={this.toggleMissions}
           onClaimAll={this.handleClaimAllMissions}
           onClaimMission={this.handleClaimMission}
         />
@@ -561,8 +595,15 @@ class Dashboard extends Component {
                 {React.cloneElement(app.content, {
                   currentTitle: this.state.currentTitle,
                   currentFrame: this.state.currentFrame,
+                  currentBackground: this.state.currentBackground,
+                  currentSystemIcon: this.state.currentSystemIcon,
+                  animationsEnabled: this.state.animationsEnabled,
+                  userInfo: this.props.userInfo,
+                  onToggleAnimations: this.handleToggleAnimations,
                   onTitleChange: this.handleTitleChange,
-                  onFrameChange: this.handleFrameChange
+                  onFrameChange: this.handleFrameChange,
+                  onBackgroundChange: this.handleBackgroundChange,
+                  onSystemIconChange: this.handleSystemIconChange
                 })}
               </div>
             </div>

@@ -435,6 +435,28 @@
   }
 }
 
+/* Icon Styles based on selection */
+.os-desktop {
+  &.icon-style-outline .desktop-icons .icon .icon-img {
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+    
+    ion-icon {
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
+
+  &.icon-style-glass .desktop-icons .icon .icon-img {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  // Filled is the default behavior already defined
+}
+
 /* User Profile Widget (Top Left) */
 .user-profile-widget {
   position: absolute;
@@ -478,9 +500,20 @@
     }
 
     /* Frame mappings */
-    &.frame_neon { border-color: #c084fc; box-shadow: 0 0 10px #c084fc; }
-    &.frame_gold { border-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
-    &.frame_galactic { border-color: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
+    &.frame_neon {
+      border-color: #c084fc;
+      box-shadow: 0 0 10px #c084fc;
+    }
+
+    &.frame_gold {
+      border-color: #fbbf24;
+      box-shadow: 0 0 10px #fbbf24;
+    }
+
+    &.frame_galactic {
+      border-color: #3b82f6;
+      box-shadow: 0 0 10px #3b82f6;
+    }
   }
 
   .user-info {
@@ -604,7 +637,7 @@
         border: none;
         cursor: pointer;
         font-size: 11px;
-        color: rgba(0, 0, 0, 0.4); 
+        color: rgba(0, 0, 0, 0.4);
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         font-weight: 900;
         position: relative;
@@ -1706,7 +1739,7 @@
   }
 
   .app-list {
-        .app-item {
+    .app-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1858,14 +1891,12 @@
   border: 0;
   padding: 3px;
   background:
-    conic-gradient(
-      from 140deg,
+    conic-gradient(from 140deg,
       rgba(255, 255, 255, 0.28),
       var(--rank-core),
       var(--rank-accent),
       var(--rank-core),
-      rgba(255, 255, 255, 0.28)
-    );
+      rgba(255, 255, 255, 0.28));
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.18),
     0 0 20px var(--rank-soft),
@@ -2003,6 +2034,7 @@
   border-top-color: rgba(255, 255, 255, 0.14);
 
   .taskbar-start {
+
     .minimize-all-btn,
     .start-btn {
       color: rgba(255, 255, 255, 0.86);
@@ -2054,6 +2086,71 @@
       &:hover {
         color: #fff;
         background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+}
+
+.settings-app {
+  .settings-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 12px;
+
+    .option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+
+      label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #e2e8f0;
+      }
+
+      .language-select {
+        background: #1e293b;
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 6px 12px;
+        border-radius: 8px;
+        outline: none;
+        cursor: pointer;
+      }
+
+      .toggle-switch {
+        width: 44px;
+        height: 22px;
+        background: #334155;
+        border-radius: 11px;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        .slider {
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          width: 16px;
+          height: 16px;
+          background: white;
+          border-radius: 50%;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        &.active {
+          background: #c084fc;
+          box-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
+
+          .slider {
+            left: 25px;
+          }
+        }
       }
     }
   }

@@ -17,15 +17,16 @@ class Profile extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      activeTab: 'backgrounds', // backgrounds | titles | frames
+      activeTab: 'backgrounds', // backgrounds | titles | frames | systemIcons
     };
   }
 
   renderTabContent = () => {
     const { activeTab } = this.state;
-    const { currentTitle, currentFrame, onTitleChange, onFrameChange } = this.props;
+    const { currentTitle, currentFrame, currentBackground, currentSystemIcon, onTitleChange, onFrameChange, onBackgroundChange, onSystemIconChange } = this.props;
 
     if (activeTab === 'backgrounds') {
+      const backgrounds = cosmeticManager.getAllInCategory('backgrounds');
       return (
         <div className="backgrounds-grid">
           <div className="bg-item-card add-btn">
@@ -34,18 +35,17 @@ class Profile extends Component {
             </div>
             <div className="bg-name">Add File</div>
           </div>
-          <div className="bg-item-card">
-            <div className="bg-preview" style={{ background: 'radial-gradient(ellipse at bottom, #2b0c3d 0%, #0c0218 100%)' }} />
-            <div className="bg-name">Default</div>
-          </div>
-          <div className="bg-item-card">
-            <div className="bg-preview" style={{ background: '#000' }} />
-            <div className="bg-name">Black</div>
-          </div>
-          <div className="bg-item-card">
-            <div className="bg-preview" style={{ background: '#fff' }} />
-            <div className="bg-name">White</div>
-          </div>
+          {backgrounds.map(bg => (
+            <div 
+              key={bg.id} 
+              className={`bg-item-card ${currentBackground === bg.id ? 'active' : ''}`}
+              onClick={() => onBackgroundChange(bg.id)}
+            >
+              <div className="bg-preview" style={{ background: bg.preview }} />
+              <div className="bg-name">{bg.name}</div>
+              {currentBackground === bg.id && <div className="equipped-tag">Equipped</div>}
+            </div>
+          ))}
         </div>
       );
     }
@@ -91,13 +91,35 @@ class Profile extends Component {
         </div>
       );
     }
+
+    if (activeTab === 'systemIcons') {
+      const icons = cosmeticManager.getAllInCategory('systemIcons');
+      return (
+        <div className="icons-grid">
+          {icons.map(icon => (
+            <div 
+              key={icon.id} 
+              className={`icon-item-card ${currentSystemIcon === icon.id ? 'active' : ''}`}
+              onClick={() => onSystemIconChange(icon.id)}
+            >
+              <div className={`icon-preview-box ${icon.type}`}>
+                <IonIcon icon={cubeOutline} />
+              </div>
+              <div className="icon-name">{icon.name}</div>
+              {currentSystemIcon === icon.id && <div className="equipped-dot" />}
+            </div>
+          ))}
+        </div>
+      );
+    }
   };
 
   render() {
-    const { economy, currentTitle, currentFrame } = this.props;
+    const { economy, userInfo, currentTitle, currentFrame } = this.props;
     const { activeTab } = this.state;
     const pCoins = economy?.pCoins || 0;
     const equippedTitle = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
+    const displayName = userInfo?.username || 'Player_9999';
 
     return (
       <div className="app-container profile-app">
@@ -108,7 +130,7 @@ class Profile extends Component {
             </RankFrame>
             <div className="user-main-info">
               <div className="username-line">
-                <span className="name">Player_9999</span>
+                <span className="name">{displayName}</span>
               </div>
               <div className="title-line">
                 <span className="title-badge" style={{ color: equippedTitle?.color }}>
@@ -133,7 +155,10 @@ class Profile extends Component {
             <IonIcon icon={starOutline} /> Titles
           </button>
           <button className={`nav-tab ${activeTab === 'frames' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'frames' })}>
-            <IonIcon icon={imageOutline} /> Avatar Frames
+            <IonIcon icon={imageOutline} /> Frames
+          </button>
+          <button className={`nav-tab ${activeTab === 'systemIcons' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'systemIcons' })}>
+            <IonIcon icon={cubeOutline} /> System Glyphs
           </button>
         </div>
 
