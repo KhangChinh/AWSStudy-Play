@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
-import { signIn, signUp, getCurrentUser, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
+import { signIn, signUp, getCurrentUser, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, fetchUserAttributes } from 'aws-amplify/auth';
 
 import './AuthPage.scss';
 import Spinner from '../../components/Spinner';
@@ -144,8 +144,12 @@ class AuthPage extends Component {
       if (authMode === 'login') {
         const { isSignedIn, nextStep } = await signIn({ username: email, password });
         if (isSignedIn) {
+          const attributes = await fetchUserAttributes();
           handleLoginSuccessApi();
-          this.props.userLogin({ email, username: email });
+          this.props.userLogin({ 
+            email: attributes.email || email, 
+            username: attributes.name || attributes.nickname || email 
+          });
           toast.success('Đăng nhập thành công!');
           setTimeout(() => {
             this.props.navigate('/desktop');

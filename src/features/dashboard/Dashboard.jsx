@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
+import { withTranslation } from 'react-i18next';
 import { signOut } from 'aws-amplify/auth';
 import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import {
-  settingsOutline, cubeOutline, ticketOutline, gameControllerOutline,
+  settingsOutline, ticketOutline, gameControllerOutline,
   cartOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
-  imageOutline, personOutline, globeOutline, cart, planetOutline, starOutline,
-  copyOutline, listOutline, flagOutline, compassOutline, lockClosedOutline,
-  giftOutline, bookOutline, schoolOutline, calculatorOutline, pencilOutline,
+  personOutline, planetOutline, copyOutline, lockClosedOutline,
+  bookOutline, schoolOutline, calculatorOutline, pencilOutline,
   bulbOutline, libraryOutline, readerOutline, documentTextOutline,
   journalOutline, newspaperOutline, createOutline, flaskOutline,
   telescopeOutline, easelOutline, statsChartOutline, ribbonOutline,
@@ -22,111 +22,49 @@ import cosmeticManager from '../../managers/cosmeticManager';
 import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
 import Store from '../store/Store';
+import SettingsApp from '../settings/SettingsApp';
 import RankFrame from '../../components/RankFrame';
 import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authServices';
 import { userLogout } from '../../store/actions';
 import './Dashboard.scss';
 
-// ═══ User Profile Widget ═══
-const RANK_LABELS = {
-  en: {
-    bronze: 'Bronze',
-    silver: 'Silver',
-    gold: 'Gold',
-    platinum: 'Platinum',
-    diamond: 'Diamond',
-    master: 'Master',
-  },
-  vi: {
-    bronze: 'Đồng',
-    silver: 'Bạc',
-    gold: 'Vàng',
-    platinum: 'Bạch kim',
-    diamond: 'Kim cương',
-    master: 'Cao thủ',
-  },
+const RANK_KEYS = {
+  bronze: 'rank.bronze',
+  silver: 'rank.silver',
+  gold: 'rank.gold',
+  platinum: 'rank.platinum',
+  diamond: 'rank.diamond',
+  master: 'rank.master',
 };
 
-const UI_TEXT = {
-  en: {
-    rankPrefix: 'Rank',
-    apps: {
-      settings: 'Settings',
-      profile: 'Profile',
-      gacha: 'Gacha',
-      minigame: 'Mini Games',
-      store: 'Store',
-      focus: 'Focus Mode',
-    },
-    controls: {
-      minimizeAll: 'Minimize All',
-      cleanDesktop: 'Clean Desktop',
-      restore: 'Restore',
-      maximize: 'Maximize',
-    },
-    settings: {
-      title: 'User Preferences',
-      profileAvatar: 'Profile Avatar',
-      uploadAvatar: 'Upload new avatar',
-      uploadHint: 'Optimal size 256x256. Max 2MB.',
-      accountDetails: 'Account Details',
-      username: 'Username',
-      renameNote: '* Rename costs 10,000 P-Coin',
-      rename: 'Rename',
-      preferences: 'Preferences',
-      preferencesDesc: 'Quick adjustments for your experience.',
-      language: 'Language',
-      english: 'English',
-      vietnamese: 'Vietnamese',
-    },
-  },
-  vi: {
-    rankPrefix: 'Hạng',
-    apps: {
-      settings: 'Cài đặt',
-      profile: 'Hồ sơ',
-      gacha: 'Gacha',
-      minigame: 'Mini Games',
-      store: 'Cửa hàng',
-      focus: 'Tập trung',
-    },
-    controls: {
-      minimizeAll: 'Thu nhỏ tất cả',
-      cleanDesktop: 'Dọn desktop',
-      restore: 'Khôi phục',
-      maximize: 'Phóng to',
-    },
-    settings: {
-      title: 'Tùy chỉnh người dùng',
-      profileAvatar: 'Avatar hồ sơ',
-      uploadAvatar: 'Tải avatar mới',
-      uploadHint: 'Kích thước tốt nhất 256x256. Tối đa 2MB.',
-      accountDetails: 'Thông tin tài khoản',
-      username: 'Tên người dùng',
-      renameNote: '* Đổi tên tốn 10.000 P-Coin',
-      rename: 'Đổi tên',
-      preferences: 'Tùy chọn',
-      preferencesDesc: 'Điều chỉnh nhanh trải nghiệm của bạn.',
-      language: 'Ngôn ngữ',
-      english: 'Tiếng Anh',
-      vietnamese: 'Tiếng Việt',
-    },
-  },
+const translateRank = (rank, t) => {
+  const translate = typeof t === 'function' ? t : (key) => key;
+  return translate(RANK_KEYS[rank] || RANK_KEYS.diamond);
 };
 
-const getText = (language) => UI_TEXT[language] || UI_TEXT.en;
-const getInitialLanguage = () => {
-  if (typeof window === 'undefined') return 'vi';
-  return window.localStorage.getItem('studyPlayLanguage') || 'vi';
+const resolveBackground = (background) => {
+  if (background && typeof background === 'object') return background;
+  return cosmeticManager.getCosmeticInfo('backgrounds', background);
 };
 
-const UserProfileWidget = ({ currentTitle, currentFrame, currentRank = 'diamond', language = 'vi', onClick }) => {
-  const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
-  const text = getText(language);
-  const rankLabel = RANK_LABELS[language]?.[currentRank] || RANK_LABELS.en[currentRank] || RANK_LABELS.en.diamond;
+const backgroundId = (background) => (
+  typeof background === 'string' ? background : background?.id
+);
 
+const UserProfileWidget = ({
+  currentTitle,
+  currentFrame,
+  currentRank = 'diamond',
+  userInfo,
+  onClick,
+  t,
+}) => {
+  const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
+    || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
+  const displayName = userInfo?.username || 'Player_9999';
+  const rankLabel = translateRank(currentRank, t);
 
   return (
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
@@ -135,87 +73,24 @@ const UserProfileWidget = ({ currentTitle, currentFrame, currentRank = 'diamond'
       </RankFrame>
       <div className="user-info">
         <div className="user-name-line">
-          <span className="username">Player_9999</span>
+          <span className="username">{displayName}</span>
         </div>
         <div className="title-rank-line">
           <span className="user-title" style={{ color: titleData.color }}>[{titleData.name}]</span>
-          <span className={`user-rank rank-${currentRank}`}>{text.rankPrefix}: {rankLabel}</span>
+          <span className={`user-rank rank-${currentRank}`}>{t('dashboard.rank')}: {rankLabel}</span>
         </div>
       </div>
     </div>
   );
 };
 
-// ═══ Settings App ═══
-const resolveBackground = (background) => {
-  if (background && typeof background === 'object') return background;
-  return cosmeticManager.getCosmeticInfo('backgrounds', background);
-};
-
-const SettingsApp = ({ currentTitle }) => {
-  const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
-
-  return (
-    <div className="app-container settings-app">
-      <h2 className="app-title"><IonIcon icon={settingsOutline} /> User Preferences</h2>
-
-      <div className="section">
-        <h3><IonIcon icon={imageOutline} /> Profile Avatar</h3>
-        <div className="avatar-upload">
-          <div className="avatar-circle">
-            <IonIcon icon={personOutline} style={{ fontSize: 32 }} />
-          </div>
-          <div>
-            <p style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 6 }}>Upload new avatar</p>
-            <p style={{ fontSize: 12, color: '#94a3b8' }}>Optimal size 256x256. Max 2MB.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={personOutline} /> Account Details</h3>
-        <div className="account-details">
-          <div className="info">
-            <p className="label">Username</p>
-            <div className="name-wrapper">
-              <span className="name">Player_9999</span>
-              <span className="user-title" style={{ color: selectedTitleData.color }}>
-                [{selectedTitleData.name}]
-              </span>
-            </div>
-            <p className="note">* Đổi tên tốn 10.000 P-Coin</p>
-          </div>
-          <button className="btn-rename">Rename</button>
-        </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={globeOutline} /> Preferences</h3>
-        <p className="section-desc">Quick adjustments for your experience.</p>
-        <div className="settings-options">
-          <div className="option">
-            <label>Language</label>
-            <select className="language-select">
-              <option value="en">English</option>
-              <option value="vi">Tiếng Việt</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ═══ Cosmetics Store ═══
-
-// ═══ App Registry ═══
 const APPS = [
-  { id: 'settings', name: 'Settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
-  { id: 'profile', name: 'Profile', className: 'profile', icon: personOutline, content: <Profile /> },
-  { id: 'gacha', name: 'Gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
-  { id: 'minigame', name: 'Mini Games', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
-  { id: 'store', name: 'Store', className: 'store', icon: cartOutline, content: <Store /> },
-  { id: 'focus', name: 'Focus Mode', className: 'focus', icon: lockClosedOutline, content: <FocusWidget /> },
+  { id: 'settings', nameKey: 'common.settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
+  { id: 'profile', nameKey: 'common.profile', className: 'profile', icon: personOutline, content: <Profile /> },
+  { id: 'gacha', nameKey: 'common.gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
+  { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
+  { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
+  { id: 'focus', nameKey: 'common.focus_mode', className: 'focus', icon: lockClosedOutline, content: <FocusWidget /> },
 ];
 
 const STUDY_FLOAT_ICONS = [
@@ -238,19 +113,18 @@ const STUDY_FLOAT_ICONS = [
   { icon: medalOutline, top: '32%', color: '#fcd34d', duration: '42s', delay: '-33s', direction: 'right' },
   { icon: trophyOutline, top: '55%', color: '#fdba74', duration: '39s', delay: '-16s', direction: 'left' },
   { icon: hourglassOutline, top: '78%', color: '#7dd3fc', duration: '44s', delay: '-35s', direction: 'right' },
-  { icon: clipboardOutline, top: '66%', color: '#d8b4fe', duration: '41s', delay: '-28s', direction: 'left' }
+  { icon: clipboardOutline, top: '66%', color: '#d8b4fe', duration: '41s', delay: '-28s', direction: 'left' },
 ];
 
-// ═══ MAIN DASHBOARD COMPONENT ═══
 class Dashboard extends Component {
   constructor(props) {
     super(props);
     this.state = {
       activeApp: null,
-      openApps: [], // Danh sách các ID app đang mở
-      minimizedApps: [], // Danh sách các ID app đang ẩn (thu nhỏ)
-      maximizedApp: null, // ID của app đang phóng to toàn màn hình
-      windowPositions: {}, // Map { appId: { x, y } }
+      openApps: [],
+      minimizedApps: [],
+      maximizedApp: null,
+      windowPositions: {},
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       disabledButtons: { logout: false },
       isDragging: null,
@@ -259,18 +133,40 @@ class Dashboard extends Component {
       currentBackground: 'bg_default',
       currentTitle: 'title_newbie',
       currentFrame: 'frame_gold',
+      currentSystemIcon: 'icon_default',
+      animationsEnabled: true,
       isVacuuming: false,
       isMissionsOpen: false,
+      isMissionsCollapsed: true,
       missions: [
-        { id: 1, title: 'Mission 1', desc: 'Sơ khai thế giới', status: '1/1' },
-        { id: 2, title: 'Mission 2', desc: 'Thử thách tân thủ', status: '4/4' },
-        { id: 3, title: 'Mission 3', desc: 'Nhà sưu tầm', status: '3/3' },
-        { id: 4, title: 'Mission 4', desc: 'Đại gia lộ diện', status: '1/1' },
-      ]
+        { id: 1, title: 'Mission 1', desc: 'So khai the gioi', status: '1/1' },
+        { id: 2, title: 'Mission 2', desc: 'Thu thach tan thu', status: '4/4' },
+        { id: 3, title: 'Mission 3', desc: 'Nha suu tam', status: '3/3' },
+        { id: 4, title: 'Mission 4', desc: 'Dai gia lo dien', status: '1/1' },
+      ],
     };
     this.timerInterval = null;
     this.missionsPanelRef = React.createRef();
     this.missionsBtnRef = React.createRef();
+  }
+
+  componentDidMount() {
+    this.timerInterval = setInterval(() => {
+      this.setState({
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      });
+    }, 60000);
+    document.addEventListener('mousedown', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
+    document.removeEventListener('mousedown', this.handleClickOutside);
+    window.removeEventListener('mousemove', this.handleDragging);
+    window.removeEventListener('mouseup', this.handleDragEnd);
+    window.removeEventListener('touchmove', this.handleDragging);
+    window.removeEventListener('touchend', this.handleDragEnd);
   }
 
   handleClearAllApps = () => {
@@ -278,19 +174,18 @@ class Dashboard extends Component {
 
     this.setState({ isVacuuming: true });
 
-    // Đợi hiệu ứng hút chạy xong (0.8s) rồi mới dọn dẹp state
     setTimeout(() => {
       this.setState({
         openApps: [],
         activeApp: null,
         minimizedApps: [],
         maximizedApp: null,
-        isVacuuming: false
+        isVacuuming: false,
       });
-      toast.success('System cleanup complete!', {
-        icon: '🧹',
+      toast.success(this.props.t('dashboard.system_cleanup_complete'), {
+        icon: 'clean',
         theme: 'dark',
-        autoClose: 1500
+        autoClose: 1500,
       });
     }, 800);
   };
@@ -303,62 +198,60 @@ class Dashboard extends Component {
     this.setState({ currentFrame: newFrameId });
   };
 
+  handleToggleAnimations = () => {
+    this.setState(prev => ({ animationsEnabled: !prev.animationsEnabled }));
+  };
+
   handleBackgroundChange = (newBackground) => {
     this.setState({ currentBackground: newBackground });
   };
 
+  handleSystemIconChange = (id) => {
+    this.setState({ currentSystemIcon: id });
+  };
+
   toggleMissions = () => {
-    this.timerInterval = setInterval(() => {
-      this.setState({
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-    }, 60000);
-    document.addEventListener('mousedown', this.handleClickOutside);
-  }
+    this.setState(prev => ({ isMissionsCollapsed: !prev.isMissionsCollapsed }));
+  };
 
-  componentWillUnmount() {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-    document.removeEventListener('mousedown', this.handleClickOutside);
-    window.removeEventListener('mousemove', this.handleDragging);
-    window.removeEventListener('mouseup', this.handleDragEnd);
-  }
-
-  // --- QUẢN LÝ ỨNG DỤNG ---
   openApp = (appId) => {
     this.setState((prev) => {
       const isAlreadyOpen = prev.openApps.includes(appId);
       const newOpenApps = isAlreadyOpen ? prev.openApps : [...prev.openApps, appId];
-
       const newPositions = { ...prev.windowPositions };
+
       if (!newPositions[appId]) {
-        // AUTO CENTER: Tính toán tâm màn hình
         const winW = 900;
         const winH = 600;
         const screenW = window.innerWidth;
-        const screenH = window.innerHeight - 48; // Trừ taskbar
+        const screenH = window.innerHeight - 48;
 
         newPositions[appId] = {
           x: Math.max(0, (screenW - winW) / 2) + (newOpenApps.length * 10),
-          y: Math.max(0, (screenH - winH) / 2) + (newOpenApps.length * 10)
+          y: Math.max(0, (screenH - winH) / 2) + (newOpenApps.length * 10),
         };
       }
 
       return {
         openApps: newOpenApps,
         activeApp: appId,
-        minimizedApps: prev.minimizedApps.filter(id => id !== appId)
+        minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+        windowPositions: newPositions,
       };
     });
   };
 
   closeApp = (e, appId) => {
     e.stopPropagation();
-    this.setState(prev => ({
-      openApps: prev.openApps.filter(id => id !== appId),
-      minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-      activeApp: prev.activeApp === appId ? (prev.openApps.filter(id => id !== appId)[0] || null) : prev.activeApp,
-      maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp
-    }));
+    this.setState(prev => {
+      const nextOpenApps = prev.openApps.filter(id => id !== appId);
+      return {
+        openApps: nextOpenApps,
+        minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+        activeApp: prev.activeApp === appId ? (nextOpenApps[0] || null) : prev.activeApp,
+        maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp,
+      };
+    });
   };
 
   toggleMinimize = (e, appId) => {
@@ -368,14 +261,14 @@ class Dashboard extends Component {
       if (isMinimized) {
         return {
           minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-          activeApp: appId
-        };
-      } else {
-        return {
-          minimizedApps: [...prev.minimizedApps, appId],
-          activeApp: prev.openApps.find(id => id !== appId && !prev.minimizedApps.includes(id)) || null
+          activeApp: appId,
         };
       }
+
+      return {
+        minimizedApps: [...prev.minimizedApps, appId],
+        activeApp: prev.openApps.find(id => id !== appId && !prev.minimizedApps.includes(id)) || null,
+      };
     });
   };
 
@@ -387,75 +280,67 @@ class Dashboard extends Component {
     if (isMinimized) {
       this.setState(prev => ({
         minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-        activeApp: appId
+        activeApp: appId,
       }));
     } else if (activeApp !== appId) {
       this.setState({ activeApp: appId });
     } else {
       this.setState(prev => ({
         minimizedApps: [...prev.minimizedApps, appId],
-        activeApp: prev.openApps.find(id => id !== appId && !prev.minimizedApps.includes(id)) || null
+        activeApp: prev.openApps.find(id => id !== appId && !prev.minimizedApps.includes(id)) || null,
       }));
     }
   };
 
   handleMinimizeAll = () => {
-    const { openApps, minimizedApps } = this.state;
+    const { openApps } = this.state;
     if (openApps.length === 0) return;
 
-    // Nếu tất cả đã thu nhỏ rồi thì Restore all? 
-    // Thường Minimize All chỉ là thu nhỏ hết.
     this.setState({
       minimizedApps: [...openApps],
-      activeApp: null
+      activeApp: null,
     });
 
-    toast.info('All windows minimized', {
-      icon: '⏬',
+    toast.info(this.props.t('dashboard.minimize_all'), {
+      icon: 'min',
       theme: 'dark',
-      autoClose: 1000
+      autoClose: 1000,
     });
   };
 
   toggleMaximize = (e, appId) => {
     e.stopPropagation();
     this.setState(prev => ({
-      maximizedApp: prev.maximizedApp === appId ? null : appId
+      maximizedApp: prev.maximizedApp === appId ? null : appId,
     }));
   };
 
-  toggleMissions = () => {
-    // Logic for toggling is no longer needed for taskbar panel, but we keep the method name if referenced or repurpose
-    this.setState({ isMissionsOpen: !this.state.isMissionsOpen });
-  };
-
   handleClaimAllMissions = () => {
-    toast.success('All rewards claimed! +160 P-Coin', {
-      icon: '🎁',
-      theme: 'dark'
+    toast.success(this.props.t('missions.rewards_claimed'), {
+      icon: 'gift',
+      theme: 'dark',
     });
-    // Reset or update missions state? Just toast for now per user request for button appearance.
   };
 
-  handleClaimMission = (missionId) => {
-    const mission = this.state.missions.find(m => m.id === missionId);
-    toast.success(`Claimed: +40 P-Coin!`, {
-      icon: '✅',
-      theme: 'dark'
+  handleClaimMission = () => {
+    toast.success('Claimed: +40 P-Coin!', {
+      icon: 'ok',
+      theme: 'dark',
     });
   };
 
   handleClickOutside = (event) => {
-    if (this.state.isMissionsOpen &&
-      this.missionsPanelRef.current &&
-      !this.missionsPanelRef.current.contains(event.target) &&
-      this.missionsBtnRef.current &&
-      !this.missionsBtnRef.current.contains(event.target)) {
+    if (
+      this.state.isMissionsOpen
+      && this.missionsPanelRef.current
+      && !this.missionsPanelRef.current.contains(event.target)
+      && this.missionsBtnRef.current
+      && !this.missionsBtnRef.current.contains(event.target)
+    ) {
       this.setState({ isMissionsOpen: false });
     }
   };
 
-  // --- LOGIC KÉO THẢ (DRAG) ---
   handleDragStart = (e, appId) => {
     if (this.state.maximizedApp === appId) return;
 
@@ -465,8 +350,8 @@ class Dashboard extends Component {
       isDragging: appId,
       dragOffset: {
         x: event.clientX - (this.state.windowPositions[appId]?.x || 0),
-        y: event.clientY - (this.state.windowPositions[appId]?.y || 0)
-      }
+        y: event.clientY - (this.state.windowPositions[appId]?.y || 0),
+      },
     });
 
     if (e.touches) {
@@ -480,29 +365,24 @@ class Dashboard extends Component {
 
   handleDragging = (e) => {
     if (!this.state.isDragging) return;
-    if (e.cancelable) e.preventDefault(); // Ngăn scroll trên mobile
+    if (e.cancelable) e.preventDefault();
 
     const appId = this.state.isDragging;
     const event = e.touches ? e.touches[0] : e;
-
     const headerHeight = 42;
     const taskbarHeight = 48;
     const padding = 100;
 
-    let newX = event.clientX - this.state.dragOffset.x;
-    let newY = event.clientY - this.state.dragOffset.y;
+    const newX = Math.max(-(900 - padding), Math.min(event.clientX - this.state.dragOffset.x, window.innerWidth - padding));
+    const newY = Math.max(0, Math.min(event.clientY - this.state.dragOffset.y, window.innerHeight - taskbarHeight - headerHeight));
 
-    newY = Math.max(0, Math.min(newY, window.innerHeight - taskbarHeight - headerHeight));
-    newX = Math.max(-(900 - padding), Math.min(newX, window.innerWidth - padding));
-
-    // Dùng requestAnimationFrame để mượt hơn
     if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
     this.dragRaf = requestAnimationFrame(() => {
       this.setState(prev => ({
         windowPositions: {
           ...prev.windowPositions,
-          [appId]: { x: newX, y: newY }
-        }
+          [appId]: { x: newX, y: newY },
+        },
       }));
     });
   };
@@ -523,82 +403,113 @@ class Dashboard extends Component {
       new Promise((resolve) => {
         toast(
           <div>
-            <p>Xác nhận đăng xuất?</p>
+            <p>{this.props.t('dashboard.logout_confirm')}</p>
             <button
               className="toast-confirm-btn"
               onClick={() => { resolve(true); toast.dismiss(); }}
             >
-              Có
+              {this.props.t('common.yes')}
             </button>
             <button
               className="toast-cancel-btn"
               onClick={() => { resolve(false); toast.dismiss(); }}
             >
-              Không
+              {this.props.t('common.no')}
             </button>
           </div>,
           {
             autoClose: 2000,
             closeOnClick: false,
-            onClose: () => { this.setState({ disabledButtons: { ...this.state.disabledButtons, logout: false } }) },
-          }
+            onClose: () => {
+              this.setState({
+                disabledButtons: { ...this.state.disabledButtons, logout: false },
+              });
+            },
+          },
         );
       });
 
     const isConfirmed = await confirmAction();
     if (isConfirmed) {
       try {
-        await signOut(); // Xóa session Cognito
-        handleLogoutApi(); // Call Electron IPC to clear session if needed
-        this.props.userLogout(); // Clear Redux
-        toast.success('Đăng xuất thành công!');
+        await signOut();
+        handleLogoutApi();
+        this.props.userLogout();
+        toast.success(this.props.t('dashboard.logout_success'));
         this.props.navigate('/login');
       } catch (e) {
         console.log(e);
-        toast.error('Đăng xuất thất bại. Vui lòng thử lại!');
+        toast.error(this.props.t('dashboard.logout_failed'));
       }
     }
   };
 
+  renderDesktopLineBackground = () => (
+    <div className="desktop-line-bg" aria-hidden="true">
+      <div className="aurora-field aurora-cyan"></div>
+      <div className="aurora-field aurora-magenta"></div>
+      <div className="aurora-field aurora-gold"></div>
+      <div className="holo-orbit holo-orbit-one"></div>
+      <div className="holo-orbit holo-orbit-two"></div>
+      <div className="holo-panel holo-panel-one"></div>
+      <div className="holo-panel holo-panel-two"></div>
+      <div className="study-float-icons">
+        {STUDY_FLOAT_ICONS.map((item, index) => (
+          <div
+            className={`study-float-icon float-${item.direction}`}
+            key={index}
+            style={{
+              '--float-top': item.top,
+              '--float-color': item.color,
+              '--float-duration': item.duration,
+              '--float-delay': item.delay,
+            }}
+          >
+            <IonIcon icon={item.icon} />
+          </div>
+        ))}
+      </div>
+      <div className="line-grid line-grid-primary"></div>
+      <div className="line-grid line-grid-secondary"></div>
+      <div className="line-scan"></div>
+    </div>
+  );
+
   render() {
-    const { openApps, activeApp, minimizedApps, maximizedApp, windowPositions, time, disabledButtons } = this.state;
-    const selectedBackground = resolveBackground(this.state.currentBackground);
+    const {
+      openApps,
+      activeApp,
+      minimizedApps,
+      maximizedApp,
+      windowPositions,
+      time,
+      disabledButtons,
+      animationsEnabled,
+      currentBackground,
+      currentSystemIcon,
+      currentRank,
+    } = this.state;
+    const { t, i18n } = this.props;
+    const selectedBackground = resolveBackground(currentBackground)
+      || cosmeticManager.getAllInCategory('backgrounds')[0];
+    const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon)
+      || cosmeticManager.getAllInCategory('systemIcons')[0]
+      || { type: 'outline' };
     const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
-    const desktopStyle = selectedBackground?.desktopBackground
-      ? { '--desktop-user-background': selectedBackground.desktopBackground }
+    const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
+    const desktopStyle = desktopBackground
+      ? { '--desktop-user-background': desktopBackground, background: desktopBackground }
       : undefined;
+    const desktopClassName = [
+      'os-desktop',
+      isProfileOpen ? 'profile-open' : '',
+      !animationsEnabled ? 'no-animations' : '',
+      `icon-style-${iconData.type}`,
+    ].filter(Boolean).join(' ');
 
     return (
-      <div className={`os-desktop ${isProfileOpen ? 'profile-open' : ''}`} style={desktopStyle}>
-        {/* Resolution-independent generated line background */}
-        <div className="desktop-line-bg" aria-hidden="true">
-          <div className="aurora-field aurora-cyan"></div>
-          <div className="aurora-field aurora-magenta"></div>
-          <div className="aurora-field aurora-gold"></div>
-          <div className="holo-orbit holo-orbit-one"></div>
-          <div className="holo-orbit holo-orbit-two"></div>
-          <div className="holo-panel holo-panel-one"></div>
-          <div className="holo-panel holo-panel-two"></div>
-          <div className="study-float-icons">
-            {STUDY_FLOAT_ICONS.map((item, index) => (
-              <div
-                className={`study-float-icon float-${item.direction}`}
-                key={index}
-                style={{
-                  '--float-top': item.top,
-                  '--float-color': item.color,
-                  '--float-duration': item.duration,
-                  '--float-delay': item.delay
-                }}
-              >
-                <IonIcon icon={item.icon} />
-              </div>
-            ))}
-          </div>
-          <div className="line-grid line-grid-primary"></div>
-          <div className="line-grid line-grid-secondary"></div>
-          <div className="line-scan"></div>
-        </div>
+      <div className={desktopClassName} style={desktopStyle}>
+        {backgroundId(currentBackground) === 'bg_default' && this.renderDesktopLineBackground()}
         <div className="desktop-bg-dim"></div>
         {isProfileOpen && <div className="profile-focus-overlay" aria-hidden="true"></div>}
         {this.state.isDragging && <div className="drag-overlay"></div>}
@@ -606,60 +517,70 @@ class Dashboard extends Component {
         <UserProfileWidget
           currentTitle={this.state.currentTitle}
           currentFrame={this.state.currentFrame}
-          currentRank={this.state.currentRank}
+          currentRank={currentRank}
+          userInfo={this.props.userInfo}
           onClick={() => this.openApp('profile')}
+          t={t}
         />
 
         <MissionsWidget
           missions={this.state.missions}
+          isCollapsed={this.state.isMissionsCollapsed}
+          onToggle={this.toggleMissions}
           onClaimAll={this.handleClaimAllMissions}
           onClaimMission={this.handleClaimMission}
+          t={t}
         />
 
-        {/* Desktop Icons Array */}
         <div className="desktop-icons">
           {APPS.filter(app => app.id !== 'profile').map(app => (
             <div className={`icon ${app.className}`} key={app.id} onClick={() => this.openApp(app.id)}>
               <div className="icon-img">
                 <IonIcon icon={app.icon} style={{ color: 'white', fontSize: 28 }} />
               </div>
-              <span>{app.name}</span>
+              <span>{t(app.nameKey)}</span>
             </div>
           ))}
         </div>
 
-        {/* Cửa sổ các ứng dụng đang chạy */}
         {openApps.map(appId => {
           const app = APPS.find(a => a.id === appId);
+          if (!app) return null;
+
           const isMinimized = minimizedApps.includes(appId);
           const isMaximized = maximizedApp === appId;
           const pos = windowPositions[appId] || { x: 100, y: 100 };
 
-          if (isMinimized) return null; // Ẩn hoàn toàn cửa sổ nếu đã thu nhỏ
+          if (isMinimized) return null;
 
           return (
             <div
               key={appId}
-              className={`os-window ${app.className} ${appId === 'profile' ? `rank-${this.state.currentRank}` : ''} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
+              className={`os-window ${app.className} ${appId === 'profile' ? `rank-${currentRank}` : ''} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
               style={{
                 top: isMaximized ? 0 : pos.y,
                 left: isMaximized ? 0 : pos.x,
-                zIndex: activeApp === appId ? 100 : 50
+                zIndex: activeApp === appId ? 100 : 50,
               }}
               onMouseDown={() => this.setState({ activeApp: appId })}
             >
-              <div className="window-header"
+              <div
+                className="window-header"
                 onMouseDown={(e) => this.handleDragStart(e, appId)}
                 onTouchStart={(e) => this.handleDragStart(e, appId)}
               >
                 <div className="window-title">
-                  {app.name}
+                  {t(app.nameKey)}
                 </div>
                 <div className="window-controls">
                   <button className="control minimize" onClick={(e) => this.toggleMinimize(e, appId)}>
                     <IonIcon icon={removeOutline} />
                   </button>
-                  <button className="control maximize" title={isMaximized ? "Restore" : "Maximize"} onClick={(e) => this.toggleMaximize(e, appId)}>
+                  <button
+                    className="control maximize"
+                    title={isMaximized ? t('dashboard.restore') : t('dashboard.maximize')}
+                    onClick={(e) => this.toggleMaximize(e, appId)}
+                  >
                     <IonIcon icon={isMaximized ? copyOutline : squareOutline} style={{ fontSize: isMaximized ? 11 : 9 }} />
                   </button>
                   <button className="control close" onClick={(e) => this.closeApp(e, appId)}>
@@ -673,29 +594,35 @@ class Dashboard extends Component {
                   currentTitle: this.state.currentTitle,
                   currentFrame: this.state.currentFrame,
                   currentRank: this.state.currentRank,
-                  onBackgroundChange: this.handleBackgroundChange,
+                  currentSystemIcon: this.state.currentSystemIcon,
+                  animationsEnabled: this.state.animationsEnabled,
+                  userInfo: this.props.userInfo,
+                  onToggleAnimations: this.handleToggleAnimations,
                   onTitleChange: this.handleTitleChange,
-                  onFrameChange: this.handleFrameChange
+                  onFrameChange: this.handleFrameChange,
+                  onBackgroundChange: this.handleBackgroundChange,
+                  onSystemIconChange: this.handleSystemIconChange,
+                  t,
+                  i18n,
                 })}
               </div>
             </div>
           );
         })}
 
-        {/* Taskbar */}
         <div className="os-taskbar">
           <div className="taskbar-start">
             <div
               className="minimize-all-btn"
               onClick={this.handleMinimizeAll}
-              title="Minimize All"
+              title={t('dashboard.minimize_all')}
             >
               <IonIcon icon={removeOutline} />
             </div>
             <div
               className={`start-btn ${this.state.isVacuuming ? 'active' : ''}`}
               onClick={this.handleClearAllApps}
-              title="Clean Desktop"
+              title={t('dashboard.cleanup')}
             >
               <IonIcon icon={planetOutline} className={this.state.isVacuuming ? 'spinning' : ''} />
             </div>
@@ -704,12 +631,14 @@ class Dashboard extends Component {
           <div className="taskbar-apps">
             {openApps.map(appId => {
               const app = APPS.find(a => a.id === appId);
+              if (!app) return null;
+
               return (
                 <div
                   key={appId}
                   className={`taskbar-icon ${activeApp === appId ? 'active' : ''} ${minimizedApps.includes(appId) ? 'minimized' : ''}`}
                   onClick={(e) => this.handleTaskbarClick(e, appId)}
-                  title={app.name}
+                  title={t(app.nameKey)}
                 >
                   <IonIcon icon={app.icon} style={{ fontSize: 22 }} />
                   <div className="indicator"></div>
@@ -720,7 +649,7 @@ class Dashboard extends Component {
 
           <div className="taskbar-sys">
             <span className="os-time">{time}</span>
-            <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout}>
+            <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout} title={t('common.logout')}>
               <IonIcon icon={logOutOutline} />
             </button>
           </div>
@@ -738,4 +667,4 @@ const mapDispatchToProps = (dispatch) => ({
   userLogout: () => dispatch(userLogout()),
 });
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard));
+export default withTranslation()(withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard)));

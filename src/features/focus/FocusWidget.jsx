@@ -29,14 +29,14 @@ class FocusWidget extends Component {
         blacklist: this.props.blacklist || [],
       });
       if (result && result.success) {
-        toast.success('Focus session đã bắt đầu!');
+        toast.success(this.props.t('focus.started'));
         this.props.setActiveSession(result);
       } else {
-        toast.error('Không thể bắt đầu focus session!');
+        toast.error(this.props.t('focus.error'));
       }
     } catch (e) {
       console.log('Error starting focus:', e);
-      toast.error('Lỗi khi bắt đầu focus session!');
+      toast.error(this.props.t('focus.error'));
     }
     this.setState({ isLoading: false });
   };
@@ -46,11 +46,11 @@ class FocusWidget extends Component {
       <div className="app-container focus-app">
         <div className="focus-header-section">
           <IonIcon icon={lockClosedOutline} />
-          <h3>Focus Mode Settings</h3>
+          <h3>{this.props.t('focus.title')}</h3>
         </div>
 
         <div className="widget-content">
-          <p className="description">Select applications to restrict during your session:</p>
+          <p className="description">{this.props.t('focus.desc')}</p>
           <div className="app-list">
             {['Mini Games', 'Store', 'Social Media', 'Web Browser'].map(app => (
               <div className="app-item" key={app}>
@@ -67,7 +67,7 @@ class FocusWidget extends Component {
             ))}
           </div>
           <button className="btn-start-focus" onClick={this.handleStartFocus}>
-            <IonIcon icon={rocketOutline} /> Start Focus Session
+            <IonIcon icon={rocketOutline} /> {this.props.t('focus.start')}
           </button>
         </div>
       </div>
