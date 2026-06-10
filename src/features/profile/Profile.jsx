@@ -148,7 +148,7 @@ class Profile extends Component {
               </div>
               <div className="title-line">
                 <span className="title-badge" style={{ color: equippedTitle?.color }}>
-                  [{equippedTitle?.name}]
+                  [{this.props.t(equippedTitle?.i18nKey + '.name')}]
                 </span>
               </div>
               <div className="wallet-info">
