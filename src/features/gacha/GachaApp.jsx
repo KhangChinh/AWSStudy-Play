@@ -25,9 +25,11 @@ class GachaApp extends Component {
       activeBanner: bannerManager.getActiveBanner(),
       timeLeftStr: '',
       inventoryItems: [],
+      historyItems: [],
       pendingRolls: null,
       showDetails: false,
       detailPage: 0,
+      activeDetailTab: 'history', // 'history' or 'inventory'
     };
     this.timer = null;
   }
@@ -55,7 +57,8 @@ class GachaApp extends Component {
     this.setState({
       activeBanner: banner,
       timeLeftStr: `${m}m ${s}s`,
-      inventoryItems: inventoryManager.getItems()
+      inventoryItems: inventoryManager.getItems(),
+      historyItems: inventoryManager.getHistory(),
     });
   };
 
@@ -104,20 +107,21 @@ class GachaApp extends Component {
     const hasNewItem = newRewards.some(item => !inventoryManager.hasItem(item.id));
 
     // Process rewards through manager
-    rewardManager.processRewards(newRewards);
+    const processResult = rewardManager.processRewards(newRewards);
 
     this.setState({
       isPlaying: true,
       hasNewItem: hasNewItem, // Save to pass to GachaAnimation
       currentRarity: maxRarity,
-      rewards: newRewards,
+      rewards: processResult.details, // Use details which include conversion info
       // Store pending updates but don't show yet
       pendingRolls: {
         pity5: tempPity5,
         pity4: tempPity4,
         guaranteedSSR: tempGuaranteed,
         totalRolls: this.state.totalRolls + count,
-        inventory: inventoryManager.getItems()
+        inventory: inventoryManager.getItems(),
+        history: inventoryManager.getHistory()
       }
     });
   };
@@ -192,29 +196,62 @@ class GachaApp extends Component {
             <div className="modal-overlay" onClick={() => this.setState({ showDetails: false })} />
             <div className="modal-content">
               <div className="modal-header">
-                <h3><IonIcon icon={cubeOutline} /> {this.props.t('gacha.roll')} {this.props.t('gacha.history')} / {this.props.t('gacha.inventory')}</h3>
+                <h3><IonIcon icon={cubeOutline} /> {this.props.t('gacha.details')}</h3>
                 <button className="close-btn" onClick={() => this.setState({ showDetails: false })}>&times;</button>
               </div>
+
+              <div className="modal-tabs">
+                <button 
+                  className={this.state.activeDetailTab === 'history' ? 'active' : ''} 
+                  onClick={() => this.setState({ activeDetailTab: 'history', detailPage: 0 })}
+                >
+                  {this.props.t('gacha.history')}
+                </button>
+                <button 
+                  className={this.state.activeDetailTab === 'inventory' ? 'active' : ''} 
+                  onClick={() => this.setState({ activeDetailTab: 'inventory', detailPage: 0 })}
+                >
+                  {this.props.t('gacha.inventory')}
+                </button>
+              </div>
+
               <div className="detail-list">
                 {(() => {
+                  const isHistory = this.state.activeDetailTab === 'history';
+                  const list = isHistory ? this.state.historyItems : inventoryItems;
                   const start = this.state.detailPage * 5;
-                  const pageItems = inventoryItems.slice(start, start + 5);
-                  if (inventoryItems.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
-                  return pageItems.map((item) => {
+                  const pageItems = list.slice(start, start + 5);
+                  
+                  if (list.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
+                  
+                  return pageItems.map((item, idx) => {
                     const meta = ITEMS[item.id] || { name: item.id, icon: '📦', rarity: 'R' };
                     return (
-                      <div key={item.id} className={`detail-item ${meta.rarity}`}>
-                        <span className="item-icon">{meta.icon}</span>
-                        <div className="item-info">
-                          <span className="name">{meta.name}</span>
-                          <span className="rarity-tag">{meta.rarity}</span>
+                      <div key={item.id + idx} className={`detail-item ${meta.rarity}`}>
+                        <div className="item-main">
+                          <div className="item-info">
+                            <span className="name">{meta.name}</span>
+                            <span className="rarity-tag">{meta.rarity}</span>
+                          </div>
+                          {isHistory && item.isDuplicate && (
+                            <div className="conversion-tag">
+                              <IonIcon icon={chevronForwardOutline} /> 🪙 x{meta.rarity === 'SSR' ? 50 : meta.rarity === 'SR' ? 20 : 5}
+                            </div>
+                          )}
+                          {!isHistory && <span className="qty">x{item.amount}</span>}
                         </div>
-                        <span className="qty">x{item.amount}</span>
+                        {isHistory && (
+                          <div className="item-footer">
+                            <span className="timestamp">{new Date(item.timestamp).toLocaleString()}</span>
+                            {item.isDuplicate && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
+                          </div>
+                        )}
                       </div>
                     );
                   });
                 })()}
               </div>
+              
               <div className="pagination">
                 <button
                   disabled={this.state.detailPage === 0}
@@ -222,9 +259,9 @@ class GachaApp extends Component {
                 >
                   <IonIcon icon={chevronBackOutline} />
                 </button>
-                <span>{this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil(inventoryItems.length / 5) || 1}</span>
+                <span>{this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil((this.state.activeDetailTab === 'history' ? this.state.historyItems.length : inventoryItems.length) / 5) || 1}</span>
                 <button
-                  disabled={this.state.detailPage >= Math.ceil(inventoryItems.length / 5) - 1}
+                  disabled={this.state.detailPage >= Math.ceil((this.state.activeDetailTab === 'history' ? this.state.historyItems.length : inventoryItems.length) / 5) - 1}
                   onClick={() => this.setState({ detailPage: this.state.detailPage + 1 })}
                 >
                   <IonIcon icon={chevronForwardOutline} />
@@ -247,7 +284,8 @@ class GachaApp extends Component {
               pity4: pendingRolls.pity4,
               guaranteedSSR: pendingRolls.guaranteedSSR,
               totalRolls: pendingRolls.totalRolls,
-              inventoryItems: pendingRolls.inventory
+              inventoryItems: pendingRolls.inventory,
+              historyItems: pendingRolls.history
             });
           }}
         />

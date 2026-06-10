@@ -151,6 +151,7 @@ class Dashboard extends Component {
         { id: 3, title: 'Mission 3', desc: 'Nha suu tam', status: '3/3' },
         { id: 4, title: 'Mission 4', desc: 'Dai gia lo dien', status: '1/1' },
       ],
+      stackOrder: [], // Order of windows from bottom to top
     };
     this.timerInterval = null;
     this.missionsPanelRef = React.createRef();
@@ -226,25 +227,45 @@ class Dashboard extends Component {
       const isAlreadyOpen = prev.openApps.includes(appId);
       const newOpenApps = isAlreadyOpen ? prev.openApps : [...prev.openApps, appId];
       const newPositions = { ...prev.windowPositions };
+      
+      // Update stack order: move appId to the top (end of array)
+      const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+      newStackOrder.push(appId);
 
       if (!newPositions[appId]) {
         const winW = 900;
         const winH = 600;
         const screenW = window.innerWidth;
         const screenH = window.innerHeight - 48;
-        const cascadeOffset = newOpenApps.length * 40;
+        
+        // Calculate offset based on number of currently open (non-minimized) windows
+        const openCount = prev.openApps.filter(id => !prev.minimizedApps.includes(id)).length;
+        const cascadeOffset = (openCount % 5) * 30; // Wrap after 5 windows
 
         newPositions[appId] = {
-          x: Math.max(0, (screenW - winW) / 2) + cascadeOffset,
-          y: Math.max(0, (screenH - winH) / 2 - 50) + cascadeOffset,
+          x: Math.max(20, (screenW - winW) / 2 - 100 + cascadeOffset),
+          y: Math.max(20, (screenH - winH) / 2 - 80 + cascadeOffset),
         };
       }
 
       return {
         openApps: newOpenApps,
         activeApp: appId,
+        stackOrder: newStackOrder,
         minimizedApps: prev.minimizedApps.filter(id => id !== appId),
         windowPositions: newPositions,
+      };
+    });
+  };
+
+  bringToFront = (appId) => {
+    this.setState(prev => {
+      if (prev.activeApp === appId) return null;
+      const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+      newStackOrder.push(appId);
+      return {
+        activeApp: appId,
+        stackOrder: newStackOrder
       };
     });
   };
@@ -253,10 +274,12 @@ class Dashboard extends Component {
     e.stopPropagation();
     this.setState(prev => {
       const remainingApps = prev.openApps.filter(id => id !== appId);
+      const newStackOrder = prev.stackOrder.filter(id => id !== appId);
       return {
         openApps: remainingApps,
+        stackOrder: newStackOrder,
         minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-        activeApp: prev.activeApp === appId ? (remainingApps[remainingApps.length - 1] || null) : prev.activeApp,
+        activeApp: prev.activeApp === appId ? (newStackOrder[newStackOrder.length - 1] || null) : prev.activeApp,
         maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp,
       };
     });
@@ -267,15 +290,27 @@ class Dashboard extends Component {
     this.setState(prev => {
       const isMinimized = prev.minimizedApps.includes(appId);
       if (isMinimized) {
+        const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+        newStackOrder.push(appId);
         return {
           minimizedApps: prev.minimizedApps.filter(id => id !== appId),
           activeApp: appId,
+          stackOrder: newStackOrder,
         };
       }
 
+      const newMinimized = [...prev.minimizedApps, appId];
+      const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+      // When minimizing, find the next top visible app in stack
+      const nextActive = prev.stackOrder
+        .slice()
+        .reverse()
+        .find(id => id !== appId && !newMinimized.includes(id)) || null;
+
       return {
-        minimizedApps: [...prev.minimizedApps, appId],
-        activeApp: prev.openApps.find(id => id !== appId && !prev.minimizedApps.includes(id)) || null,
+        minimizedApps: newMinimized,
+        activeApp: nextActive,
+        stackOrder: newStackOrder // Optional: keep in stack but activeApp handles focus
       };
     });
   };
@@ -286,17 +321,19 @@ class Dashboard extends Component {
     const isMinimized = minimizedApps.includes(appId);
 
     if (isMinimized) {
-      this.setState(prev => ({
-        minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-        activeApp: appId,
-      }));
+      this.setState(prev => {
+        const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+        newStackOrder.push(appId);
+        return {
+          minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+          activeApp: appId,
+          stackOrder: newStackOrder
+        };
+      });
     } else if (activeApp !== appId) {
-      this.setState({ activeApp: appId });
+      this.bringToFront(appId);
     } else {
-      this.setState(prev => ({
-        minimizedApps: [...prev.minimizedApps, appId],
-        activeApp: prev.openApps.find(id => id !== appId && !prev.minimizedApps.includes(id)) || null,
-      }));
+      this.toggleMinimize(e, appId);
     }
   };
 
@@ -356,6 +393,7 @@ class Dashboard extends Component {
     this.setState({
       activeApp: appId,
       isDragging: appId,
+      stackOrder: [...this.state.stackOrder.filter(id => id !== appId), appId],
       dragOffset: {
         x: event.clientX - (this.state.windowPositions[appId]?.x || 0),
         y: event.clientY - (this.state.windowPositions[appId]?.y || 0),
@@ -510,7 +548,6 @@ class Dashboard extends Component {
       : undefined;
     const desktopClassName = [
       'os-desktop',
-      isProfileOpen ? 'profile-open' : '',
       !animationsEnabled ? 'no-animations' : '',
       `icon-style-${iconData.type}`,
     ].filter(Boolean).join(' ');
@@ -519,7 +556,6 @@ class Dashboard extends Component {
       <div className={desktopClassName} style={desktopStyle}>
         {backgroundId(currentBackground) === 'bg_default' && this.renderDesktopLineBackground()}
         <div className="desktop-bg-dim"></div>
-        {isProfileOpen && <div className="profile-focus-overlay" aria-hidden="true"></div>}
         {this.state.isDragging && <div className="drag-overlay"></div>}
 
         <UserProfileWidget
@@ -568,9 +604,9 @@ class Dashboard extends Component {
               style={{
                 top: isMaximized ? 0 : pos.y,
                 left: isMaximized ? 0 : pos.x,
-                zIndex: activeApp === appId ? 100 : 50,
+                zIndex: this.state.stackOrder.indexOf(appId) + 10,
               }}
-              onMouseDown={() => this.setState({ activeApp: appId })}
+              onMouseDown={() => this.bringToFront(appId)}
             >
               <div
                 className="window-header"

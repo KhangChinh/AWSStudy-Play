@@ -197,12 +197,17 @@ class GachaAnimation extends Component {
                   
                   return (
                     <div 
-                      className={`grid-item ${rClass}`} 
+                      className={`grid-item ${rClass} ${reward.isConverted ? 'converted' : ''}`} 
                       key={i} 
                       style={{ animationDelay: this.state.isInstantReveal ? '0s' : `${i * 0.1}s` }}
                     >
                       <div className="grid-icon">{reward.icon}</div>
                       <div className="grid-stars">{reward.rarity}</div>
+                      {reward.isConverted && (
+                        <div className="result-conv">
+                          🪙
+                        </div>
+                      )}
                     </div>
                   );
                 })}
