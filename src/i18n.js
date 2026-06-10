@@ -38,10 +38,22 @@ i18n
             profile_avatar: "Profile Avatar",
             account_details: "Account Details",
             preferences: "Preferences",
+            preferences_desc: "Quick adjustments for your experience.",
             language: "Language",
             app_animations: "App Animations",
             upload_note: "Optimal size 256x256. Max 2MB.",
             rename_cost: "* Rename costs 10,000 P-Coin"
+          },
+          titles: {
+            unlocked: "Unlocked",
+            locked: "Locked",
+            how_to_obtain: "How to obtain",
+            newbie: { name: "Newbie", obtain: "Default title" },
+            scholar: { name: "Scholar", obtain: "Complete 10 focus sessions" },
+            legend: { name: "Legend", obtain: "Win 50 minigames" },
+            admin: { name: "Admin", obtain: "Special developer title" },
+            collector: { name: "Collector", obtain: "Unlock 5 different frames" },
+            speedrun: { name: "Speedrunner", obtain: "Complete a mission in under 1 minute" }
           },
           profile: {
             backgrounds: "Backgrounds",
@@ -123,10 +135,22 @@ i18n
             profile_avatar: "Ảnh đại diện",
             account_details: "Chi tiết tài khoản",
             preferences: "Tùy chọn",
+            preferences_desc: "Tùy chỉnh nhanh cho trải nghiệm của bạn.",
             language: "Ngôn ngữ",
             app_animations: "Hiệu ứng mở App",
             upload_note: "Kích thước tối ưu 256x256. Tối đa 2MB.",
             rename_cost: "* Đổi tên tốn 10.000 P-Coin"
+          },
+          titles: {
+            unlocked: "Đã mở",
+            locked: "Chưa mở",
+            how_to_obtain: "Cách nhận",
+            newbie: { name: "Tân Thủ", obtain: "Danh hiệu mặc định" },
+            scholar: { name: "Học Giả", obtain: "Hoàn thành 10 phiên tập trung" },
+            legend: { name: "Huyền Thoại", obtain: "Thắng 50 trò chơi" },
+            admin: { name: "Quản Trị Viên", obtain: "Danh hiệu dành riêng cho Dev" },
+            collector: { name: "Nhà Sưu Tầm", obtain: "Sở hữu 5 khung khác nhau" },
+            speedrun: { name: "Thần Tốc", obtain: "Hoàn thành nhiệm vụ dưới 1 phút" }
           },
           profile: {
             backgrounds: "Hình nền",

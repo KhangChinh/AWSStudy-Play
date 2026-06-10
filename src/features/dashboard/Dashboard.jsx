@@ -49,15 +49,13 @@ const UserProfileWidget = ({ currentTitle, currentFrame, userInfo, onClick, t })
           <span className="username">{displayName}</span>
         </div>
         <div className="title-rank-line">
-          <span className="user-title" style={{ color: titleData.color }}>[{titleData.name}]</span>
+          <span className="user-title" style={{ color: titleData.color }}>[{t(titleData.i18nKey + '.name')}]</span>
           <span className={`user-rank rank-${currentRank}`}>{t('dashboard.rank')}: {rankLabel}</span>
         </div>
       </div>
     </div>
   );
 };
-
-// ═══ Cosmetics Store ═══
 
 // ═══ App Registry ═══
 const APPS = [
@@ -196,34 +194,41 @@ class Dashboard extends Component {
 
       const newPositions = { ...prev.windowPositions };
       if (!newPositions[appId]) {
-        // AUTO CENTER: Tính toán tâm màn hình
+        // CASCADING EFFECT: Mở cửa số chéo nhau
         const winW = 900;
         const winH = 600;
         const screenW = window.innerWidth;
         const screenH = window.innerHeight - 48; // Trừ taskbar
 
+        // Dịch chuyển 40px cho mỗi app mới để tạo hiệu ứng chéo
+        const cascadeOffset = newOpenApps.length * 40;
+        
         newPositions[appId] = {
-          x: Math.max(0, (screenW - winW) / 2) + (newOpenApps.length * 10),
-          y: Math.max(0, (screenH - winH) / 2) + (newOpenApps.length * 10)
+          x: Math.max(0, (screenW - winW) / 2) + cascadeOffset,
+          y: Math.max(0, (screenH - winH) / 2 - 50) + cascadeOffset
         };
       }
 
       return {
         openApps: newOpenApps,
         activeApp: appId,
-        minimizedApps: prev.minimizedApps.filter(id => id !== appId)
+        minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+        windowPositions: newPositions
       };
     });
   };
 
   closeApp = (e, appId) => {
     e.stopPropagation();
-    this.setState(prev => ({
-      openApps: prev.openApps.filter(id => id !== appId),
-      minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-      activeApp: prev.activeApp === appId ? (prev.openApps.filter(id => id !== appId)[0] || null) : prev.activeApp,
-      maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp
-    }));
+    this.setState(prev => {
+      const remainingApps = prev.openApps.filter(id => id !== appId);
+      return {
+        openApps: remainingApps,
+        minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+        activeApp: prev.activeApp === appId ? (remainingApps[remainingApps.length - 1] || null) : prev.activeApp,
+        maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp
+      };
+    });
   };
 
   toggleMinimize = (e, appId) => {

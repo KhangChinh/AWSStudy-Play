@@ -34,7 +34,7 @@ const SettingsApp = ({ currentTitle, animationsEnabled, userInfo, onToggleAnimat
             <div className="name-wrapper">
               <span className="name">{displayName}</span>
               <span className="user-title" style={{ color: selectedTitleData.color }}>
-                [{selectedTitleData.name}]
+                [{t(selectedTitleData.i18nKey + '.name')}]
               </span>
             </div>
             <p className="note">{t('settings.rename_cost')}</p>
@@ -45,7 +45,7 @@ const SettingsApp = ({ currentTitle, animationsEnabled, userInfo, onToggleAnimat
 
       <div className="section">
         <h3><IonIcon icon={globeOutline} /> {t('settings.preferences')}</h3>
-        <p className="section-desc">Quick adjustments for your experience.</p>
+        <p className="section-desc">{t('settings.preferences_desc')}</p>
         <div className="settings-options">
           <div className="option">
             <label>{t('settings.language')}</label>

@@ -263,6 +263,20 @@
           border-color: rgba(192, 132, 252, 0.3);
         }
 
+        &.locked {
+          opacity: 0.6;
+          cursor: not-allowed;
+          background: rgba(15, 23, 42, 0.2);
+
+          &:hover {
+            background: rgba(15, 23, 42, 0.3);
+          }
+
+          .title-preview {
+            filter: grayscale(1);
+          }
+        }
+
         .title-info {
           display: flex;
           flex-direction: column;
@@ -285,6 +299,14 @@
           color: #c084fc;
           font-weight: 800;
           text-transform: uppercase;
+        }
+
+        .lock-icon {
+          font-size: 20px;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
       }
     }

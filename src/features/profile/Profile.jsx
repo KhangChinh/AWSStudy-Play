@@ -55,19 +55,32 @@ class Profile extends Component {
       const titles = cosmeticManager.getAllInCategory('titles');
       return (
         <div className="titles-list">
-          {titles.map(t => (
-            <div
-              key={t.id}
-              className={`profile-title-item ${currentTitle === t.id ? 'active' : ''}`}
-              onClick={() => onTitleChange(t.id)}
-            >
-              <div className="title-info">
-                <div className="title-preview" style={{ color: t.color }}>[{t.name}]</div>
-                <div className="title-desc">{t.hint || t.description || 'Chiến thắng để mở khóa'}</div>
+          {titles.map(item => {
+            const isUnlocked = inventoryManager.hasItem(item.id) || item.id === 'title_newbie';
+            const isActive = currentTitle === item.id;
+            
+            return (
+              <div
+                key={item.id}
+                className={`profile-title-item ${isActive ? 'active' : ''} ${!isUnlocked ? 'locked' : ''}`}
+                onClick={() => isUnlocked && onTitleChange(item.id)}
+              >
+                <div className="title-info">
+                  <div className="title-preview" style={{ color: isUnlocked ? item.color : '#4b5563' }}>
+                    [{this.props.t(item.i18nKey + '.name')}]
+                  </div>
+                  <div className="title-desc">
+                    {isUnlocked 
+                      ? this.props.t('titles.unlocked')
+                      : `${this.props.t('titles.how_to_obtain')}: ${this.props.t(item.i18nKey + '.obtain')}`
+                    }
+                  </div>
+                </div>
+                {isActive && <div className="active-tag">{this.props.t('profile.equipped')}</div>}
+                {!isUnlocked && <div className="lock-icon"><IonIcon icon={cubeOutline} /></div>}
               </div>
-              {currentTitle === t.id && <div className="active-tag">Equipped</div>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
