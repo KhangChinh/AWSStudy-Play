@@ -66,5 +66,14 @@ export const ITEMS = {
     type: 'title',
     cosmeticId: 'title_newbie',
     icon: '🌱'
+  },
+  item_coin_5: {
+    id: 'item_coin_5',
+    name: '5 Coin (Item)',
+    rarity: 'R',
+    type: 'item',
+    value: 5,
+    icon: '🪙'
   }
 };
+

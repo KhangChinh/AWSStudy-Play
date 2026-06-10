@@ -39,7 +39,10 @@ class GachaManager {
   }
 
   getRandomItem(rarity, bannerConfig, isGuaranteed) {
-    if (rarity === 'R') return 'item_title_newbie'; // R placeholder
+    if (rarity === 'R') {
+      const rItems = ['item_title_newbie', 'item_coin_5'];
+      return rItems[Math.floor(Math.random() * rItems.length)];
+    }
     
     const poolKey = rarity === 'SSR' ? 'SSR' : 'SR';
     const pool = bannerConfig.featured[poolKey] || [];

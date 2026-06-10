@@ -12,6 +12,7 @@ export const BANNERS = [
     startTime: '2024-01-01T00:00:00Z',
     endTime: '2026-12-31T23:59:59Z',
     background: 'nebula-bg',
+    image: '/src/assets/gacha/u6bbJ.jpg',
     theme: 'theme-nebula',
     effect: 'effect-stars',
     featured: {
@@ -31,6 +32,7 @@ export const BANNERS = [
     startTime: '2026-06-01T00:00:00Z',
     endTime: '2027-01-01T00:00:00Z',
     background: 'solar-bg',
+    image: '/src/assets/gacha/OR7cQ.jpg',
     theme: 'theme-solar',
     effect: 'effect-fire',
     featured: {
@@ -44,3 +46,4 @@ export const BANNERS = [
     }
   }
 ];
+

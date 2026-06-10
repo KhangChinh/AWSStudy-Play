@@ -127,63 +127,65 @@ class GachaApp extends Component {
 
     return (
       <div className={`app-container gacha-app ${activeBanner.theme}`}>
-        <div className="watermark">Live Simulation: {activeBanner.id}</div>
-
-        <h2 className="app-title">
-          <div className="title-left">
-            <IonIcon icon={starOutline} /> {activeBanner.name}
-          </div>
-          <div className="rotation-timer">
-            <IonIcon icon={timeOutline} /> New Pool in: {timeLeftStr}
-          </div>
-        </h2>
+        <div className="banner-tag upper-left">{activeBanner.type.toUpperCase()} EVENT</div>
 
         <div className="gacha-main-layout">
-          <div className="gacha-main">
-            <div className={`banner-card ${activeBanner.background}`}>
-              <div className="banner-tag">{activeBanner.type.toUpperCase()} EVENT</div>
-              <div className="banner-content">
-                <div className="featured-display">
-                  <div className="item gold">★ SSR: {ITEMS[activeBanner.featured.SSR[0]]?.name || activeBanner.featured.SSR[0]}</div>
-                  <div className="item purple">★ SR: {ITEMS[activeBanner.featured.SR[0]]?.name || activeBanner.featured.SR[0]}</div>
-                </div>
-              </div>
-            </div>
+          <div className={`banner-backdrop ${activeBanner.background}`} style={{ backgroundImage: `url(${activeBanner.image})` }}>
+            <div className="banner-overlay" />
+          </div>
 
-            <div className="pity-stats">
-              <div className="stat-box">
-                <label>SSR Pity</label>
-                <div className="value">{pity5} / 90</div>
-                {pity5 >= 74 && <span className="soft-pity-tag">Soft Pity!</span>}
+          <div className="banner-info-panel">
+            <h1 className="banner-name">{activeBanner.name}</h1>
+            <div className="banner-description">
+              <p>Rate up for selected <span className="text-purple">SR-Rank</span> and <span className="text-gold">Limited SSR-Rank</span> items!</p>
+              <div className="featured-list">
+                <div className="featured-item gold">★ SSR: {ITEMS[activeBanner.featured.SSR[0]]?.name}</div>
+                {activeBanner.featured.SR.map(id => (
+                  <div key={id} className="featured-item purple">★ SR: {ITEMS[id]?.name}</div>
+                ))}
               </div>
-              <div className="stat-box">
-                <label>SR Pity</label>
-                <div className="value">{pity4} / 10</div>
-              </div>
-              <div className="stat-box">
-                <label>Pity Status</label>
-                <div className="value-label">{this.state.guaranteedSSR ? 'GUARANTEED' : '50 / 50'}</div>
-              </div>
-              <div className="stat-box">
-                <label>Total Rolls</label>
-                <div className="value">{totalRolls}</div>
-              </div>
-            </div>
-
-            <div className="roll-controls">
-              <button className="btn-roll x1" onClick={() => this.handleRoll(1)} disabled={isPlaying}>
-                Roll x1
-              </button>
-              <button className="btn-roll x10" onClick={() => this.handleRoll(10)} disabled={isPlaying}>
-                Roll x10
-              </button>
             </div>
             
-            <button className="btn-detail-inv" onClick={() => this.setState({ showDetails: true, detailPage: 0 })}>
-              <IonIcon icon={listOutline} /> Details
-            </button>
+            <div className="rotation-timer">
+              <IonIcon icon={timeOutline} /> Remaining: {timeLeftStr}
+            </div>
           </div>
         </div>
+
+        <div className="bottom-bar">
+          <div className="bottom-left">
+            <button className="btn-detail-inv" onClick={() => this.setState({ showDetails: true, detailPage: 0 })}>
+              Details
+            </button>
+            <div className="pity-summary">
+              <div className="pity-line purple">
+                Times: <span className="count">{10 - pity4}</span> <span className="rank">SR-Rank</span> or higher item guaranteed!
+              </div>
+              <div className="pity-line gold">
+                Times: <span className="count">{90 - pity5}</span> <span className="rank">SSR-Rank</span> item guaranteed!
+              </div>
+            </div>
+          </div>
+
+          <div className="bottom-right">
+            <div className="roll-actions">
+              <div className="roll-btn-group">
+                <div className="cost-tag">🪙 x1</div>
+                <button className="btn-roll x1" onClick={() => this.handleRoll(1)} disabled={isPlaying}>
+                  Single Roll
+                </button>
+              </div>
+              <div className="roll-btn-group">
+                <div className="cost-tag">🪙 x10</div>
+                <button className="btn-roll x10" onClick={() => this.handleRoll(10)} disabled={isPlaying}>
+                  10 Rolls
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
 
         {this.state.showDetails && (
           <div className="gacha-details-modal">
@@ -214,14 +216,14 @@ class GachaApp extends Component {
                 })()}
               </div>
               <div className="pagination">
-                <button 
+                <button
                   disabled={this.state.detailPage === 0}
                   onClick={() => this.setState({ detailPage: this.state.detailPage - 1 })}
                 >
                   <IonIcon icon={chevronBackOutline} />
                 </button>
                 <span>Page {this.state.detailPage + 1} / {Math.ceil(inventoryItems.length / 5) || 1}</span>
-                <button 
+                <button
                   disabled={this.state.detailPage >= Math.ceil(inventoryItems.length / 5) - 1}
                   onClick={() => this.setState({ detailPage: this.state.detailPage + 1 })}
                 >
