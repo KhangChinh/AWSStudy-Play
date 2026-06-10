@@ -11,7 +11,7 @@ class BannerManager {
     return this.banners[cycleIndex];
   }
 
-  getTimeRemaining(bannerId) {
+  getTimeRemaining() {
     // For testing: time remaining in the current 20s cycle
     return 20000 - (Date.now() % 20000);
   }

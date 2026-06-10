@@ -40,10 +40,12 @@ export const COSMETICS = {
     { id: 'frame_galactic', name: 'Galactic Horizon', className: 'rf-galactic', rarity: 'blue', tier: 'galactic' },
   ],
   titles: [
-    { id: 'title_newbie', name: 'Tân Thủ', className: 't-gray', color: '#94a3b8' },
-    { id: 'title_scholar', name: 'Học Giả', className: 't-blue', color: '#60a5fa' },
-    { id: 'title_legend', name: 'Huyền Thoại', className: 't-legend', color: '#fbbf24' },
-    { id: 'title_admin', name: 'Admin', className: 't-admin', color: '#ef4444' },
+    { id: 'title_newbie', i18nKey: 'titles.newbie', className: 't-gray', color: '#94a3b8' },
+    { id: 'title_scholar', i18nKey: 'titles.scholar', className: 't-blue', color: '#60a5fa' },
+    { id: 'title_collector', i18nKey: 'titles.collector', className: 't-purple', color: '#a855f7' },
+    { id: 'title_speedrun', i18nKey: 'titles.speedrun', className: 't-cyan', color: '#22d3ee' },
+    { id: 'title_legend', i18nKey: 'titles.legend', className: 't-legend', color: '#fbbf24' },
+    { id: 'title_admin', i18nKey: 'titles.admin', className: 't-admin', color: '#ef4444' },
   ],
   effects: [
     { id: 'eff_none', name: 'No Effect', className: 'e-none' },

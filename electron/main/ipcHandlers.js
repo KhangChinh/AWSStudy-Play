@@ -11,8 +11,6 @@ import { saveToken, loadToken, clearToken } from './services/authHelper.js';
 import { startFocus, stopFocus, getSessionStatus } from './services/focusEngine.js';
 import { classifyContent, clearCache } from './services/aiGuard.js';
 
-import { BrowserWindow } from 'electron';
-
 export function registerIpcHandlers(ipcMain, win, createTimerWidget, closeTimerWidget) {
   // ... (auth handlers keep the same)
   ipcMain.handle('auth:saveToken', async (_event, token) => {

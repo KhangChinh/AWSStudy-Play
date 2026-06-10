@@ -41,5 +41,7 @@ function endGame(score) {
   sendToApp('GAME OVER', { score, completed: true });
 }
 
+window.endGame = endGame;
+
 // Auto-init khi load trong iframe
 sendToApp('INIT', { requestEntry: true });

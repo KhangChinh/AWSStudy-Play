@@ -34,7 +34,7 @@ class App extends Component {
           username: attributes.name || attributes.nickname || user.username
         });
       }
-    } catch (error) {
+    } catch (_error) {
       console.log('No active session found.');
     } finally {
       this.setState({ isCheckingAuth: false });

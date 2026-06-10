@@ -2,10 +2,10 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
-import { lockClosedOutline, chevronDownOutline, chevronForwardOutline, rocketOutline } from 'ionicons/icons';
+import { lockClosedOutline, rocketOutline } from 'ionicons/icons';
 
 import './FocusWidget.scss';
-import { handleStartFocusApi, handleStopFocusApi } from '../../services/focusServices';
+import { handleStartFocusApi } from '../../services/focusServices';
 import { setActiveSession } from '../../store/actions';
 
 class FocusWidget extends Component {

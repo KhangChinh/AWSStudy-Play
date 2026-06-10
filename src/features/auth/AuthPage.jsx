@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
-import { signIn, signUp, getCurrentUser, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, fetchUserAttributes } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, fetchUserAttributes } from 'aws-amplify/auth';
 
 import './AuthPage.scss';
 import Spinner from '../../components/Spinner';
@@ -183,7 +183,7 @@ class AuthPage extends Component {
               this.startResendCooldown();
               this.setState({ authMode: 'confirm', verificationCode: '', isLoading: false });
               return;
-            } catch (resendError) {
+            } catch (_resendError) {
               throw signUpError;
             }
           }

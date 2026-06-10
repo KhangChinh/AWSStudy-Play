@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
-  closeOutline, refreshOutline, pauseOutline, playOutline,
+  pauseOutline, playOutline,
   pencilOutline, trashOutline, helpCircleOutline, arrowBackOutline,
-  trophyOutline, heartOutline, timeOutline, alertCircleOutline
+  trophyOutline, timeOutline, alertCircleOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
-import { setEconomy, setHighscores } from '../../store/actions';
+import { setHighscores } from '../../store/actions';
 import { handleSyncGameResultApi } from '../../services/economyServices';
 import './SudokuGame.scss';
 
@@ -110,7 +110,6 @@ const calculateRankPoints = (difficulty, time) => {
 
 const SudokuGame = ({ onClose }) => {
   const dispatch = useDispatch();
-  const economy = useSelector(state => state.economy || { pCoins: 0 });
   const minigameHighscores = useSelector(state => state.minigameHighscores || {});
 
   // Game configuration & status
@@ -170,6 +169,43 @@ const SudokuGame = ({ onClose }) => {
   };
 
   // ═══ Input Actions ═══
+
+  const checkWin = useCallback(async (currentBoard) => {
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (currentBoard[r][c] !== solution[r][c]) {
+          return;
+        }
+      }
+    }
+
+    setStatus('won');
+    const earnedPoints = calculateRankPoints(difficulty, timer);
+    toast.success(`Chuc mung! Ban da thang cuoc o che do ${difficulty.toUpperCase()}!`);
+
+    try {
+      const previousSudokuScore = minigameHighscores.sudoku || 0;
+      const nextSudokuScore = Math.max(previousSudokuScore, earnedPoints);
+
+      dispatch(setHighscores({ sudoku: nextSudokuScore }));
+
+      const syncResponse = await handleSyncGameResultApi({
+        minigame: 'sudoku',
+        difficulty,
+        result: 'win',
+        timeSpent: timer,
+        rankPointsEarned: earnedPoints
+      });
+
+      if (syncResponse && syncResponse.errCode === 0) {
+        toast.success(`Da dong bo ket qua thanh cong! Nhan +${earnedPoints.toLocaleString()} diem Rank`);
+      } else {
+        toast.info(`Nhan +${earnedPoints.toLocaleString()} diem Rank (cuc bo)`);
+      }
+    } catch (e) {
+      console.log('Error updating reward:', e);
+    }
+  }, [difficulty, dispatch, minigameHighscores.sudoku, solution, timer]);
 
   const handleCellClick = (row, col) => {
     if (status !== 'playing') return;
@@ -234,10 +270,10 @@ const SudokuGame = ({ onClose }) => {
         checkWin(updatedBoard);
       }
     }
-  }, [board, notes, selectedCell, status, isNoteMode, solution, mistakes, initialBoard]);
+  }, [board, notes, selectedCell, status, isNoteMode, solution, mistakes, initialBoard, checkWin]);
 
   // Erase current cell
-  const eraseCell = () => {
+  const eraseCell = useCallback(() => {
     if (status !== 'playing' || !selectedCell) return;
     const { row, col } = selectedCell;
 
@@ -257,7 +293,7 @@ const SudokuGame = ({ onClose }) => {
       r.map((c, cIdx) => (rIdx === row && cIdx === col ? Array(9).fill(false) : c))
     );
     setNotes(updatedNotes);
-  };
+  }, [board, notes, selectedCell, status, initialBoard]);
 
   // Undo last move
   const handleUndo = () => {
@@ -309,7 +345,7 @@ const SudokuGame = ({ onClose }) => {
   };
 
   // Check if board is complete and correct
-  const checkWin = async (currentBoard) => {
+  async function checkWinLegacy(currentBoard) {
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         if (currentBoard[r][c] !== solution[r][c]) {
@@ -348,9 +384,11 @@ const SudokuGame = ({ onClose }) => {
     } catch (e) {
       console.log('Error updating reward:', e);
     }
-  };
+  }
 
   // ═══ Keyboard Controls ═══
+  void checkWinLegacy;
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (status !== 'playing' || !selectedCell) return;
@@ -373,7 +411,7 @@ const SudokuGame = ({ onClose }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCell, status, inputNumber]);
+  }, [selectedCell, status, inputNumber, eraseCell]);
 
   // Peer cell highlighting logic
   const isCellHighlighted = (rIdx, cIdx) => {

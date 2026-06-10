@@ -43,7 +43,7 @@ const SettingsApp = ({
             <div className="name-wrapper">
               <span className="name">{displayName}</span>
               <span className="user-title" style={{ color: selectedTitleData.color }}>
-                [{selectedTitleData.name}]
+                [{t(selectedTitleData.i18nKey + '.name')}]
               </span>
             </div>
             <p className="note">{t('settings.rename_cost')}</p>

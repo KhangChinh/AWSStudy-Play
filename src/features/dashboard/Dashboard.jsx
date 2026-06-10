@@ -43,6 +43,12 @@ const translateRank = (rank, t) => {
   return translate(RANK_KEYS[rank] || RANK_KEYS.diamond);
 };
 
+const translateCosmeticName = (item, t) => {
+  if (!item) return '';
+  if (item.i18nKey && typeof t === 'function') return t(`${item.i18nKey}.name`);
+  return item.name || '';
+};
+
 const resolveBackground = (background) => {
   if (background && typeof background === 'object') return background;
   return cosmeticManager.getCosmeticInfo('backgrounds', background);
@@ -65,6 +71,7 @@ const UserProfileWidget = ({
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
   const displayName = userInfo?.username || 'Player_9999';
   const rankLabel = translateRank(currentRank, t);
+  const titleName = translateCosmeticName(titleData, t);
 
   return (
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
@@ -76,7 +83,7 @@ const UserProfileWidget = ({
           <span className="username">{displayName}</span>
         </div>
         <div className="title-rank-line">
-          <span className="user-title" style={{ color: titleData.color }}>[{titleData.name}]</span>
+          <span className="user-title" style={{ color: titleData.color }}>[{titleName}]</span>
           <span className={`user-rank rank-${currentRank}`}>{t('dashboard.rank')}: {rankLabel}</span>
         </div>
       </div>
@@ -225,10 +232,11 @@ class Dashboard extends Component {
         const winH = 600;
         const screenW = window.innerWidth;
         const screenH = window.innerHeight - 48;
+        const cascadeOffset = newOpenApps.length * 40;
 
         newPositions[appId] = {
-          x: Math.max(0, (screenW - winW) / 2) + (newOpenApps.length * 10),
-          y: Math.max(0, (screenH - winH) / 2) + (newOpenApps.length * 10),
+          x: Math.max(0, (screenW - winW) / 2) + cascadeOffset,
+          y: Math.max(0, (screenH - winH) / 2 - 50) + cascadeOffset,
         };
       }
 
@@ -244,11 +252,11 @@ class Dashboard extends Component {
   closeApp = (e, appId) => {
     e.stopPropagation();
     this.setState(prev => {
-      const nextOpenApps = prev.openApps.filter(id => id !== appId);
+      const remainingApps = prev.openApps.filter(id => id !== appId);
       return {
-        openApps: nextOpenApps,
+        openApps: remainingApps,
         minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-        activeApp: prev.activeApp === appId ? (nextOpenApps[0] || null) : prev.activeApp,
+        activeApp: prev.activeApp === appId ? (remainingApps[remainingApps.length - 1] || null) : prev.activeApp,
         maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp,
       };
     });

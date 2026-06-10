@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
-import { starOutline, timeOutline, cubeOutline, listOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
+import { timeOutline, cubeOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import './GachaApp.scss';
 
 // Import System Managers
@@ -123,7 +123,7 @@ class GachaApp extends Component {
   };
 
   render() {
-    const { isPlaying, currentRarity, rewards, pity5, pity4, totalRolls, activeBanner, timeLeftStr, inventoryItems } = this.state;
+    const { isPlaying, currentRarity, rewards, pity5, pity4, activeBanner, timeLeftStr, inventoryItems } = this.state;
 
     return (
       <div className={`app-container gacha-app ${activeBanner.theme}`}>
@@ -200,7 +200,7 @@ class GachaApp extends Component {
                   const start = this.state.detailPage * 5;
                   const pageItems = inventoryItems.slice(start, start + 5);
                   if (inventoryItems.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
-                  return pageItems.map((item, idx) => {
+                  return pageItems.map((item) => {
                     const meta = ITEMS[item.id] || { name: item.id, icon: '📦', rarity: 'R' };
                     return (
                       <div key={item.id} className={`detail-item ${meta.rarity}`}>

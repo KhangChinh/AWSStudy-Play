@@ -7,6 +7,7 @@ import {
   cashOutline, imageOutline, addOutline
 } from 'ionicons/icons';
 import cosmeticManager from '../../managers/cosmeticManager';
+import inventoryManager from '../../managers/inventoryManager';
 import RankFrame from '../../components/RankFrame';
 import './Profile.scss';
 
@@ -24,6 +25,12 @@ const RANK_KEYS = {
 const translateRank = (rank, t) => {
   const translate = typeof t === 'function' ? t : (key) => key;
   return translate(RANK_KEYS[rank] || RANK_KEYS.diamond);
+};
+
+const translateCosmeticName = (item, t) => {
+  if (!item) return '';
+  if (item.i18nKey && typeof t === 'function') return t(`${item.i18nKey}.name`);
+  return item.name || '';
 };
 
 const backgroundId = (background) => (
@@ -158,19 +165,33 @@ class Profile extends Component {
 
       return (
         <div className="titles-list">
-          {titles.map(title => (
-            <div
-              key={title.id}
-              className={`profile-title-item ${currentTitle === title.id ? 'active' : ''}`}
-              onClick={() => onTitleChange?.(title.id)}
-            >
-              <div className="title-info">
-                <div className="title-preview" style={{ color: title.color }}>[{title.name}]</div>
-                <div className="title-desc">{title.hint || title.description || translate('profile.unlock_hint')}</div>
+          {titles.map(item => {
+            const isUnlocked = inventoryManager.hasItem(item.id) || item.id === 'title_newbie';
+            const isActive = currentTitle === item.id;
+            const titleName = translateCosmeticName(item, translate);
+            const obtainText = item.i18nKey ? translate(`${item.i18nKey}.obtain`) : translate('profile.unlock_hint');
+
+            return (
+              <div
+                key={item.id}
+                className={`profile-title-item ${isActive ? 'active' : ''} ${!isUnlocked ? 'locked' : ''}`}
+                onClick={() => isUnlocked && onTitleChange?.(item.id)}
+              >
+                <div className="title-info">
+                  <div className="title-preview" style={{ color: isUnlocked ? item.color : '#4b5563' }}>
+                    [{titleName}]
+                  </div>
+                  <div className="title-desc">
+                    {isUnlocked
+                      ? translate('titles.unlocked')
+                      : `${translate('titles.how_to_obtain')}: ${obtainText}`}
+                  </div>
+                </div>
+                {isActive && <div className="active-tag">{translate('profile.equipped')}</div>}
+                {!isUnlocked && <div className="lock-icon"><IonIcon icon={cubeOutline} /></div>}
               </div>
-              {currentTitle === title.id && <div className="active-tag">{translate('profile.equipped')}</div>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
@@ -242,6 +263,7 @@ class Profile extends Component {
       ? { background: selectedBackground.profileBackground }
       : undefined;
     const displayName = userInfo?.username || 'Player_9999';
+    const titleName = translateCosmeticName(equippedTitle, t);
 
     return (
       <div className={`app-container profile-app rank-${currentRank}`}>
@@ -267,7 +289,7 @@ class Profile extends Component {
               </div>
               <div className="title-line">
                 <span className="title-badge" style={{ color: equippedTitle?.color }}>
-                  [{equippedTitle?.name}]
+                  [{titleName}]
                 </span>
                 <span className="rank-chip">{rankLabel}</span>
               </div>
