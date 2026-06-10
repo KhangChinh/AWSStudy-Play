@@ -9,8 +9,8 @@ import { handleGetLeaderboardApi } from '../../services/socialServices';
 import { toast } from 'react-toastify';
 import SudokuGame from './SudokuGame';
 
-const MINIGAMES = [
-  { id: 'all', label: 'Tổng Wins', icon: '🏅' },
+const getMinigames = (t) => [
+  { id: 'all', label: t('minigames.total_wins'), icon: '🏅' },
   { id: 'minesweeper', label: 'Minesweeper', icon: '💣' },
   { id: 'sudoku', label: 'Sudoku', icon: '🔢' },
 ];
@@ -35,7 +35,7 @@ const ArcadeList = ({ onPlayGame, t }) => (
           <div className="item-info">
             <span className="item-title">{game.name}</span>
             <span className="item-price">
-              {typeof game.price === 'number' ? `🪙 ${game.price} P-Coin / Play` : game.price}
+              {typeof game.price === 'number' ? `🪙 ${game.price} ${t('minigames.pcoin_play')}` : t('minigames.free')}
             </span>
             <button 
               onClick={() => !game.disabled && onPlayGame(game.name.toLowerCase())}
@@ -90,9 +90,9 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, t }) 
             value={minigameFilter}
             onChange={e => setMinigameFilter(e.target.value)}
           >
-            {MINIGAMES.map(g => (
+            {getMinigames(t).map(g => (
               <option key={g.id} value={g.id}>
-                {g.icon} {g.id === 'all' ? t('minigames.total_wins') : g.label}
+                {g.icon} {g.label}
               </option>
             ))}
           </select>
@@ -111,7 +111,7 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, t }) 
                 <div className="name-with-title">
                   <span className="player-name">{player.name}</span>
                   <span className="player-title" style={{ color: i === 0 ? '#a855f7' : i < 3 ? '#f87171' : '#94a3b8' }}>
-                    [{i === 0 ? 'Đại Gia' : i < 3 ? 'Chiến Thần' : 'Tân Thủ'}]
+                    [{i === 0 ? t('minigames.rank_titles.whale') : i < 3 ? t('minigames.rank_titles.warrior') : t('minigames.rank_titles.newbie')}]
                   </span>
                 </div>
                 <span className="player-rank-title">{i === 0 ? 'Grandmaster' : i < 3 ? 'Elite' : 'Challenger'}</span>
