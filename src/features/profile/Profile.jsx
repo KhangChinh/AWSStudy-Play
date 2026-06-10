@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
@@ -43,7 +44,7 @@ class Profile extends Component {
             >
               <div className="bg-preview" style={{ background: bg.preview }} />
               <div className="bg-name">{bg.name}</div>
-              {currentBackground === bg.id && <div className="equipped-tag">Equipped</div>}
+              {currentBackground === bg.id && <div className="equipped-tag">{this.props.t('profile.equipped')}</div>}
             </div>
           ))}
         </div>
@@ -149,16 +150,16 @@ class Profile extends Component {
 
         <div className="profile-nav-tabs">
           <button className={`nav-tab ${activeTab === 'backgrounds' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'backgrounds' })}>
-            <IonIcon icon={imageOutline} /> Background
+            <IonIcon icon={imageOutline} /> {this.props.t('profile.backgrounds')}
           </button>
           <button className={`nav-tab ${activeTab === 'titles' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'titles' })}>
-            <IonIcon icon={starOutline} /> Titles
+            <IonIcon icon={starOutline} /> {this.props.t('profile.titles')}
           </button>
           <button className={`nav-tab ${activeTab === 'frames' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'frames' })}>
-            <IonIcon icon={imageOutline} /> Frames
+            <IonIcon icon={imageOutline} /> {this.props.t('profile.frames')}
           </button>
           <button className={`nav-tab ${activeTab === 'systemIcons' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'systemIcons' })}>
-            <IonIcon icon={cubeOutline} /> System Glyphs
+            <IonIcon icon={cubeOutline} /> {this.props.t('profile.system_glyphs')}
           </button>
         </div>
 
@@ -175,4 +176,4 @@ const mapStateToProps = (state) => ({
   economy: state.economy,
 });
 
-export default connect(mapStateToProps)(Profile);
+export default withTranslation()(connect(mapStateToProps)(Profile));

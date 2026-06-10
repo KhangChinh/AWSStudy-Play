@@ -22,9 +22,9 @@ const MINIGAME_SCORES = {
 };
 
 // ═══ Arcade Game List ═══
-const ArcadeList = ({ onPlayGame }) => (
+const ArcadeList = ({ onPlayGame, t }) => (
   <div className="arcade-list">
-    <h3><IonIcon icon={gameControllerOutline} /> Available Games</h3>
+    <h3><IonIcon icon={gameControllerOutline} /> {t('minigames.arcade')}</h3>
     <div className="store-grid">
       {[
         { name: 'Minesweeper', price: 100, icon: '💣', disabled: true },
@@ -42,7 +42,7 @@ const ArcadeList = ({ onPlayGame }) => (
               style={game.disabled ? { background: '#475569', cursor: 'not-allowed', opacity: 0.6 } : {}}
               disabled={game.disabled}
             >
-              <IonIcon icon={playOutline} /> {game.disabled ? 'Coming Soon' : 'Play Now'}
+              <IonIcon icon={playOutline} /> {game.disabled ? t('minigames.coming_soon') : t('minigames.play_now')}
             </button>
           </div>
         </div>
@@ -52,14 +52,14 @@ const ArcadeList = ({ onPlayGame }) => (
 );
 
 // ═══ Leaderboard (Stateless Functional Component for UI rendering) ═══
-const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => {
+const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, t }) => {
   const scores = tab === 'study'
     ? [120.5, 98.2, 85.0, 72.4, 60.1]
     : MINIGAME_SCORES[minigameFilter];
 
   const scoreLabel = tab === 'study'
     ? (v) => `${v.toFixed(1)}h`
-    : (v) => `${v} Wins`;
+    : (v) => `${v} ${t('minigames.wins')}`;
 
   const DEMO_PLAYERS = [
     { name: 'Cosmic_King', avatar: '👑' },
@@ -72,13 +72,13 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => 
   return (
     <div className="leaderboard-section">
       <div className="section-header">
-        <h3><IonIcon icon={trophyOutline} /> Hall of Fame</h3>
+        <h3><IonIcon icon={trophyOutline} /> {t('minigames.hall_of_fame')}</h3>
         <div className="tabs">
           <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>
-            <IonIcon icon={timeOutline} /> Study
+            <IonIcon icon={timeOutline} /> {t('minigames.study')}
           </button>
           <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>
-            <IonIcon icon={gameControllerOutline} /> Minigame
+            <IonIcon icon={gameControllerOutline} /> {t('minigames.minigame')}
           </button>
         </div>
       </div>
@@ -91,7 +91,9 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => 
             onChange={e => setMinigameFilter(e.target.value)}
           >
             {MINIGAMES.map(g => (
-              <option key={g.id} value={g.id}>{g.icon} {g.label}</option>
+              <option key={g.id} value={g.id}>
+                {g.icon} {g.id === 'all' ? t('minigames.total_wins') : g.label}
+              </option>
             ))}
           </select>
         </div>
@@ -175,13 +177,14 @@ class MinigameHub extends Component {
 
     return (
       <div className="app-container minigame-hub">
-        <h2 className="app-title">🎮 Minigame Hub</h2>
-        <ArcadeList onPlayGame={(game) => this.setState({ activeGame: game })} />
+        <h2 className="app-title">🎮 {this.props.t('minigames.title')}</h2>
+        <ArcadeList onPlayGame={(game) => this.setState({ activeGame: game })} t={this.props.t} />
         <LeaderboardView 
           tab={tab} 
           minigameFilter={minigameFilter}
           setTab={this.setTab}
           setMinigameFilter={this.setMinigameFilter}
+          t={this.props.t}
         />
       </div>
     );

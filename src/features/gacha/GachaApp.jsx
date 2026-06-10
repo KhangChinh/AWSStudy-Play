@@ -127,7 +127,7 @@ class GachaApp extends Component {
 
     return (
       <div className={`app-container gacha-app ${activeBanner.theme}`}>
-        <div className="banner-tag upper-left">{activeBanner.type.toUpperCase()} EVENT</div>
+        <div className="banner-tag upper-left">{activeBanner.type.toUpperCase()} {this.props.t('gacha.event')}</div>
 
         <div className="gacha-main-layout">
           <div className={`banner-backdrop ${activeBanner.background}`} style={{ backgroundImage: `url(${activeBanner.image})` }}>
@@ -137,7 +137,7 @@ class GachaApp extends Component {
           <div className="banner-info-panel">
             <h1 className="banner-name">{activeBanner.name}</h1>
             <div className="banner-description">
-              <p>Rate up for selected <span className="text-purple">SR-Rank</span> and <span className="text-gold">Limited SSR-Rank</span> items!</p>
+              <p dangerouslySetInnerHTML={{ __html: this.props.t('gacha.rate_up_desc') }} />
               <div className="featured-list">
                 <div className="featured-item gold">★ SSR: {ITEMS[activeBanner.featured.SSR[0]]?.name}</div>
                 {activeBanner.featured.SR.map(id => (
@@ -147,7 +147,7 @@ class GachaApp extends Component {
             </div>
             
             <div className="rotation-timer">
-              <IonIcon icon={timeOutline} /> Remaining: {timeLeftStr}
+              <IonIcon icon={timeOutline} /> {this.props.t('gacha.remaining')}: {timeLeftStr}
             </div>
           </div>
         </div>
@@ -155,14 +155,14 @@ class GachaApp extends Component {
         <div className="bottom-bar">
           <div className="bottom-left">
             <button className="btn-detail-inv" onClick={() => this.setState({ showDetails: true, detailPage: 0 })}>
-              Details
+              {this.props.t('gacha.details')}
             </button>
             <div className="pity-summary">
               <div className="pity-line purple">
-                Times: <span className="count">{10 - pity4}</span> <span className="rank">SR-Rank</span> or higher item guaranteed!
+                {this.props.t('gacha.pull')}: <span className="count">{10 - pity4}</span> <span className="rank">SR-Rank</span> {this.props.t('gacha.guaranteed')}!
               </div>
               <div className="pity-line gold">
-                Times: <span className="count">{90 - pity5}</span> <span className="rank">SSR-Rank</span> item guaranteed!
+                {this.props.t('gacha.pull')}: <span className="count">{90 - pity5}</span> <span className="rank">SSR-Rank</span> {this.props.t('gacha.guaranteed')}!
               </div>
             </div>
           </div>
@@ -172,13 +172,13 @@ class GachaApp extends Component {
               <div className="roll-btn-group">
                 <div className="cost-tag">🪙 x1</div>
                 <button className="btn-roll x1" onClick={() => this.handleRoll(1)} disabled={isPlaying}>
-                  Single Roll
+                  {this.props.t('gacha.single_roll')}
                 </button>
               </div>
               <div className="roll-btn-group">
                 <div className="cost-tag">🪙 x10</div>
                 <button className="btn-roll x10" onClick={() => this.handleRoll(10)} disabled={isPlaying}>
-                  10 Rolls
+                  {this.props.t('gacha.ten_rolls')}
                 </button>
               </div>
             </div>
@@ -192,14 +192,14 @@ class GachaApp extends Component {
             <div className="modal-overlay" onClick={() => this.setState({ showDetails: false })} />
             <div className="modal-content">
               <div className="modal-header">
-                <h3><IonIcon icon={cubeOutline} /> Roll History / Inventory</h3>
+                <h3><IonIcon icon={cubeOutline} /> {this.props.t('gacha.roll')} History / {this.props.t('gacha.inventory')}</h3>
                 <button className="close-btn" onClick={() => this.setState({ showDetails: false })}>&times;</button>
               </div>
               <div className="detail-list">
                 {(() => {
                   const start = this.state.detailPage * 5;
                   const pageItems = inventoryItems.slice(start, start + 5);
-                  if (inventoryItems.length === 0) return <p className="empty">No items yet.</p>;
+                  if (inventoryItems.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
                   return pageItems.map((item, idx) => {
                     const meta = ITEMS[item.id] || { name: item.id, icon: '📦', rarity: 'R' };
                     return (
@@ -222,7 +222,7 @@ class GachaApp extends Component {
                 >
                   <IonIcon icon={chevronBackOutline} />
                 </button>
-                <span>Page {this.state.detailPage + 1} / {Math.ceil(inventoryItems.length / 5) || 1}</span>
+                <span>{this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil(inventoryItems.length / 5) || 1}</span>
                 <button
                   disabled={this.state.detailPage >= Math.ceil(inventoryItems.length / 5) - 1}
                   onClick={() => this.setState({ detailPage: this.state.detailPage + 1 })}

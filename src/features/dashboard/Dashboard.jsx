@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { withTranslation } from 'react-i18next';
 import { signOut } from 'aws-amplify/auth';
 import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -22,6 +23,7 @@ import cosmeticManager from '../../managers/cosmeticManager';
 import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
 import Store from '../store/Store';
+import SettingsApp from '../settings/SettingsApp';
 import RankFrame from '../../components/RankFrame';
 import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authServices';
@@ -29,7 +31,7 @@ import { userLogout } from '../../store/actions';
 import './Dashboard.scss';
 
 // ═══ User Profile Widget ═══
-const UserProfileWidget = ({ currentTitle, currentFrame, userInfo, onClick }) => {
+const UserProfileWidget = ({ currentTitle, currentFrame, userInfo, onClick, t }) => {
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
   const currentRank = 'diamond';
   const rankLabel = 'Diamond';
@@ -48,69 +50,7 @@ const UserProfileWidget = ({ currentTitle, currentFrame, userInfo, onClick }) =>
         </div>
         <div className="title-rank-line">
           <span className="user-title" style={{ color: titleData.color }}>[{titleData.name}]</span>
-          <span className={`user-rank rank-${currentRank}`}>Rank: {rankLabel}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ═══ Settings App ═══
-const SettingsApp = ({ currentTitle, animationsEnabled, userInfo, onToggleAnimations }) => {
-  const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
-  const displayName = userInfo?.username || 'Player_9999';
-
-  return (
-    <div className="app-container settings-app">
-      <h2 className="app-title"><IonIcon icon={settingsOutline} /> User Preferences</h2>
-
-      <div className="section">
-        <h3><IonIcon icon={imageOutline} /> Profile Avatar</h3>
-        <div className="avatar-upload">
-          <div className="avatar-circle">
-            <IonIcon icon={personOutline} style={{ fontSize: 32 }} />
-          </div>
-          <div>
-            <p style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 6 }}>Upload new avatar</p>
-            <p style={{ fontSize: 12, color: '#94a3b8' }}>Optimal size 256x256. Max 2MB.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={personOutline} /> Account Details</h3>
-        <div className="account-details">
-          <div className="info">
-            <p className="label">Username</p>
-            <div className="name-wrapper">
-              <span className="name">{displayName}</span>
-              <span className="user-title" style={{ color: selectedTitleData.color }}>
-                [{selectedTitleData.name}]
-              </span>
-            </div>
-            <p className="note">* Đổi tên tốn 10.000 P-Coin</p>
-          </div>
-          <button className="btn-rename">Rename</button>
-        </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={globeOutline} /> Preferences</h3>
-        <p className="section-desc">Quick adjustments for your experience.</p>
-        <div className="settings-options">
-          <div className="option">
-            <label>Language</label>
-            <select className="language-select">
-              <option value="en">English</option>
-              <option value="vi">Tiếng Việt</option>
-            </select>
-          </div>
-          <div className="option">
-            <label>App Animations</label>
-            <div className={`toggle-switch ${animationsEnabled ? 'active' : ''}`} onClick={onToggleAnimations}>
-              <div className="slider"></div>
-            </div>
-          </div>
+          <span className={`user-rank rank-${currentRank}`}>{t('dashboard.rank')}: {rankLabel}</span>
         </div>
       </div>
     </div>
@@ -121,12 +61,12 @@ const SettingsApp = ({ currentTitle, animationsEnabled, userInfo, onToggleAnimat
 
 // ═══ App Registry ═══
 const APPS = [
-  { id: 'settings', name: 'Settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
-  { id: 'profile', name: 'Profile', className: 'profile', icon: personOutline, content: <Profile /> },
-  { id: 'gacha', name: 'Gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
-  { id: 'minigame', name: 'Mini Games', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
-  { id: 'store', name: 'Store', className: 'store', icon: cartOutline, content: <Store /> },
-  { id: 'focus', name: 'Focus Mode', className: 'focus', icon: lockClosedOutline, content: <FocusWidget /> },
+  { id: 'settings', nameKey: 'common.settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
+  { id: 'profile', nameKey: 'common.profile', className: 'profile', icon: personOutline, content: <Profile /> },
+  { id: 'gacha', nameKey: 'common.gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
+  { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
+  { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
+  { id: 'focus', nameKey: 'common.focus_mode', className: 'focus', icon: lockClosedOutline, content: <FocusWidget /> },
 ];
 
 const STUDY_FLOAT_ICONS = [
@@ -209,7 +149,7 @@ class Dashboard extends Component {
         maximizedApp: null,
         isVacuuming: false
       });
-      toast.success('System cleanup complete!', {
+      toast.success(this.props.t('dashboard.system_cleanup_complete'), {
         icon: '🧹',
         theme: 'dark',
         autoClose: 1500
@@ -335,7 +275,7 @@ class Dashboard extends Component {
       activeApp: null
     });
 
-    toast.info('All windows minimized', {
+    toast.info(this.props.t('dashboard.minimize_all'), {
       icon: '⏬',
       theme: 'dark',
       autoClose: 1000
@@ -447,18 +387,18 @@ class Dashboard extends Component {
       new Promise((resolve) => {
         toast(
           <div>
-            <p>Xác nhận đăng xuất?</p>
+            <p>{this.props.t('dashboard.logout_confirm')}</p>
             <button
               className="toast-confirm-btn"
               onClick={() => { resolve(true); toast.dismiss(); }}
             >
-              Có
+              {this.props.t('common.yes')}
             </button>
             <button
               className="toast-cancel-btn"
               onClick={() => { resolve(false); toast.dismiss(); }}
             >
-              Không
+              {this.props.t('common.no')}
             </button>
           </div>,
           {
@@ -486,6 +426,7 @@ class Dashboard extends Component {
 
   render() {
     const { openApps, activeApp, minimizedApps, maximizedApp, windowPositions, time, disabledButtons, animationsEnabled, currentBackground, currentSystemIcon } = this.state;
+    const { t, i18n } = this.props;
     const bgData = cosmeticManager.getCosmeticInfo('backgrounds', currentBackground) || cosmeticManager.getAllInCategory('backgrounds')[0];
     const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon) || cosmeticManager.getAllInCategory('systemIcons')[0];
 
@@ -530,6 +471,7 @@ class Dashboard extends Component {
           currentFrame={this.state.currentFrame}
           userInfo={this.props.userInfo}
           onClick={() => this.openApp('profile')}
+          t={t}
         />
 
         <MissionsWidget
@@ -538,6 +480,7 @@ class Dashboard extends Component {
           onToggle={this.toggleMissions}
           onClaimAll={this.handleClaimAllMissions}
           onClaimMission={this.handleClaimMission}
+          t={t}
         />
 
         {/* Desktop Icons Array */}
@@ -547,7 +490,7 @@ class Dashboard extends Component {
               <div className="icon-img">
                 <IonIcon icon={app.icon} style={{ color: 'white', fontSize: 28 }} />
               </div>
-              <span>{app.name}</span>
+              <span>{t(app.nameKey)}</span>
             </div>
           ))}
         </div>
@@ -577,7 +520,7 @@ class Dashboard extends Component {
                 onTouchStart={(e) => this.handleDragStart(e, appId)}
               >
                 <div className="window-title">
-                  {app.name}
+                  {t(app.nameKey)}
                 </div>
                 <div className="window-controls">
                   <button className="control minimize" onClick={(e) => this.toggleMinimize(e, appId)}>
@@ -603,7 +546,9 @@ class Dashboard extends Component {
                   onTitleChange: this.handleTitleChange,
                   onFrameChange: this.handleFrameChange,
                   onBackgroundChange: this.handleBackgroundChange,
-                  onSystemIconChange: this.handleSystemIconChange
+                  onSystemIconChange: this.handleSystemIconChange,
+                  t: t,
+                  i18n: i18n
                 })}
               </div>
             </div>
@@ -616,14 +561,14 @@ class Dashboard extends Component {
             <div
               className="minimize-all-btn"
               onClick={this.handleMinimizeAll}
-              title="Minimize All"
+              title={t('dashboard.minimize_all')}
             >
               <IonIcon icon={removeOutline} />
             </div>
             <div
               className={`start-btn ${this.state.isVacuuming ? 'active' : ''}`}
               onClick={this.handleClearAllApps}
-              title="Clean Desktop"
+              title={t('dashboard.cleanup')}
             >
               <IonIcon icon={planetOutline} className={this.state.isVacuuming ? 'spinning' : ''} />
             </div>
@@ -637,7 +582,7 @@ class Dashboard extends Component {
                   key={appId}
                   className={`taskbar-icon ${activeApp === appId ? 'active' : ''} ${minimizedApps.includes(appId) ? 'minimized' : ''}`}
                   onClick={(e) => this.handleTaskbarClick(e, appId)}
-                  title={app.name}
+                  title={t(app.nameKey)}
                 >
                   <IonIcon icon={app.icon} style={{ fontSize: 22 }} />
                   <div className="indicator"></div>
@@ -648,7 +593,7 @@ class Dashboard extends Component {
 
           <div className="taskbar-sys">
             <span className="os-time">{time}</span>
-            <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout}>
+            <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout} title={t('common.logout')}>
               <IonIcon icon={logOutOutline} />
             </button>
           </div>
@@ -666,4 +611,4 @@ const mapDispatchToProps = (dispatch) => ({
   userLogout: () => dispatch(userLogout()),
 });
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard));
+export default withTranslation()(withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard)));

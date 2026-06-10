@@ -3,9 +3,9 @@ import { IonIcon } from '@ionic/react';
 import { cartOutline, cart } from 'ionicons/icons';
 import './Store.scss';
 
-const Store = () => (
+const Store = ({ t }) => (
   <div className="app-container store-app">
-    <h2 className="app-title"><IonIcon icon={cartOutline} /> Cosmetics Store</h2>
+    <h2 className="app-title"><IonIcon icon={cartOutline} /> {t('store.title')}</h2>
     <div className="store-grid">
       {[
         { name: 'Neon Frame', price: 1500, icon: '🖼️' },
@@ -18,7 +18,7 @@ const Store = () => (
           <div className="item-info">
             <span className="item-title">{item.name}</span>
             <span className="item-price">🪙 {item.price} P-Coin</span>
-            <button style={{ background: '#10b981' }}><IonIcon icon={cart} /> Purchase</button>
+            <button style={{ background: '#10b981' }}><IonIcon icon={cart} /> {t('store.purchase')}</button>
           </div>
         </div>
       ))}
