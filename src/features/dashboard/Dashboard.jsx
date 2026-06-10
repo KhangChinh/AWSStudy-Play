@@ -230,8 +230,8 @@ class Dashboard extends Component {
         const cascadeOffset = newOpenApps.length * 40;
 
         newPositions[appId] = {
-          x: Math.max(0, (screenW - winW) / 2) + (newOpenApps.length * 10),
-          y: Math.max(0, (screenH - winH) / 2) + (newOpenApps.length * 10),
+          x: Math.max(0, (screenW - winW) / 2) + cascadeOffset,
+          y: Math.max(0, (screenH - winH) / 2 - 50) + cascadeOffset,
         };
       }
 
@@ -251,7 +251,7 @@ class Dashboard extends Component {
       return {
         openApps: nextOpenApps,
         minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-        activeApp: prev.activeApp === appId ? (nextOpenApps[0] || null) : prev.activeApp,
+        activeApp: prev.activeApp === appId ? (nextOpenApps[nextOpenApps.length - 1] || null) : prev.activeApp,
         maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp,
       };
     });

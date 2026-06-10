@@ -7,6 +7,7 @@ import {
   cashOutline, imageOutline, addOutline
 } from 'ionicons/icons';
 import cosmeticManager from '../../managers/cosmeticManager';
+import inventoryManager from '../../managers/inventoryManager';
 import RankFrame from '../../components/RankFrame';
 import './Profile.scss';
 
