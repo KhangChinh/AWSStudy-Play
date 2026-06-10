@@ -7,115 +7,125 @@ import {
   trophyOutline, heartOutline, timeOutline, alertCircleOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
-import { setEconomy, setHighscores } from '../../../src/store/actions';
+import { setEconomy, setHighscores, userLogin } from '../../../src/store/actions';
 import { handleSyncGameResultApi } from '../../../src/services/economyServices';
 import './SudokuGame.scss';
 
-// ═══ Sudoku Solver & Generator Helpers ═══
+// ═══ Sudoku Campaign Helpers & Mock DB ═══
 
-const isValid = (board, row, col, num) => {
-  for (let x = 0; x < 9; x++) {
-    if (board[row][x] === num) return false;
-    if (board[x][col] === num) return false;
-  }
-  const startRow = row - (row % 3);
-  const startCol = col - (col % 3);
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) {
-      if (board[i + startRow][j + startCol] === num) return false;
+const parseGridString = (gridString) => {
+  const grid = [];
+  for (let r = 0; r < 9; r++) {
+    const row = [];
+    for (let c = 0; c < 9; c++) {
+      row.push(parseInt(gridString[r * 9 + c], 10));
     }
+    grid.push(row);
   }
-  return true;
+  return grid;
 };
 
-const solveSudoku = (board) => {
-  for (let row = 0; row < 9; row++) {
-    for (let col = 0; col < 9; col++) {
-      if (board[row][col] === 0) {
-        const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
-        for (const num of nums) {
-          if (isValid(board, row, col, num)) {
-            board[row][col] = num;
-            if (solveSudoku(board)) return true;
-            board[row][col] = 0;
-          }
-        }
-        return false;
-      }
-    }
-  }
-  return true;
+const getLevelIdFromSK = (sk) => {
+  const match = sk.match(/sudoku#level_(\d+)/);
+  return match ? parseInt(match[1], 10) : 1;
 };
 
-const generateNewGame = (difficulty) => {
-  const solution = Array(9).fill(null).map(() => Array(9).fill(0));
-  solveSudoku(solution);
+const getDifficultyLabel = (levelId) => {
+  if (levelId <= 5) return 'Dễ';
+  if (levelId <= 10) return 'Trung bình';
+  if (levelId <= 15) return 'Khó';
+  return 'Chuyên gia';
+};
 
-  const board = solution.map(row => [...row]);
+const getDifficultyEnglish = (levelId) => {
+  if (levelId <= 5) return 'easy';
+  if (levelId <= 10) return 'medium';
+  if (levelId <= 15) return 'hard';
+  return 'expert';
+};
 
-  let removeCount = 1; // Easy
-  if (difficulty === 'medium') removeCount = 48;
-  else if (difficulty === 'hard') removeCount = 54;
-  else if (difficulty === 'expert') removeCount = 58;
+// Generates mathematical variation of baseline grid depending on levelId
+const mapGridString = (str, levelId) => {
+  if (levelId === 1) return str;
+  return str.split('').map(char => {
+    if (char === '0') return '0';
+    const num = parseInt(char, 10);
+    // Shift digit between 1 and 9
+    const mapped = ((num - 1 + (levelId - 1)) % 9) + 1;
+    return mapped.toString();
+  }).join('');
+};
 
-  let removed = 0;
-  while (removed < removeCount) {
-    const row = Math.floor(Math.random() * 9);
-    const col = Math.floor(Math.random() * 9);
-    if (board[row][col] !== 0) {
-      board[row][col] = 0;
-      removed++;
-    }
+const baselineInitial = "530070000600195000098000060800060003400803001700020006060000280000419005000080079";
+const baselineSolution = "534678912672195348198342567859761423426853791713924856961537284287419635345286179";
+
+const MOCK_LEVELS = Array.from({ length: 20 }, (_, index) => {
+  const levelId = index + 1;
+  let unlockCostSanity = 0;
+  let maxScoreCap = 1000;
+
+  if (levelId >= 6 && levelId <= 10) {
+    unlockCostSanity = 100;
+    maxScoreCap = 1500;
+  } else if (levelId >= 11 && levelId <= 15) {
+    unlockCostSanity = 200;
+    maxScoreCap = 2000;
+  } else if (levelId >= 16 && levelId <= 20) {
+    unlockCostSanity = 300;
+    maxScoreCap = 2500;
   }
 
   return {
-    solution,
-    initialBoard: board.map(row => [...row]),
-    board: board.map(row => [...row]),
+    PK: "minigame",
+    SK: `sudoku#level_${levelId}`,
+    name: `Sudoku Màn ${levelId}`,
+    unlockCostSanity,
+    maxScoreCap,
+    baseMapConfig: {
+      gridSize: "9x9",
+      emptyCellsCount: 43,
+      initialGrid: mapGridString(baselineInitial, levelId),
+      solutionGrid: mapGridString(baselineSolution, levelId)
+    }
   };
-};
-const MAX_P = {
-  easy: 5000,
-  medium: 10000,
-  hard: 20000,
-  expert: 40000
-}
-const MIN_P = {
-  easy: 500,
-  medium: 1000,
-  hard: 2000,
-  expert: 4000
-}
-// Rank points calculation helper depending on difficulty and time spent
-const calculateRankPoints = (difficulty, time) => {
-  if (difficulty === 'easy') {
-    if (time <= 600) return MAX_P.easy;
-    const extraMins = Math.floor((time - 600) / 60) + 1;
-    return Math.max(MIN_P.easy, MAX_P.easy - extraMins * 500);
-  } else if (difficulty === 'medium') {
-    if (time <= 900) return MAX_P.medium;
-    const extraMins = Math.floor((time - 900) / 60) + 1;
-    return Math.max(MIN_P.medium, MAX_P.medium - extraMins * 800);
-  } else if (difficulty === 'hard') {
-    if (time <= 1200) return MAX_P.hard;
-    const extraMins = Math.floor((time - 1200) / 60) + 1;
-    return Math.max(MIN_P.hard, MAX_P.hard - extraMins * 1500);
-  } else if (difficulty === 'expert') {
-    if (time <= 1500) return MAX_P.expert;
-    const extraMins = Math.floor((time - 1500) / 60) + 1;
-    return Math.max(MIN_P.expert, MAX_P.expert - extraMins * 2500);
+});
+// Rank points calculation based on levelId and maxScoreCap
+const calculateRankPoints = (levelId, maxScoreCap, timeSpent) => {
+  let threshold = 600;
+  if (levelId >= 1 && levelId <= 5) threshold = 600;
+  else if (levelId >= 6 && levelId <= 10) threshold = 900;
+  else if (levelId >= 11 && levelId <= 15) threshold = 1200;
+  else if (levelId >= 16 && levelId <= 20) threshold = 1500;
+
+  if (timeSpent <= threshold) {
+    return maxScoreCap;
   }
-  return MIN_P.easy;
+
+  // Deduct points for exceeding threshold: 1.5 points per second
+  const secondsOver = timeSpent - threshold;
+  const penalty = secondsOver * 1.5;
+  const score = maxScoreCap - penalty;
+  const minScore = Math.floor(maxScoreCap * 0.1);
+  return Math.max(minScore, Math.floor(score));
 };
 
 const SudokuGame = ({ onClose }) => {
   const dispatch = useDispatch();
   const economy = useSelector(state => state.economy || { pCoins: 0 });
   const minigameHighscores = useSelector(state => state.minigameHighscores || {});
+  const userInfo = useSelector(state => state.userInfo || {});
+  const budget = userInfo.budget || {
+    knowledgePoint: 1500,
+    knowledgeCore: 10,
+    sanity: 5000,
+    entainCoin: 300
+  };
+  const currentSanity = budget.sanity;
 
   // Game configuration & status
-  const [difficulty, setDifficulty] = useState('easy');
-  const [isSelectingDifficulty, setIsSelectingDifficulty] = useState(true);
+  const [selectedLevel, setSelectedLevel] = useState(null);
+  const [unlockedLevels, setUnlockedLevels] = useState([1, 2, 3, 4, 5]);
+  const [isSelectingLevel, setIsSelectingLevel] = useState(true);
 
   const [board, setBoard] = useState(Array(9).fill(null).map(() => Array(9).fill(0)));
   const [initialBoard, setInitialBoard] = useState(Array(9).fill(null).map(() => Array(9).fill(0)));
@@ -139,25 +149,47 @@ const SudokuGame = ({ onClose }) => {
   }, [status]);
 
   // ═══ Initialize Game ═══
-  const initGame = (selectedDifficulty) => {
-    const game = generateNewGame(selectedDifficulty);
-    setBoard(game.board);
-    setInitialBoard(game.initialBoard);
-    setSolution(game.solution);
-    // Reset all notes to empty (9x9 grid of 9x array of false)
+  const initFixedLevel = (level) => {
+    const parsedInitial = parseGridString(level.baseMapConfig.initialGrid);
+    const parsedSolution = parseGridString(level.baseMapConfig.solutionGrid);
+    setBoard(parsedInitial.map(row => [...row]));
+    setInitialBoard(parsedInitial.map(row => [...row]));
+    setSolution(parsedSolution);
     setNotes(Array(9).fill(null).map(() => Array(9).fill(null).map(() => Array(9).fill(false))));
     setMistakes(0);
     setTimer(0);
     setHintsLeft(3);
     setSelectedCell(null);
-    setIsSelectingDifficulty(false);
+    setSelectedLevel(level);
+    setIsSelectingLevel(false);
     setStatus('playing');
-    toast.info(`Game Sudoku (${selectedDifficulty.toUpperCase()}) bắt đầu!`);
+    toast.info(`Màn ${getLevelIdFromSK(level.SK)} bắt đầu!`);
   };
 
-  const handleDifficultySelect = (diff) => {
-    setDifficulty(diff);
-    initGame(diff);
+  const handleLevelSelect = (level) => {
+    const levelId = getLevelIdFromSK(level.SK);
+    const isUnlocked = unlockedLevels.includes(levelId);
+
+    if (isUnlocked) {
+      initFixedLevel(level);
+    } else {
+      const cost = level.unlockCostSanity;
+      if (currentSanity >= cost) {
+        // Deduct sanity
+        const nextSanity = currentSanity - cost;
+        const nextBudget = { ...budget, sanity: nextSanity };
+        const nextUserInfo = { ...userInfo, budget: nextBudget };
+        dispatch(userLogin(nextUserInfo));
+
+        // Add to unlocked levels
+        setUnlockedLevels(prev => [...prev, levelId]);
+        toast.success(`Mở khóa thành công Màn ${levelId}! Bắt đầu chơi.`);
+        // Start game
+        initFixedLevel(level);
+      } else {
+        toast.error(`Không đủ Sanity! Bạn cần ${cost} Sanity để mở khóa Màn ${levelId}.`);
+      }
+    }
   };
 
   // Format Time
@@ -178,7 +210,6 @@ const SudokuGame = ({ onClose }) => {
   const inputNumber = useCallback((num) => {
     if (status !== 'playing' || !selectedCell) return;
     const { row, col } = selectedCell;
-
     // Check if cell is pre-filled/locked
     if (initialBoard[row][col] !== 0) return;
 
@@ -300,9 +331,14 @@ const SudokuGame = ({ onClose }) => {
     }
 
     // WIN STATE!
+    const levelId = selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1;
+    const maxScoreCap = selectedLevel ? selectedLevel.maxScoreCap : 1000;
+    const diffLabel = getDifficultyLabel(levelId);
+    const diffEng = getDifficultyEnglish(levelId);
+
     setStatus('won');
-    const earnedPoints = calculateRankPoints(difficulty, timer);
-    toast.success(`🎉 Chúc mừng! Bạn đã thắng cuộc ở chế độ ${difficulty.toUpperCase()}!`);
+    const earnedPoints = calculateRankPoints(levelId, maxScoreCap, timer);
+    toast.success(`🎉 Chúc mừng! Bạn đã thắng cuộc ở Màn ${levelId} (${diffLabel})!`);
 
     // Reward Rank Points
     try {
@@ -315,7 +351,7 @@ const SudokuGame = ({ onClose }) => {
       // Sync with Cloud API
       const syncResponse = await handleSyncGameResultApi({
         minigame: 'sudoku',
-        difficulty: difficulty,
+        difficulty: diffEng,
         result: 'win',
         timeSpent: timer,
         rankPointsEarned: earnedPoints
@@ -396,41 +432,46 @@ const SudokuGame = ({ onClose }) => {
       {/* Main Content Area */}
       <div className="sudoku-content">
 
-        {/* ═══ Difficulty Selection Screen (Independent) ═══ */}
-        {isSelectingDifficulty ? (
-          <div className="difficulty-screen animate-fade-in">
-            <div className="difficulty-screen-inner">
-              <h2 className="text-gradient">Chọn độ khó Sudoku</h2>
-              <p className="difficulty-subtitle">Chọn cấp độ phù hợp để bắt đầu thử thách!</p>
-              <div className="difficulty-grid">
-                <button className="btn-diff easy" onClick={() => handleDifficultySelect('easy')}>
-                  <div className="diff-icon">💡</div>
-                  <div className="diff-info">
-                    <span className="diff-name">DỄ (Easy)</span>
-                    <span className="diff-desc">41 Clues | 🏆 Tối đa 5,000 Rank</span>
-                  </div>
-                </button>
-                <button className="btn-diff medium" onClick={() => handleDifficultySelect('medium')}>
-                  <div className="diff-icon">⚡</div>
-                  <div className="diff-info">
-                    <span className="diff-name">TRUNG BÌNH (Medium)</span>
-                    <span className="diff-desc">33 Clues | 🏆 Tối đa 10,000 Rank</span>
-                  </div>
-                </button>
-                <button className="btn-diff hard" onClick={() => handleDifficultySelect('hard')}>
-                  <div className="diff-icon">🧠</div>
-                  <div className="diff-info">
-                    <span className="diff-name">KHÓ (Hard)</span>
-                    <span className="diff-desc">27 Clues | 🏆 Tối đa 20,000 Rank</span>
-                  </div>
-                </button>
-                <button className="btn-diff expert" onClick={() => handleDifficultySelect('expert')}>
-                  <div className="diff-icon">🔥</div>
-                  <div className="diff-info">
-                    <span className="diff-name">CHUYÊN GIA (Expert)</span>
-                    <span className="diff-desc">23 Clues | 🏆 Tối đa 40,000 Rank</span>
-                  </div>
-                </button>
+        {/* ═══ Campaign Level Selection Screen ═══ */}
+        {isSelectingLevel ? (
+          <div className="level-selection-screen animate-fade-in">
+            <div className="level-selection-inner">
+              <h2 className="text-gradient">Vượt ải Sudoku Cosmic</h2>
+              <p className="level-subtitle">Mở khóa và vượt qua 20 màn chơi để tích lũy điểm Rank!</p>
+
+              {/* User Coins Display */}
+              <div className="user-coins-bar">
+                <span>💰 Số dư: <strong>{(budget.sanity || 0).toLocaleString()}</strong> Sanity</span>
+              </div>
+
+              <div className="level-grid">
+                {MOCK_LEVELS.map(level => {
+                  const levelId = getLevelIdFromSK(level.SK);
+                  const isUnlocked = unlockedLevels.includes(levelId);
+                  const difficultyLabel = getDifficultyLabel(levelId);
+
+                  // Color range classes: 1-5 easy, 6-10 medium, 11-15 hard, 16-20 expert
+                  let colorClass = 'easy';
+                  if (levelId >= 6 && levelId <= 10) colorClass = 'medium';
+                  else if (levelId >= 11 && levelId <= 15) colorClass = 'hard';
+                  else if (levelId >= 16 && levelId <= 20) colorClass = 'expert';
+
+                  return (
+                    <button
+                      key={level.SK}
+                      className={`btn-level ${colorClass} ${isUnlocked ? 'unlocked' : 'locked'}`}
+                      onClick={() => handleLevelSelect(level)}
+                    >
+                      <span className="level-num">{levelId}</span>
+                      <span className="level-diff-badge">{difficultyLabel}</span>
+                      {!isUnlocked && (
+                        <span className="level-cost">
+                          🔒 {level.unlockCostCoins}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -440,7 +481,7 @@ const SudokuGame = ({ onClose }) => {
             <div className="sudoku-stats">
               <div className="stat-card">
                 <span className="label">Độ khó</span>
-                <span className="value text-gradient">{difficulty.toUpperCase()}</span>
+                <span className="value text-gradient">MÀN {selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1} - {getDifficultyLabel(selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1).toUpperCase()}</span>
               </div>
               <div className="stat-card">
                 <span className="label"><IonIcon icon={timeOutline} /> Thời gian</span>
@@ -454,7 +495,7 @@ const SudokuGame = ({ onClose }) => {
               </div>
               <div className="stat-card">
                 <span className="label"><IonIcon icon={trophyOutline} /> Điểm Rank</span>
-                <span className="value coins">🏆 {calculateRankPoints(difficulty, timer).toLocaleString()}</span>
+                <span className="value coins">🏆 {calculateRankPoints(selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1, selectedLevel ? selectedLevel.maxScoreCap : 1000, timer).toLocaleString()}</span>
               </div>
             </div>
 
@@ -511,8 +552,8 @@ const SudokuGame = ({ onClose }) => {
                   <div className="board-overlay glass won-overlay animate-bounce-in">
                     <IonIcon icon={trophyOutline} style={{ fontSize: 60, color: '#fbbf24' }} />
                     <h3 className="text-gradient">Chiến Thắng!</h3>
-                    <p>Bạn đã hoàn thành câu đố ở cấp độ {difficulty.toUpperCase()} trong {formatTime(timer)} với {mistakes} lỗi!</p>
-                    <p className="earned-pcoin">🏆 +{calculateRankPoints(difficulty, timer).toLocaleString()} Điểm Rank</p>
+                    <p>Bạn đã hoàn thành Màn {selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1} ({getDifficultyLabel(selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1)}) trong {formatTime(timer)} với {mistakes} lỗi!</p>
+                    <p className="earned-pcoin">🏆 +{calculateRankPoints(selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1, selectedLevel ? selectedLevel.maxScoreCap : 1000, timer).toLocaleString()} Điểm Rank</p>
                     <div className="overlay-actions">
                       <button className="btn-glow green" onClick={onClose}>
                         Quay lại Hub
@@ -525,60 +566,60 @@ const SudokuGame = ({ onClose }) => {
               {/* Action Pad & Number Pad */}
               <div className="controls-pad">
                 <div className="action-buttons">
-              <button
-                className="btn-ctrl"
-                onClick={eraseCell}
-                title="Xóa số tự điền"
-              >
-                <IonIcon icon={trashOutline} />
-                <span>Xóa</span>
-              </button>
-              <button
-                className={`btn-ctrl ${isNoteMode ? 'active' : ''}`}
-                onClick={() => setIsNoteMode(!isNoteMode)}
-                title="Bật/Tắt viết nháp số nhỏ"
-              >
-                <IonIcon icon={pencilOutline} />
-                <span>Nháp ({isNoteMode ? 'BẬT' : 'TẮT'})</span>
-              </button>
-              <button
-                className="btn-ctrl"
-                onClick={handleHint}
-                title={`Nhận gợi ý ô chọn (Còn ${hintsLeft} lượt)`}
-              >
-                <IonIcon icon={helpCircleOutline} />
-                <span>Gợi ý ({hintsLeft})</span>
-              </button>
-            </div>
-
-            {/* Number Pad */}
-            <div className="number-pad">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => {
-                // Check if this number is already fully completed on the board (9 times)
-                let numCount = 0;
-                board.forEach(row => row.forEach(val => {
-                  if (val === num) numCount++;
-                }));
-                const isCompleted = numCount >= 9;
-
-                return (
                   <button
-                    key={num}
-                    className={`num-btn ${isCompleted ? 'completed' : ''}`}
-                    onClick={() => inputNumber(num)}
+                    className="btn-ctrl"
+                    onClick={eraseCell}
+                    title="Xóa số tự điền"
                   >
-                    {num}
+                    <IonIcon icon={trashOutline} />
+                    <span>Xóa</span>
                   </button>
-                );
-              })}
-            </div>
+                  <button
+                    className={`btn-ctrl ${isNoteMode ? 'active' : ''}`}
+                    onClick={() => setIsNoteMode(!isNoteMode)}
+                    title="Bật/Tắt viết nháp số nhỏ"
+                  >
+                    <IonIcon icon={pencilOutline} />
+                    <span>Nháp ({isNoteMode ? 'BẬT' : 'TẮT'})</span>
+                  </button>
+                  <button
+                    className="btn-ctrl"
+                    onClick={handleHint}
+                    title={`Nhận gợi ý ô chọn (Còn ${hintsLeft} lượt)`}
+                  >
+                    <IonIcon icon={helpCircleOutline} />
+                    <span>Gợi ý ({hintsLeft})</span>
+                  </button>
+                </div>
 
-            <div className="keyboard-tip">
-              💡 Mẹo: Bạn có thể dùng các phím mũi tên di chuyển, phím số 1-9 để điền, và Backspace để xóa ô trên bàn phím.
-            </div>
-          </div>
+                {/* Number Pad */}
+                <div className="number-pad">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => {
+                    // Check if this number is already fully completed on the board (9 times)
+                    let numCount = 0;
+                    board.forEach(row => row.forEach(val => {
+                      if (val === num) numCount++;
+                    }));
+                    const isCompleted = numCount >= 9;
 
-        </div>
+                    return (
+                      <button
+                        key={num}
+                        className={`num-btn ${isCompleted ? 'completed' : ''}`}
+                        onClick={() => inputNumber(num)}
+                      >
+                        {num}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="keyboard-tip">
+                  💡 Mẹo: Bạn có thể dùng các phím mũi tên di chuyển, phím số 1-9 để điền, và Backspace để xóa ô trên bàn phím.
+                </div>
+              </div>
+
+            </div>
           </>
         )}
       </div>
