@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
@@ -109,6 +110,7 @@ const calculateRankPoints = (difficulty, time) => {
 };
 
 const SudokuGame = ({ onClose }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const minigameHighscores = useSelector(state => state.minigameHighscores || {});
 
@@ -153,7 +155,7 @@ const SudokuGame = ({ onClose }) => {
     setSelectedCell(null);
     setIsSelectingDifficulty(false);
     setStatus('playing');
-    toast.info(`Game Sudoku (${selectedDifficulty.toUpperCase()}) bắt đầu!`);
+    toast.info(t('minigames.sudoku.start_msg', { diff: t(`minigames.sudoku.${selectedDifficulty}`) }));
   };
 
   const handleDifficultySelect = (diff) => {
@@ -181,7 +183,7 @@ const SudokuGame = ({ onClose }) => {
 
     setStatus('won');
     const earnedPoints = calculateRankPoints(difficulty, timer);
-    toast.success(`Chuc mung! Ban da thang cuoc o che do ${difficulty.toUpperCase()}!`);
+    toast.success(t('minigames.sudoku.win_msg', { diff: t(`minigames.sudoku.${difficulty}`) }));
 
     try {
       const previousSudokuScore = minigameHighscores.sudoku || 0;
@@ -198,9 +200,9 @@ const SudokuGame = ({ onClose }) => {
       });
 
       if (syncResponse && syncResponse.errCode === 0) {
-        toast.success(`Da dong bo ket qua thanh cong! Nhan +${earnedPoints.toLocaleString()} diem Rank`);
+        toast.success(t('minigames.sudoku.sync_success', { points: earnedPoints.toLocaleString() }));
       } else {
-        toast.info(`Nhan +${earnedPoints.toLocaleString()} diem Rank (cuc bo)`);
+        toast.info(t('minigames.sudoku.local_sync', { points: earnedPoints.toLocaleString() }));
       }
     } catch (e) {
       console.log('Error updating reward:', e);
@@ -264,7 +266,7 @@ const SudokuGame = ({ onClose }) => {
       if (!isCorrect) {
         const nextMistakes = mistakes + 1;
         setMistakes(nextMistakes);
-        toast.error(`Sai luật! (Lần sai thứ ${nextMistakes})`);
+        toast.error(t('minigames.sudoku.rule_error', { count: nextMistakes }));
       } else {
         // Correct entry, check if won!
         checkWin(updatedBoard);
@@ -307,7 +309,7 @@ const SudokuGame = ({ onClose }) => {
   // Reveal hint
   const handleHint = () => {
     if (status !== 'playing' || !selectedCell) {
-      toast.warning('Hãy chọn một ô để nhận gợi ý!');
+      toast.warning(t('minigames.sudoku.hint_warn'));
       return;
     }
     const { row, col } = selectedCell;
@@ -316,7 +318,7 @@ const SudokuGame = ({ onClose }) => {
     if (board[row][col] === solution[row][col]) return; // Already correct
 
     if (hintsLeft <= 0) {
-      toast.warning('Bạn đã dùng hết lượt gợi ý!');
+      toast.warning(t('minigames.sudoku.no_hints'));
       return;
     }
 
@@ -339,7 +341,7 @@ const SudokuGame = ({ onClose }) => {
     );
     setNotes(updatedNotes);
     setHintsLeft(prev => prev - 1);
-    toast.success('Đã điền đáp án đúng vào ô chọn!');
+    toast.success(t('minigames.sudoku.hint_success'));
 
     checkWin(updatedBoard);
   };
@@ -444,13 +446,13 @@ const SudokuGame = ({ onClose }) => {
       {/* Header bar */}
       <div className="sudoku-header">
         <button className="btn-back" onClick={onClose}>
-          <IonIcon icon={arrowBackOutline} /> Thoát
+          <IonIcon icon={arrowBackOutline} /> {t('minigames.sudoku.exit')}
         </button>
-        <span className="game-title">🔢 Sudoku Cosmic</span>
+        <span className="game-title">🔢 {t('minigames.sudoku.title')}</span>
         <div className="header-actions">
           {status === 'playing' && (
             <button className="btn-action" onClick={() => setStatus('paused')}>
-              <IonIcon icon={pauseOutline} /> Tạm dừng
+              <IonIcon icon={pauseOutline} /> {t('minigames.sudoku.pause')}
             </button>
           )}
         </div>
@@ -462,21 +464,21 @@ const SudokuGame = ({ onClose }) => {
         {/* Game Stats Panel */}
         <div className="sudoku-stats">
           <div className="stat-card">
-            <span className="label">Độ khó</span>
-            <span className="value text-gradient">{difficulty.toUpperCase()}</span>
+            <span className="label">{t('minigames.sudoku.difficulty')}</span>
+            <span className="value text-gradient">{t(`minigames.sudoku.${difficulty}`).toUpperCase()}</span>
           </div>
           <div className="stat-card">
-            <span className="label"><IonIcon icon={timeOutline} /> Thời gian</span>
+            <span className="label"><IonIcon icon={timeOutline} /> {t('minigames.sudoku.time')}</span>
             <span className="value timer">{formatTime(timer)}</span>
           </div>
           <div className="stat-card">
-            <span className="label"><IonIcon icon={alertCircleOutline} /> Số lỗi</span>
+            <span className="label"><IonIcon icon={alertCircleOutline} /> {t('minigames.sudoku.mistakes')}</span>
             <span className={`value mistakes ${mistakes > 0 ? 'alert' : ''}`}>
               {mistakes}
             </span>
           </div>
           <div className="stat-card">
-            <span className="label"><IonIcon icon={trophyOutline} /> Điểm Rank</span>
+            <span className="label"><IonIcon icon={trophyOutline} /> {t('minigames.sudoku.rank_pts')}</span>
             <span className="value coins">🏆 {calculateRankPoints(difficulty, timer).toLocaleString()}</span>
           </div>
         </div>
@@ -532,10 +534,10 @@ const SudokuGame = ({ onClose }) => {
             {/* Overlays (Pause / Win / Lose) */}
             {status === 'paused' && !isSelectingDifficulty && (
               <div className="board-overlay glass">
-                <h3>Game Tạm Dừng</h3>
-                <p>Nhấp nút bên dưới để tiếp tục so tài!</p>
+                <h3>{t('minigames.sudoku.paused_title')}</h3>
+                <p>{t('minigames.sudoku.paused_desc')}</p>
                 <button className="btn-glow green" onClick={() => setStatus('playing')}>
-                  <IonIcon icon={playOutline} /> Tiếp tục
+                  <IonIcon icon={playOutline} /> {t('minigames.sudoku.resume')}
                 </button>
               </div>
             )}
@@ -543,12 +545,12 @@ const SudokuGame = ({ onClose }) => {
             {status === 'won' && (
               <div className="board-overlay glass won-overlay animate-bounce-in">
                 <IonIcon icon={trophyOutline} style={{ fontSize: 60, color: '#fbbf24' }} />
-                <h3 className="text-gradient">Chiến Thắng!</h3>
-                <p>Bạn đã hoàn thành câu đố ở cấp độ {difficulty.toUpperCase()} trong {formatTime(timer)} với {mistakes} lỗi!</p>
-                <p className="earned-pcoin">🏆 +{calculateRankPoints(difficulty, timer).toLocaleString()} Điểm Rank</p>
+                <h3 className="text-gradient">{t('minigames.sudoku.won_title')}</h3>
+                <p>{t('minigames.sudoku.won_desc', { time: formatTime(timer), mistakes: mistakes })}</p>
+                <p className="earned-pcoin">🏆 +{calculateRankPoints(difficulty, timer).toLocaleString()} {t('minigames.sudoku.rank_pts')}</p>
                 <div className="overlay-actions">
                   <button className="btn-glow green" onClick={onClose}>
-                    Quay lại Hub
+                    {t('minigames.sudoku.back_to_hub')}
                   </button>
                 </div>
               </div>
@@ -556,23 +558,23 @@ const SudokuGame = ({ onClose }) => {
 
             {isSelectingDifficulty && (
               <div className="board-overlay glass diff-overlay">
-                <h3 className="text-gradient">Chọn độ khó Sudoku</h3>
+                <h3 className="text-gradient">{t('minigames.sudoku.select_difficulty')}</h3>
                 <div className="difficulty-grid">
                   <button className="btn-diff easy" onClick={() => handleDifficultySelect('easy')}>
-                    DỄ (Easy)
-                    <span>💡 41 Clues | 🏆 Tối đa 5,000 Rank</span>
+                    {t('minigames.sudoku.easy').toUpperCase()}
+                    <span>💡 41 {t('minigames.sudoku.clues')} | 🏆 {t('minigames.sudoku.max_rank')} 5,000</span>
                   </button>
                   <button className="btn-diff medium" onClick={() => handleDifficultySelect('medium')}>
-                    TRUNG BÌNH (Medium)
-                    <span>⚡ 33 Clues | 🏆 Tối đa 10,000 Rank</span>
+                    {t('minigames.sudoku.medium').toUpperCase()}
+                    <span>⚡ 33 {t('minigames.sudoku.clues')} | 🏆 {t('minigames.sudoku.max_rank')} 10,000</span>
                   </button>
                   <button className="btn-diff hard" onClick={() => handleDifficultySelect('hard')}>
-                    KHÓ (Hard)
-                    <span>🧠 27 Clues | 🏆 Tối đa 20,000 Rank</span>
+                    {t('minigames.sudoku.hard').toUpperCase()}
+                    <span>🧠 27 {t('minigames.sudoku.clues')} | 🏆 {t('minigames.sudoku.max_rank')} 20,000</span>
                   </button>
                   <button className="btn-diff expert" onClick={() => handleDifficultySelect('expert')}>
-                    CHUYÊN GIA (Expert)
-                    <span>🔥 23 Clues | 🏆 Tối đa 40,000 Rank</span>
+                    {t('minigames.sudoku.expert').toUpperCase()}
+                    <span>🔥 23 {t('minigames.sudoku.clues')} | 🏆 {t('minigames.sudoku.max_rank')} 40,000</span>
                   </button>
                 </div>
               </div>
@@ -586,34 +588,34 @@ const SudokuGame = ({ onClose }) => {
                 className="btn-ctrl"
                 onClick={handleUndo}
                 disabled={history.length === 0}
-                title="Quay lại bước trước"
+                title={t('minigames.sudoku.undo')}
               >
                 <IonIcon icon={arrowBackOutline} />
-                <span>Undo</span>
+                <span>{t('minigames.sudoku.undo')}</span>
               </button>
               <button
                 className="btn-ctrl"
                 onClick={eraseCell}
-                title="Xóa số tự điền"
+                title={t('minigames.sudoku.erase')}
               >
                 <IonIcon icon={trashOutline} />
-                <span>Xóa</span>
+                <span>{t('minigames.sudoku.erase')}</span>
               </button>
               <button
                 className={`btn-ctrl ${isNoteMode ? 'active' : ''}`}
                 onClick={() => setIsNoteMode(!isNoteMode)}
-                title="Bật/Tắt viết nháp số nhỏ"
+                title={t('minigames.sudoku.notes')}
               >
                 <IonIcon icon={pencilOutline} />
-                <span>Nháp ({isNoteMode ? 'BẬT' : 'TẮT'})</span>
+                <span>{t('minigames.sudoku.notes')} ({isNoteMode ? t('minigames.sudoku.on') : t('minigames.sudoku.off')})</span>
               </button>
               <button
                 className="btn-ctrl"
                 onClick={handleHint}
-                title={`Nhận gợi ý ô chọn (Còn ${hintsLeft} lượt)`}
+                title={t('minigames.sudoku.hints')}
               >
                 <IonIcon icon={helpCircleOutline} />
-                <span>Gợi ý ({hintsLeft})</span>
+                <span>{t('minigames.sudoku.hints')} ({hintsLeft})</span>
               </button>
             </div>
 
@@ -640,7 +642,7 @@ const SudokuGame = ({ onClose }) => {
             </div>
 
             <div className="keyboard-tip">
-              💡 Mẹo: Bạn có thể dùng các phím mũi tên di chuyển, phím số 1-9 để điền, và Backspace để xóa ô trên bàn phím.
+              💡 {t('minigames.sudoku.keyboard_tip')}
             </div>
           </div>
 

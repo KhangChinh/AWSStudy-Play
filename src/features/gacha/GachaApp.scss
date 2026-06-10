@@ -381,6 +381,39 @@
         }
       }
 
+      .modal-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 5px;
+        border-radius: 12px;
+
+        button {
+          flex: 1;
+          background: transparent;
+          border: none;
+          color: #64748b;
+          padding: 10px;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          border-radius: 8px;
+          transition: 0.2s;
+
+          &.active {
+            background: #9333ea;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+          }
+
+          &:hover:not(.active) {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+          }
+        }
+      }
+
       .detail-list {
         flex: 1;
         overflow-y: auto;
@@ -400,61 +433,96 @@
 
         .detail-item {
           display: flex;
-          align-items: center;
-          gap: 20px;
+          flex-direction: column;
+          gap: 8px;
           background: rgba(255, 255, 255, 0.03);
-          padding: 16px 24px;
-          border-radius: 20px;
+          padding: 14px 20px;
+          border-radius: 16px;
           transition: 0.3s;
+          border-left: 4px solid transparent;
 
           &:hover {
-            transform: translateX(10px);
+            transform: translateX(5px);
             background: rgba(255, 255, 255, 0.05);
           }
 
-          .item-icon {
-            font-size: 36px;
-          }
+          .item-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
 
-          .item-info {
-            flex: 1;
+            .item-info {
+              flex: 1;
 
-            .name {
-              font-size: 16px;
-              font-weight: 700;
-              color: #fff;
+              .name {
+                font-size: 15px;
+                font-weight: 700;
+                color: #fff;
+                display: block;
+              }
+
+              .rarity-tag {
+                font-size: 9px;
+                padding: 1px 6px;
+                border-radius: 3px;
+                margin-top: 2px;
+                display: inline-block;
+                text-transform: uppercase;
+                font-weight: 900;
+              }
             }
 
-            .rarity-tag {
+            .conversion-tag {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 13px;
+              font-weight: 800;
+              color: #fbbf24;
+              background: rgba(251, 191, 36, 0.1);
+              padding: 4px 10px;
+              border-radius: 20px;
+              
+              ion-icon {
+                font-size: 12px;
+              }
+            }
+
+            .qty {
+              font-weight: 900;
+              color: #94a3b8;
+              font-size: 14px;
+            }
+          }
+
+          .item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+            .timestamp {
               font-size: 10px;
-              padding: 2px 8px;
-              border-radius: 4px;
-              margin-top: 4px;
-              display: inline-block;
+              color: #475569;
             }
-          }
 
-          .qty {
-            font-weight: 800;
-            color: #64748b;
+            .dup-label {
+              font-size: 10px;
+              font-weight: 700;
+              color: #a855f7;
+              text-transform: uppercase;
+            }
           }
 
           &.SR {
-            border-left: 4px solid #a855f7;
-
-            .rarity-tag {
-              background: #a855f7;
-              color: #fff;
-            }
+            border-left-color: #a855f7;
+            .rarity-tag { background: #a855f7; color: #fff; }
           }
 
           &.R {
-            border-left: 4px solid #475569;
-
-            .rarity-tag {
-              background: #475569;
-              color: #fff;
-            }
+            border-left-color: #475569;
+            .rarity-tag { background: #475569; color: #fff; }
           }
         }
       }
