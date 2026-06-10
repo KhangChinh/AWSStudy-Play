@@ -3,12 +3,12 @@ import { IonIcon } from '@ionic/react';
 import { flagOutline, giftOutline } from 'ionicons/icons';
 import './MissionsWidget.scss';
 
-const MissionsWidget = ({ missions, isCollapsed, onToggle, onClaimAll, onClaimMission, t }) => {
+const MissionsWidget = ({ missions = [], isCollapsed, onToggle, onClaimAll, onClaimMission, t }) => {
   const completedCount = missions.filter(m => {
     const [curr, total] = m.status.split('/').map(Number);
     return curr >= total;
   }).length;
-  const isAllCompleted = completedCount === missions.length;
+  const isAllCompleted = missions.length > 0 && completedCount === missions.length;
 
   return (
     <div className={`missions-widget ${isCollapsed ? 'collapsed' : ''}`}>
@@ -18,7 +18,9 @@ const MissionsWidget = ({ missions, isCollapsed, onToggle, onClaimAll, onClaimMi
           <span>{t('dashboard.missions')}</span>
         </div>
         {isCollapsed && isAllCompleted ? (
-          <button className="btn-mini-claim-all" onClick={(e) => { e.stopPropagation(); onClaimAll(); }}>{t('common.rename') === 'Rename' ? 'Claim All' : 'Nhận hết'}</button>
+          <button className="btn-mini-claim-all" onClick={(e) => { e.stopPropagation(); onClaimAll(); }}>
+            {t('missions.claim_all')}
+          </button>
         ) : (
           <span className="count">{completedCount}/{missions.length}</span>
         )}
@@ -35,7 +37,9 @@ const MissionsWidget = ({ missions, isCollapsed, onToggle, onClaimAll, onClaimMi
                   <span className="name">{m.title}</span>
                   {!isAllCompleted && (
                     isDone ? (
-                      <button className="btn-mini-claim" onClick={() => onClaimMission(m.id)}>{t('common.rename') === 'Rename' ? 'Claim' : 'Nhận'}</button>
+                      <button className="btn-mini-claim" onClick={() => onClaimMission(m.id)}>
+                        {t('missions.claim')}
+                      </button>
                     ) : (
                       <span className="prog">{m.status}</span>
                     )

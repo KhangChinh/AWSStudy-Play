@@ -1,13 +1,22 @@
 import React from 'react';
 import { IonIcon } from '@ionic/react';
-import { 
-  settingsOutline, imageOutline, personOutline, globeOutline 
+import {
+  settingsOutline, imageOutline, personOutline, globeOutline
 } from 'ionicons/icons';
 import cosmeticManager from '../../managers/cosmeticManager';
 
-const SettingsApp = ({ currentTitle, animationsEnabled, userInfo, onToggleAnimations, t, i18n }) => {
-  const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
+const SettingsApp = ({
+  currentTitle,
+  animationsEnabled,
+  userInfo,
+  onToggleAnimations,
+  t,
+  i18n,
+}) => {
+  const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
+    || cosmeticManager.getAllInCategory('titles')[0];
   const displayName = userInfo?.username || 'Player_9999';
+  const currentLanguage = (i18n?.resolvedLanguage || i18n?.language || 'vi').split('-')[0];
 
   return (
     <div className="app-container settings-app">
@@ -20,7 +29,7 @@ const SettingsApp = ({ currentTitle, animationsEnabled, userInfo, onToggleAnimat
             <IonIcon icon={personOutline} style={{ fontSize: 32 }} />
           </div>
           <div>
-            <p style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 6 }}>Upload new avatar</p>
+            <p style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 6 }}>{t('settings.upload_avatar')}</p>
             <p style={{ fontSize: 12, color: '#94a3b8' }}>{t('settings.upload_note')}</p>
           </div>
         </div>
@@ -49,13 +58,13 @@ const SettingsApp = ({ currentTitle, animationsEnabled, userInfo, onToggleAnimat
         <div className="settings-options">
           <div className="option">
             <label>{t('settings.language')}</label>
-            <select 
-              className="language-select" 
-              value={i18n.language} 
+            <select
+              className="language-select"
+              value={currentLanguage}
               onChange={(e) => i18n.changeLanguage(e.target.value)}
             >
-              <option value="en">English</option>
-              <option value="vi">Tiếng Việt</option>
+              <option value="en">{t('settings.english')}</option>
+              <option value="vi">{t('settings.vietnamese')}</option>
             </select>
           </div>
           <div className="option">

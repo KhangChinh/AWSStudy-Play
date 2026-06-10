@@ -192,7 +192,7 @@ class GachaApp extends Component {
             <div className="modal-overlay" onClick={() => this.setState({ showDetails: false })} />
             <div className="modal-content">
               <div className="modal-header">
-                <h3><IonIcon icon={cubeOutline} /> {this.props.t('gacha.roll')} History / {this.props.t('gacha.inventory')}</h3>
+                <h3><IonIcon icon={cubeOutline} /> {this.props.t('gacha.roll')} {this.props.t('gacha.history')} / {this.props.t('gacha.inventory')}</h3>
                 <button className="close-btn" onClick={() => this.setState({ showDetails: false })}>&times;</button>
               </div>
               <div className="detail-list">

@@ -7,58 +7,161 @@ import {
   cashOutline, imageOutline, addOutline
 } from 'ionicons/icons';
 import cosmeticManager from '../../managers/cosmeticManager';
-import inventoryManager from '../../managers/inventoryManager';
-import { ITEMS } from '../../data/items';
 import RankFrame from '../../components/RankFrame';
 import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
 
+const RANK_KEYS = {
+  bronze: 'rank.bronze',
+  silver: 'rank.silver',
+  gold: 'rank.gold',
+  platinum: 'rank.platinum',
+  diamond: 'rank.diamond',
+  master: 'rank.master',
+};
+
+const translateRank = (rank, t) => {
+  const translate = typeof t === 'function' ? t : (key) => key;
+  return translate(RANK_KEYS[rank] || RANK_KEYS.diamond);
+};
+
+const backgroundId = (background) => (
+  typeof background === 'string' ? background : background?.id
+);
+
+const resolveBackground = (background) => {
+  if (background && typeof background === 'object') return background;
+  return cosmeticManager.getCosmeticInfo('backgrounds', background);
+};
+
 class Profile extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      activeTab: 'backgrounds', // backgrounds | titles | frames | systemIcons
+      activeTab: 'backgrounds',
+      customBackgrounds: [],
     };
+    this.fileInputRef = React.createRef();
   }
+
+  getBackgrounds = () => {
+    const baseBackgrounds = cosmeticManager.getAllInCategory('backgrounds');
+    const selectedBackground = resolveBackground(this.props.currentBackground);
+    const customBackgrounds = selectedBackground?.custom
+      ? [selectedBackground, ...this.state.customBackgrounds]
+      : this.state.customBackgrounds;
+    const uniqueCustomBackgrounds = customBackgrounds.filter((background, index, list) => (
+      list.findIndex(item => item.id === background.id) === index
+    ));
+
+    return [...uniqueCustomBackgrounds, ...baseBackgrounds];
+  };
+
+  handleCoverEdit = () => {
+    this.setState({ activeTab: 'backgrounds' });
+  };
+
+  handleCoverKeyDown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.handleCoverEdit();
+  };
+
+  handleAddBackground = () => {
+    this.fileInputRef.current?.click();
+  };
+
+  handleBackgroundFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const imageUrl = `url("${reader.result}")`;
+      const customBackground = {
+        id: `custom_bg_${Date.now()}`,
+        name: file.name.replace(/\.[^.]+$/, '').slice(0, 24) || 'Custom',
+        preview: `${imageUrl} center / cover`,
+        profileBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.38) 0%, rgba(2, 6, 23, 0.84) 100%), ${imageUrl} center / cover no-repeat`,
+        desktopBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.34) 0%, rgba(2, 6, 23, 0.68) 100%), ${imageUrl} center / cover no-repeat`,
+        custom: true,
+      };
+
+      this.setState(
+        (prev) => ({ customBackgrounds: [customBackground, ...prev.customBackgrounds] }),
+        () => this.props.onBackgroundChange?.(customBackground)
+      );
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
 
   renderTabContent = () => {
     const { activeTab } = this.state;
-    const { currentTitle, currentFrame, currentBackground, currentSystemIcon, onTitleChange, onFrameChange, onBackgroundChange, onSystemIconChange } = this.props;
+    const {
+      currentTitle,
+      currentFrame,
+      currentBackground,
+      currentSystemIcon,
+      onTitleChange,
+      onFrameChange,
+      onBackgroundChange,
+      onSystemIconChange,
+      t,
+    } = this.props;
+    const translate = typeof t === 'function' ? t : (key) => key;
 
     if (activeTab === 'backgrounds') {
-      const backgrounds = cosmeticManager.getAllInCategory('backgrounds');
+      const backgrounds = this.getBackgrounds();
+      const activeBackgroundId = backgroundId(currentBackground);
+
       return (
         <div className="backgrounds-grid">
-          <div className="bg-item-card add-btn">
+          <input
+            ref={this.fileInputRef}
+            className="background-file-input"
+            type="file"
+            accept="image/*"
+            onChange={this.handleBackgroundFileChange}
+          />
+          <div className="bg-item-card add-btn" onClick={this.handleAddBackground}>
             <div className="bg-preview add-icon">
               <IonIcon icon={addOutline} />
             </div>
-            <div className="bg-name">Add File</div>
+            <div className="bg-name">{translate('profile.add_file')}</div>
           </div>
-          {backgrounds.map(bg => (
-            <div 
-              key={bg.id} 
-              className={`bg-item-card ${currentBackground === bg.id ? 'active' : ''}`}
-              onClick={() => onBackgroundChange(bg.id)}
-            >
-              <div className="bg-preview" style={{ background: bg.preview }} />
-              <div className="bg-name">{bg.name}</div>
-              {currentBackground === bg.id && <div className="equipped-tag">{this.props.t('profile.equipped')}</div>}
-            </div>
-          ))}
+          {backgrounds.map(background => {
+            const isActive = activeBackgroundId === background.id;
+
+            return (
+              <div
+                key={background.id}
+                className={`bg-item-card ${isActive ? 'active' : ''}`}
+                onClick={() => onBackgroundChange?.(background.custom ? background : background.id)}
+              >
+                <div
+                  className="bg-preview"
+                  style={{ background: background.preview || background.profileBackground }}
+                />
+                <div className="bg-name">{background.name}</div>
+                {isActive && <div className="bg-active-dot" title={translate('profile.equipped')} />}
+              </div>
+            );
+          })}
         </div>
       );
     }
 
     if (activeTab === 'titles') {
       const titles = cosmeticManager.getAllInCategory('titles');
+
       return (
         <div className="titles-list">
           {titles.map(item => {
             const isUnlocked = inventoryManager.hasItem(item.id) || item.id === 'title_newbie';
             const isActive = currentTitle === item.id;
-            
+
             return (
               <div
                 key={item.id}
@@ -70,7 +173,7 @@ class Profile extends Component {
                     [{this.props.t(item.i18nKey + '.name')}]
                   </div>
                   <div className="title-desc">
-                    {isUnlocked 
+                    {isUnlocked
                       ? this.props.t('titles.unlocked')
                       : `${this.props.t('titles.how_to_obtain')}: ${this.props.t(item.i18nKey + '.obtain')}`
                     }
@@ -87,19 +190,20 @@ class Profile extends Component {
 
     if (activeTab === 'frames') {
       const frames = cosmeticManager.getAllInCategory('frames');
+
       return (
         <div className="frames-grid">
-          {frames.map(f => (
+          {frames.map(frame => (
             <div
-              key={f.id}
-              className={`frame-item-card ${currentFrame === f.id ? 'active' : ''}`}
-              onClick={() => onFrameChange(f.id)}
+              key={frame.id}
+              className={`frame-item-card ${currentFrame === frame.id ? 'active' : ''}`}
+              onClick={() => onFrameChange?.(frame.id)}
             >
-              <RankFrame tier={f.tier} size={92}>
+              <RankFrame tier={frame.tier} size={92}>
                 <IonIcon icon={personCircleOutline} />
               </RankFrame>
-              <div className="frame-name">{f.name}</div>
-              {currentFrame === f.id && <div className="active-dot" />}
+              <div className="frame-name">{frame.name}</div>
+              {currentFrame === frame.id && <div className="active-dot" />}
             </div>
           ))}
         </div>
@@ -108,13 +212,14 @@ class Profile extends Component {
 
     if (activeTab === 'systemIcons') {
       const icons = cosmeticManager.getAllInCategory('systemIcons');
+
       return (
         <div className="icons-grid">
           {icons.map(icon => (
-            <div 
-              key={icon.id} 
+            <div
+              key={icon.id}
               className={`icon-item-card ${currentSystemIcon === icon.id ? 'active' : ''}`}
-              onClick={() => onSystemIconChange(icon.id)}
+              onClick={() => onSystemIconChange?.(icon.id)}
             >
               <div className={`icon-preview-box ${icon.type}`}>
                 <IonIcon icon={cubeOutline} />
@@ -126,18 +231,45 @@ class Profile extends Component {
         </div>
       );
     }
+
+    return null;
   };
 
   render() {
-    const { economy, userInfo, currentTitle, currentFrame } = this.props;
+    const {
+      economy,
+      userInfo,
+      currentBackground,
+      currentTitle,
+      currentFrame,
+      currentRank = 'diamond',
+      t,
+    } = this.props;
     const { activeTab } = this.state;
     const pCoins = economy?.pCoins || 0;
-    const equippedTitle = cosmeticManager.getCosmeticInfo('titles', currentTitle) || cosmeticManager.getAllInCategory('titles')[0];
+    const rankLabel = translateRank(currentRank, t);
+    const equippedTitle = cosmeticManager.getCosmeticInfo('titles', currentTitle)
+      || cosmeticManager.getAllInCategory('titles')[0];
+    const selectedBackground = resolveBackground(currentBackground);
+    const profileHeaderStyle = selectedBackground?.profileBackground
+      ? { background: selectedBackground.profileBackground }
+      : undefined;
     const displayName = userInfo?.username || 'Player_9999';
 
     return (
-      <div className="app-container profile-app">
-        <div className="profile-header">
+      <div className={`app-container profile-app rank-${currentRank}`}>
+        <div
+          className="profile-header"
+          style={profileHeaderStyle}
+          role="button"
+          tabIndex={0}
+          aria-label={typeof t === 'function' ? t('profile.change_background') : 'Change profile background'}
+          onClick={this.handleCoverEdit}
+          onKeyDown={this.handleCoverKeyDown}
+        >
+          <div className="profile-cover-edit" aria-hidden="true">
+            <IonIcon icon={imageOutline} />
+          </div>
           <div className="user-profile-section">
             <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
               <IonIcon icon={personCircleOutline} />
@@ -150,10 +282,11 @@ class Profile extends Component {
                 <span className="title-badge" style={{ color: equippedTitle?.color }}>
                   [{this.props.t(equippedTitle?.i18nKey + '.name')}]
                 </span>
+                <span className="rank-chip">{rankLabel}</span>
               </div>
               <div className="wallet-info">
                 <div className="coin-pill">
-                  <span className="coin-icon">🪙</span>
+                  <IonIcon icon={cashOutline} className="coin-icon" />
                   <span className="coin-val">{pCoins.toLocaleString()}</span>
                 </div>
               </div>

@@ -1,11 +1,6 @@
 import React, { useId } from 'react';
 import './RankFrame.scss';
 
-/**
- * Khung avatar theo hạng (Bronze → Diamond).
- * Dựng hoàn toàn bằng SVG: vương miện trên đỉnh, cánh hai bên,
- * khung vuông kim loại, đế dưới hình cuốn sách mở.
- */
 const TIERS = {
   // Khung theo tên gốc
   none: {
@@ -28,27 +23,27 @@ const TIERS = {
 
 const Wing = ({ side }) => {
   // side = 1 (phải) hoặc -1 (trái)
-  const tx = side === 1 ? 178 : 62;
+  const tx = side === 1 ? 174 : 66;
   return (
     <g transform={`translate(${tx}, 150) scale(${side}, 1)`} className="rf-wing">
-      <path d="M0,4 q30,-4 52,6 q-22,12 -52,6 z" />
-      <path d="M0,-6 q28,-8 48,-2 q-20,12 -48,8 z" />
-      <path d="M0,-16 q24,-10 40,-6 q-18,11 -40,8 z" />
-      <path d="M0,-26 q19,-9 31,-7 q-15,9 -31,7 z" />
+      <path d="M0,4 q22,-4 40,5 q-17,10 -40,6 z" />
+      <path d="M0,-6 q21,-7 37,-2 q-15,10 -37,7 z" />
+      <path d="M0,-16 q18,-8 31,-5 q-13,8 -31,7 z" />
+      <path d="M0,-26 q14,-7 24,-6 q-11,7 -24,6 z" />
     </g>
   );
 };
 
 // Cánh đôi lớn (bản deluxe) – xòe rộng hơn, nhiều lông hơn, nằm sau
 const BigWing = ({ side }) => {
-  const tx = side === 1 ? 176 : 64;
+  const tx = side === 1 ? 172 : 68;
   return (
     <g transform={`translate(${tx}, 158) scale(${side}, 1)`} className="rf-bigwing">
-      <path d="M0,10 q40,-6 70,8 q-30,16 -70,8 z" />
-      <path d="M0,-2 q38,-10 64,-2 q-28,16 -64,10 z" />
-      <path d="M0,-14 q34,-12 56,-7 q-26,15 -56,11 z" />
-      <path d="M0,-26 q28,-13 46,-9 q-22,14 -46,11 z" />
-      <path d="M0,-38 q22,-12 36,-9 q-18,12 -36,10 z" />
+      <path d="M0,10 q30,-5 52,7 q-23,13 -52,7 z" />
+      <path d="M0,-2 q28,-8 48,-2 q-21,13 -48,8 z" />
+      <path d="M0,-14 q25,-10 42,-6 q-19,12 -42,9 z" />
+      <path d="M0,-26 q21,-10 35,-7 q-16,11 -35,9 z" />
+      <path d="M0,-38 q16,-9 27,-7 q-13,9 -27,8 z" />
     </g>
   );
 };
@@ -109,7 +104,7 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
         )}
 
         {/* ── ĐẾ DƯỚI HÌNH CUỐN SÁCH MỞ ── */}
-        <g className="rf-book">
+        <g className="rf-book" transform="translate(19 3) scale(0.84)" display="none">
           {/* bìa sách */}
           <path
             d="M120,250 L66,238 Q60,236 60,229 L60,214 Q60,208 67,210 L120,222 L173,210 Q180,208 180,214 L180,229 Q180,236 174,238 Z"
