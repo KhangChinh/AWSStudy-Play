@@ -1,37 +1,69 @@
 import inventoryManager from './inventoryManager';
 
 class RewardManager {
-  processRewards(rewards) {
-    const results = rewards.map(reward => {
-      const isCosmetic = reward.type === 'title' || reward.type === 'frame';
-      const isOwned = inventoryManager.hasItem(reward.id);
-      
-      if (isCosmetic && isOwned) {
-        // Convert to coins based on rarity
-        // SSR -> 50 coins (10 x item_coin_5)
-        // SR -> 20 coins (4 x item_coin_5)
-        // R -> 5 coins (1 x item_coin_5)
-        let coinPackageAmount = 1;
-        if (reward.rarity === 'SSR') coinPackageAmount = 10;
-        else if (reward.rarity === 'SR') coinPackageAmount = 4;
-        
-        inventoryManager.addItem('item_coin_5', coinPackageAmount);
-        
-        return {
-          ...reward,
-          isConverted: true,
-          conversionResult: { id: 'item_coin_5', amount: coinPackageAmount }
-        };
-      } else {
-        inventoryManager.addItem(reward.id, reward.amount || 1);
-        return { ...reward, isConverted: false };
-      }
-    });
+  /**
+   * Processes Gacha results received from the server.
+   * rarity 3: Sanity (Currency)
+   * rarity 4/5: Frames, Themes
+   */
+  /**
+   * Processes Gacha results received from the server.
+   * rarity 3: Sanity (Currency)
+   * rarity 4/5: Frames, Themes -> Converts to Sanity if owned
+   */
+  processGachaResult(serverData) {
+    const { rarityMap, items, sanityBreakdown, knowledgeUsed } = serverData;
     
+    const results = rarityMap.map((rarity, index) => {
+      // Rarity 3 -> Sanity (Currency)
+      if (Math.floor(rarity) === 3) {
+        return {
+          id: 'item_sanity',
+          name: 'Sanity',
+          icon: '/src/assets/Sanity.png',
+          rarity: 'R',
+          type: 'currency',
+          amount: sanityBreakdown ? sanityBreakdown[index] : 10,
+          timestamp: new Date().getTime() + index
+        };
+      }
+
+      // Rarity 4, 4.5, 5 -> Cosmic Items (Server assigned)
+      const item = items.find(it => it.rarityIndex === index);
+      if (!item) return null;
+
+      const id = item.id || item.SK;
+      const isOwned = inventoryManager.hasItem(id);
+
+      if (isOwned) {
+        // Convert duplicates to Sanity
+        let sanityBonus = 20; // Default for SR
+        if (item.rarity === 'SSR') sanityBonus = 50;
+
+        return {
+          ...item,
+          isDuplicate: true,
+          isConverted: true,
+          conversionResult: { id: 'item_sanity', amount: sanityBonus },
+          timestamp: new Date().getTime() + index
+        };
+      }
+
+      return {
+        ...item,
+        isDuplicate: false,
+        isConverted: false,
+        timestamp: new Date().getTime() + index
+      };
+    }).filter(Boolean);
+
+    // Update history and inventory
+    inventoryManager.addRewards(results);
+
     return {
       status: 'success',
-      count: rewards.length,
-      details: results
+      details: results,
+      knowledgeUsed
     };
   }
 
