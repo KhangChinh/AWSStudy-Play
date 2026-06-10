@@ -4,10 +4,10 @@
 
 export const COSMETICS = {
   frames: [
-    { id: 'frame_none', name: 'None', className: 'f-none', rarity: 'gray' },
-    { id: 'frame_neon', name: 'Neon Pulse', className: 'f-neon', rarity: 'purple' },
-    { id: 'frame_gold', name: 'Golden Royalty', className: 'f-gold', rarity: 'gold' },
-    { id: 'frame_galactic', name: 'Galactic Horizon', className: 'f-galactic', rarity: 'gold' },
+    { id: 'frame_none', name: 'None', className: 'rf-none', rarity: 'gray', tier: 'none' },
+    { id: 'frame_neon', name: 'Neon Pulse', className: 'rf-neon', rarity: 'purple', tier: 'neon' },
+    { id: 'frame_gold', name: 'Golden Royalty', className: 'rf-gold', rarity: 'gold', tier: 'gold' },
+    { id: 'frame_galactic', name: 'Galactic Horizon', className: 'rf-galactic', rarity: 'blue', tier: 'galactic' },
   ],
   titles: [
     { id: 'title_newbie', name: 'Tân Thủ', className: 't-gray', color: '#94a3b8' },

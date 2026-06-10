@@ -8,7 +8,10 @@ import {
 import cosmeticManager from '../../managers/cosmeticManager';
 import inventoryManager from '../../managers/inventoryManager';
 import { ITEMS } from '../../data/items';
+import RankFrame from '../../components/RankFrame';
 import './Profile.scss';
+
+const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
 
 class Profile extends Component {
   constructor(props) {
@@ -78,11 +81,9 @@ class Profile extends Component {
               className={`frame-item-card ${currentFrame === f.id ? 'active' : ''}`}
               onClick={() => onFrameChange(f.id)}
             >
-              <div className={`frame-preview-outer ${f.id}`}>
-                <div className="frame-icon-wrap">
-                  <IonIcon icon={personCircleOutline} />
-                </div>
-              </div>
+              <RankFrame tier={f.tier} size={92}>
+                <IonIcon icon={personCircleOutline} />
+              </RankFrame>
               <div className="frame-name">{f.name}</div>
               {currentFrame === f.id && <div className="active-dot" />}
             </div>
@@ -102,14 +103,14 @@ class Profile extends Component {
       <div className="app-container profile-app">
         <div className="profile-header">
           <div className="user-profile-section">
-            <div className={`large-avatar-frame ${currentFrame}`}>
-              <div className="avatar-content">
-                <IonIcon icon={personCircleOutline} />
-              </div>
-            </div>
+            <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
+              <IonIcon icon={personCircleOutline} />
+            </RankFrame>
             <div className="user-main-info">
               <div className="username-line">
                 <span className="name">Player_9999</span>
+              </div>
+              <div className="title-line">
                 <span className="title-badge" style={{ color: equippedTitle?.color }}>
                   [{equippedTitle?.name}]
                 </span>
