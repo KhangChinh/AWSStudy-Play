@@ -40,7 +40,7 @@ class GachaManager {
 
   getRandomItem(rarity, bannerConfig, isGuaranteed) {
     if (rarity === 'R') {
-      const rItems = ['item_title_newbie', 'item_coin_5'];
+      const rItems = ['item_title_newbie', 'item_sanity'];
       return rItems[Math.floor(Math.random() * rItems.length)];
     }
     

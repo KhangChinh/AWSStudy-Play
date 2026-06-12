@@ -47,12 +47,12 @@ export const COSMETICS = {
     { id: 'title_legend', i18nKey: 'titles.legend', className: 't-legend', color: '#fbbf24' },
     { id: 'title_admin', i18nKey: 'titles.admin', className: 't-admin', color: '#ef4444' },
   ],
-  effects: [
-    { id: 'eff_none', name: 'No Effect', className: 'e-none' },
-    { id: 'eff_sparkle', name: 'Sparkle', className: 'e-sparkle' },
-    { id: 'eff_fire', name: 'Phoenix Flame', className: 'e-fire' },
-    { id: 'eff_snow', name: 'Winter Frost', className: 'e-snow' },
-  ],
+  // effects: [
+  //   { id: 'eff_none', name: 'No Effect', className: 'e-none' },
+  //   { id: 'eff_sparkle', name: 'Sparkle', className: 'e-sparkle' },
+  //   { id: 'eff_fire', name: 'Phoenix Flame', className: 'e-fire' },
+  //   { id: 'eff_snow', name: 'Winter Frost', className: 'e-snow' },
+  // ],
   themes: [
     { id: 'theme_dark', name: 'Deep Space', className: 'theme-dark' },
     { id: 'theme_light', name: 'Star Light', className: 'theme-light' },

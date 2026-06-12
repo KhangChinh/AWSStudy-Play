@@ -67,13 +67,12 @@ export const ITEMS = {
     cosmeticId: 'title_newbie',
     icon: '🌱'
   },
-  item_coin_5: {
-    id: 'item_coin_5',
-    name: '5 Coin (Item)',
+  item_sanity: {
+    id: 'item_sanity',
+    name: 'Sanity',
     rarity: 'R',
-    type: 'item',
-    value: 5,
-    icon: '🪙'
+    type: 'currency',
+    icon: '/src/assets/Sanity.png'
   }
 };
 

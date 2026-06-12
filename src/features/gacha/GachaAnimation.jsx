@@ -117,6 +117,14 @@ class GachaAnimation extends Component {
     return r; // Now just returns labels R, SR, SSR
   };
 
+  renderIcon = (icon) => {
+    if (!icon) return '📦';
+    if (typeof icon === 'string' && (icon.startsWith('/') || icon.startsWith('http'))) {
+      return <img src={icon} alt="item-icon" className="img-icon-render" />;
+    }
+    return icon;
+  };
+
   render() {
     const { phase, particles, showSkip } = this.state;
     const { rewards } = this.props;
@@ -179,7 +187,7 @@ class GachaAnimation extends Component {
               <div className={`reveal-container single ${rarityClass}`}>
                 <div className="item-glow" />
                 <div className="item-icon">
-                  {rewards[0].icon || '🎁'}
+                  {this.renderIcon(rewards[0].icon)}
                 </div>
                 <div className="item-name">{rewards[0].name || 'Mystery Item'}</div>
                 <div className={`item-rarity ${rarityClass}`}>
@@ -201,13 +209,8 @@ class GachaAnimation extends Component {
                       key={i} 
                       style={{ animationDelay: this.state.isInstantReveal ? '0s' : `${i * 0.1}s` }}
                     >
-                      <div className="grid-icon">{reward.icon}</div>
+                      <div className="grid-icon">{this.renderIcon(reward.icon)}</div>
                       <div className="grid-stars">{reward.rarity}</div>
-                      {reward.isConverted && (
-                        <div className="result-conv">
-                          🪙
-                        </div>
-                      )}
                     </div>
                   );
                 })}

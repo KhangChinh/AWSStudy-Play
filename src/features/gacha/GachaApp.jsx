@@ -94,20 +94,21 @@ class GachaApp extends Component {
       if (rarityOrder.indexOf(rarity) > rarityOrder.indexOf(maxRarity)) {
         maxRarity = rarity;
       }
-
-      // Simple pity reset logic (could be moved to manager)
-      if (rarity === 'SSR') tempPity5 = 0;
-      else tempPity5++;
-
-      if (rarity === 'SR') tempPity4 = 0;
-      else tempPity4++;
     }
 
-    // Detect if any item is NEW before adding them to inventory
-    const hasNewItem = newRewards.some(item => !inventoryManager.hasItem(item.id));
+    // Detecting sanity amounts for Rarity 3 rolls (simulation)
+    const sanityBreakdown = newRewards.map(r => r.rarity === 'R' ? Math.floor(Math.random() * 11) + 10 : 0);
 
-    // Process rewards through manager
-    const processResult = rewardManager.processRewards(newRewards);
+    // Process rewards through manager (Simulating server-authority flow)
+    const processResult = rewardManager.processGachaResult({
+      rarityMap: newRewards.map(r => r.rarity === 'SSR' ? 5 : r.rarity === 'SR' ? 4 : 3),
+      items: newRewards.map((r, i) => ({ ...r, rarityIndex: i })),
+      sanityBreakdown: sanityBreakdown,
+      knowledgeUsed: count * 10
+    });
+
+    // Detect if any item is NEW based on processed results
+    const hasNewItem = processResult.details.some(res => !res.isDuplicate && res.type !== 'currency');
 
     this.setState({
       isPlaying: true,
@@ -174,13 +175,17 @@ class GachaApp extends Component {
           <div className="bottom-right">
             <div className="roll-actions">
               <div className="roll-btn-group">
-                <div className="cost-tag">🪙 x1</div>
+                <div className="cost-tag">
+                  <img src="/src/assets/Sanity.png" alt="Sanity" className="cost-icon" /> x1
+                </div>
                 <button className="btn-roll x1" onClick={() => this.handleRoll(1)} disabled={isPlaying}>
                   {this.props.t('gacha.single_roll')}
                 </button>
               </div>
               <div className="roll-btn-group">
-                <div className="cost-tag">🪙 x10</div>
+                <div className="cost-tag">
+                  <img src="/src/assets/Sanity.png" alt="Sanity" className="cost-icon" /> x10
+                </div>
                 <button className="btn-roll x10" onClick={() => this.handleRoll(10)} disabled={isPlaying}>
                   {this.props.t('gacha.ten_rolls')}
                 </button>
@@ -233,16 +238,16 @@ class GachaApp extends Component {
                             <span className="name">{meta.name}</span>
                             <span className="rarity-tag">{meta.rarity}</span>
                           </div>
-                          {isHistory && item.isDuplicate && (
-                            <div className="conversion-tag">
-                              <IonIcon icon={chevronForwardOutline} /> 🪙 x{meta.rarity === 'SSR' ? 50 : meta.rarity === 'SR' ? 20 : 5}
-                            </div>
-                          )}
                           {!isHistory && <span className="qty">x{item.amount}</span>}
                         </div>
                         {isHistory && (
                           <div className="item-footer">
-                            <span className="timestamp">{new Date(item.timestamp).toLocaleString()}</span>
+                            <span className="timestamp">
+                              {new Date(item.timestamp).toLocaleString('vi-VN', {
+                                day: '2-digit', month: '2-digit', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit', second: '2-digit'
+                              })}
+                            </span>
                             {item.isDuplicate && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
                           </div>
                         )}
