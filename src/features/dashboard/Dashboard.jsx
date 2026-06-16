@@ -11,6 +11,7 @@ import {
 } from 'ionicons/icons';
 
 import FocusGuard from '../focus/FocusGuard';
+import SetupWizard from '../setup/SetupWizard';
 import Inventory from '../inventory/Inventory';
 import GachaStation from '../gacha/GachaStation';
 import GachaTestApp from '../gacha/GachaTestApp';
@@ -177,7 +178,9 @@ class Dashboard extends Component {
       disabledButtons: { logout: false },
       isDragging: null,
       dragOffset: { x: 0, y: 0 },
-      selectedTitle: 'newbie'
+      selectedTitle: 'newbie',
+      extensionConnected: false,
+      showSetupWizard: !localStorage.getItem('setupWizardDismissed'),
     };
     this.timerInterval = null;
   }
@@ -192,7 +195,23 @@ class Dashboard extends Component {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
     }, 60000);
+
+    // Listen for gate-status to detect extension connection
+    if (window.api?.on) {
+      this._gateHandler = (data) => {
+        if (data) {
+          const connected = Array.isArray(data.connected) ? data.connected.length > 0 : !!data.connected;
+          this.setState({ extensionConnected: connected });
+        }
+      };
+      window.api.on('gate-status', this._gateHandler);
+    }
   }
+
+  handleDismissWizard = () => {
+    localStorage.setItem('setupWizardDismissed', 'true');
+    this.setState({ showSetupWizard: false });
+  };
 
   componentWillUnmount() {
     if (this.timerInterval) clearInterval(this.timerInterval);
@@ -361,6 +380,13 @@ class Dashboard extends Component {
 
     return (
       <div className="os-desktop">
+        {/* Setup Wizard */}
+        {this.state.showSetupWizard && !this.state.extensionConnected && (
+          <SetupWizard
+            isConnected={this.state.extensionConnected}
+            onDismiss={this.handleDismissWizard}
+          />
+        )}
         {/* Background Layers */}
         <div className="stars"></div>
         <div className="twinkling"></div>
@@ -377,6 +403,9 @@ class Dashboard extends Component {
               <span>{app.name}</span>
             </div>
           ))}
+
+          {/* FocusGuard is now a desktop icon! */}
+          <FocusGuard />
         </div>
 
         {/* Cửa sổ các ứng dụng đang chạy */}
@@ -458,8 +487,6 @@ class Dashboard extends Component {
             </button>
           </div>
         </div>
-
-        <FocusGuard />
       </div>
     );
   }

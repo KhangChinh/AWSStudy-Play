@@ -2,76 +2,40 @@
 //  FOCUS GUARD — Floating Panel Widget
 // ═══════════════════════════════════════════
 
-// Trigger Button (always visible, bottom-right)
-.focus-guard-trigger {
-  position: fixed;
-  bottom: 60px; // above 48px taskbar
-  right: 20px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #9333ea 0%, #d946ef 100%);
-  color: #fff;
-  font-size: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 200;
-  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5),
-              0 0 40px rgba(147, 51, 234, 0.15);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: trigger-float 3s ease-in-out infinite;
+// Icon Timer Pulse Animation
+.icon.focus.timer-active .icon-img {
+  position: relative;
 
-  &:hover {
-    transform: scale(1.12);
-    box-shadow: 0 6px 30px rgba(147, 51, 234, 0.7),
-                0 0 60px rgba(147, 51, 234, 0.25);
-  }
-
-  &.active {
-    background: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%);
-    box-shadow: 0 4px 25px rgba(124, 58, 237, 0.6);
-    animation: none;
-  }
-
-  // Pulsing ring when timer is running
-  &.timer-active::after {
+  &::after {
     content: '';
     position: absolute;
     inset: -4px;
-    border-radius: 50%;
-    border: 2px solid rgba(147, 51, 234, 0.6);
-    animation: pulse-ring 2s ease-out infinite;
+    border-radius: 18px; // Match icon border radius
+    border: 2px solid rgba(168, 85, 247, 0.8);
+    animation: pulse-ring-rect 2s ease-out infinite;
   }
 }
 
-@keyframes trigger-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-
-@keyframes pulse-ring {
+@keyframes pulse-ring-rect {
   0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.3); opacity: 0; }
 }
 
 // ═══ Panel ═══
 .focus-guard-panel {
   position: fixed;
-  bottom: 118px; // 48 taskbar + 60 trigger gap + 10 spacing
-  right: 20px;
-  width: 320px;
-  max-height: 420px;
-  background: rgba(15, 10, 30, 0.95);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  bottom: 60px; // near bottom
+  right: 120px; // to the left of the desktop icons
+  width: 340px;
+  max-height: 560px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6),
-              0 0 30px rgba(139, 92, 246, 0.12),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(192, 132, 252, 0.2);
   z-index: 200;
+  pointer-events: auto; // Fix unclickable issue caused by inheriting pointer-events: none from .desktop-icons
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -201,6 +165,206 @@
       background: #ef4444;
       box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
     }
+    &.yellow {
+      background: #f59e0b;
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+    }
+    &.gray {
+      background: #64748b;
+      box-shadow: 0 0 6px rgba(100, 116, 139, 0.4);
+    }
+  }
+}
+
+// ═══ Extension Check Screen ═══
+.fg-screen-check {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 8px 0;
+
+  .fg-check-icon {
+    font-size: 40px;
+    line-height: 1;
+  }
+
+  .fg-check-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f87171;
+    margin: 0;
+  }
+
+  .fg-check-desc {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .fg-missing-label {
+    font-size: 12px;
+    color: #fbbf24;
+    margin: 0;
+    padding: 6px 12px;
+    background: rgba(251, 191, 36, 0.08);
+    border-radius: 8px;
+    border: 1px solid rgba(251, 191, 36, 0.15);
+  }
+
+  .fg-check-steps {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .fg-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: #94a3b8;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+
+    .fg-step-num {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(139, 92, 246, 0.2);
+      color: #c084fc;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+  }
+
+  .fg-check-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+    animation: paused-blink 2s ease-in-out infinite;
+  }
+}
+
+// ═══ AI Hint Section ═══
+.fg-ai-hint {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+
+  .fg-ai-providers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .fg-ai-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+
+  .fg-ai-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+
+    &.ok {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+    &.off {
+      background: rgba(239, 68, 68, 0.1);
+      color: #f87171;
+    }
+  }
+
+  .fg-ai-note {
+    margin: 8px 0 0 0;
+    font-size: 10px;
+    color: #64748b;
+    line-height: 1.4;
+  }
+}
+
+// ═══ Webcam Container ═══
+.fg-webcam-container {
+  width: 100%;
+  height: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: height 0.3s ease;
+  position: relative;
+
+  &.active {
+    height: 140px;
+  }
+
+  .fg-webcam-video {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .fg-webcam-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #94a3b8;
+    padding: 2px 0;
+    background: rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+
+    &.warn {
+      color: #fbbf24;
+      background: rgba(251, 191, 36, 0.15);
+      animation: warn-pulse 1.5s ease-in-out infinite;
+    }
+
+    &.spoof {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.2);
+      border-top: 2px solid #ef4444;
+      animation: spoof-pulse 0.8s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes warn-pulse {
+  0%, 100% { background: rgba(251, 191, 36, 0.1); }
+  50% { background: rgba(251, 191, 36, 0.25); }
+}
+
+@keyframes spoof-pulse {
+  0%, 100% { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.6); }
+  50% { background: rgba(239, 68, 68, 0.35); border-color: rgba(239, 68, 68, 1); }
+}
+
+// AI required variant
+.fg-ai-hint.required {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+
+  .fg-ai-note {
+    color: #f87171;
   }
 }
 
@@ -481,4 +645,98 @@
 @keyframes paused-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+// ═══ Mini Widget (bottom-right, shown when panel closed + active) ═══
+.fg-mini-widget {
+  position: fixed;
+  bottom: 58px;
+  right: 20px;
+  z-index: 200;
+  pointer-events: auto;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  min-width: 160px;
+
+  background: rgba(15, 10, 30, 0.88);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-left: 3px solid #a855f7;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45),
+              0 0 20px rgba(168, 85, 247, 0.1);
+
+  animation: fg-mini-slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(168, 85, 247, 0.6);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(168, 85, 247, 0.2);
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes fg-mini-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fg-mini-timer {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #e0b0ff;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 12px rgba(192, 132, 252, 0.4);
+  line-height: 1;
+}
+
+.fg-mini-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fg-mini-mode {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  line-height: 1.4;
+  width: fit-content;
+
+  &.casual {
+    color: #86efac;
+    background: rgba(134, 239, 172, 0.1);
+  }
+
+  &.rank {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+  }
+}
+
+.fg-mini-strikes {
+  font-size: 10px;
+  font-weight: 600;
+  color: #f87171;
+}
+
+.fg-mini-cam {
+  font-size: 11px;
+  line-height: 1;
+
+  &.ok { filter: none; }
+  &.warn { animation: paused-blink 1.2s ease-in-out infinite; }
 }

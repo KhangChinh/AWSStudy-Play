@@ -63,6 +63,21 @@ function connectToDesktopApp() {
             pendingClassifications.delete(data.videoId);
           }
         }
+        // Web page classification result from Desktop App
+        if (data.type === 'CLASSIFY_PAGE_RESULT' && data.domain) {
+          console.log('[FocusGuard] Web page AI result:', data.domain, data.result);
+          const pending = pendingClassifications.get('page:' + data.domain);
+          if (pending) {
+            chrome.tabs.sendMessage(pending.tabId, {
+              type: 'CLASSIFY_PAGE_RESULT',
+              domain: data.domain,
+              url: data.url,
+              result: data.result,
+              reason: data.reason || ''
+            }, () => { void chrome.runtime.lastError; });
+            pendingClassifications.delete('page:' + data.domain);
+          }
+        }
         // Settings update from Desktop App
         if (data.type === 'SETTINGS_UPDATED' && data.allowedCategories) {
           console.log('[FocusGuard] Settings updated:', data.allowedCategories);
@@ -156,6 +171,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       return true;
 
+    // ===== CLASSIFY_PAGE: Forward web page classification to Desktop App =====
+    case 'CLASSIFY_PAGE':
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN && message.metadata) {
+        const pageKey = 'page:' + message.metadata.domain;
+        pendingClassifications.set(pageKey, { tabId: sender.tab.id });
+        wsConnection.send(JSON.stringify({
+          type: 'CLASSIFY_PAGE',
+          metadata: message.metadata
+        }));
+        console.log('[FocusGuard] Sent web page classification for:', message.metadata.domain);
+      } else {
+        if (sender.tab) {
+          chrome.tabs.sendMessage(sender.tab.id, {
+            type: 'CLASSIFY_PAGE_RESULT',
+            domain: message.metadata?.domain || '',
+            result: 'BLOCK',
+            reason: 'No AI connection'
+          }, () => { void chrome.runtime.lastError; });
+        }
+      }
+      return true;
+
     // ===== STRIKE_REPORT: Forward from content.js to Desktop App =====
     case 'STRIKE_REPORT':
       console.log('[FocusGuard] Strike report received:', message.videoTitle);
@@ -174,7 +211,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function broadcastFocusMode() {
-  chrome.tabs.query({ url: ['*://www.youtube.com/*', '*://youtube.com/*'] }, (tabs) => {
+  chrome.tabs.query({}, (tabs) => {
     tabs.forEach(tab => {
       chrome.tabs.sendMessage(tab.id, { type: 'FOCUS_MODE_CHANGED', enabled: focusMode }, () => {
         void chrome.runtime.lastError;

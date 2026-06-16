@@ -255,13 +255,182 @@ export async function classifyContent(metadata) {
   return result;
 }
 
+// ===== Web Page Classification =====
+const WEB_SYSTEM_PROMPT = `You are a strict web content filter for a student productivity application.
+Your task: determine if a web page is relevant to studying, learning, or productive work — or if it is entertainment/distraction.
+
+CLASSIFY as "ALLOW" or "BLOCK" based on the page metadata provided.
+
+ALLOW examples:
+- Educational sites, online courses, tutorials
+- Documentation, reference materials, wikis
+- Programming tools, code repositories, IDEs
+- Research papers, academic journals
+- News sites focused on technology, science, or current events
+- Productivity tools (calendar, notes, project management)
+- AI assistants, search engines, translation tools
+
+BLOCK examples:
+- Comic/manga/webtoon reading sites
+- Novel/fiction/light novel reading sites
+- Gaming sites, game wikis, game forums
+- Streaming sites (movies, anime, TV shows)
+- Shopping/e-commerce (unless clearly work-related)
+- Social media platforms
+- Celebrity gossip, tabloid news
+- Gambling, betting sites
+- Adult content
+- Meme/humor sites
+- Sports scores/highlights/live streams
+
+IMPORTANT RULES:
+1. Judge by the DOMAIN and PAGE CONTENT, not just the title.
+2. If a site is clearly for leisure reading (comics, novels, manga, webtoon), BLOCK it.
+3. If ambiguous or metadata is insufficient, default to "BLOCK".
+4. Forums are ALLOWED only if they are technical (Stack Overflow, GitHub Issues).
+5. News sites: ALLOW if focused on education/tech/science. BLOCK if tabloid/entertainment.
+
+OUTPUT: Respond ONLY with valid JSON. No markdown, no explanation outside JSON.
+{"result": "ALLOW" or "BLOCK", "reason": "Short reason in English (max 15 words)"}`;
+
+const webCache = new Map();
+const WEB_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+function buildWebUserPrompt(metadata) {
+  let prompt = `Classify the following web page:\n`;
+  prompt += `- URL: ${metadata.url || 'N/A'}\n`;
+  prompt += `- Domain: ${metadata.domain || 'N/A'}\n`;
+  prompt += `- Page Title: ${metadata.title || 'N/A'}\n`;
+  if (metadata.description) {
+    prompt += `- Meta Description: ${metadata.description.substring(0, 300)}\n`;
+  }
+  if (metadata.ogTitle) {
+    prompt += `- OG Title: ${metadata.ogTitle}\n`;
+  }
+  if (metadata.ogDescription) {
+    prompt += `- OG Description: ${metadata.ogDescription.substring(0, 200)}\n`;
+  }
+  if (metadata.keywords) {
+    prompt += `- Keywords: ${metadata.keywords.substring(0, 200)}\n`;
+  }
+  if (metadata.h1) {
+    prompt += `- H1: ${metadata.h1.substring(0, 100)}\n`;
+  }
+  return prompt;
+}
+
+async function classifyWebWithOllama(metadata) {
+  const userPrompt = buildWebUserPrompt(metadata);
+  const res = await httpRequest(`${OLLAMA_BASE}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 120000
+  }, {
+    model: OLLAMA_MODEL,
+    messages: [
+      { role: 'system', content: WEB_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt }
+    ],
+    stream: false,
+    options: { temperature: 0.1 }
+  });
+
+  if (res.status === 200 && res.data && res.data.message) {
+    return parseAiResponse(res.data.message.content);
+  }
+  throw new Error(`Ollama error: ${res.status}`);
+}
+
+async function classifyWebWithGroq(metadata) {
+  const key = getGroqKey();
+  if (!key) throw new Error('No Groq API key');
+
+  const userPrompt = buildWebUserPrompt(metadata);
+  const res = await httpRequest(`${GROQ_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`
+    },
+    timeout: 15000
+  }, {
+    model: GROQ_MODEL,
+    messages: [
+      { role: 'system', content: WEB_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt }
+    ],
+    temperature: 0.1,
+    max_tokens: 150
+  });
+
+  if (res.status === 200 && res.data && res.data.choices && res.data.choices[0]) {
+    return parseAiResponse(res.data.choices[0].message.content);
+  }
+  throw new Error(`Groq error: ${res.status}`);
+}
+
+/**
+ * Classify a general web page using AI.
+ * Cache by domain to avoid repeated calls for same site.
+ * @param {object} metadata - { url, domain, title, description, ... }
+ * @returns {{ result: string, reason: string, provider: string }}
+ */
+export async function classifyWebPage(metadata) {
+  const cacheKey = metadata.domain || metadata.url || '';
+
+  // Check domain cache
+  const cached = webCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < WEB_CACHE_TTL) {
+    return { ...cached.result, cached: true };
+  }
+
+  let result;
+
+  // Try Ollama first
+  try {
+    const ollama = await checkOllama();
+    if (ollama.available && ollama.hasModel) {
+      console.log('[AI-Web] Classifying with Ollama:', metadata.domain);
+      const ollamaResult = await classifyWebWithOllama(metadata);
+      console.log('[AI-Web] Ollama result:', ollamaResult);
+      result = { ...ollamaResult, provider: 'ollama' };
+    }
+  } catch (e) {
+    console.warn('[AI-Web] Ollama failed:', e.message);
+  }
+
+  // Fallback to Groq
+  if (!result) {
+    try {
+      const groq = await checkGroq();
+      if (groq.available) {
+        console.log('[AI-Web] Classifying with Groq:', metadata.domain);
+        const groqResult = await classifyWebWithGroq(metadata);
+        console.log('[AI-Web] Groq result:', groqResult);
+        result = { ...groqResult, provider: 'groq' };
+      }
+    } catch (e) {
+      console.warn('[AI-Web] Groq failed:', e.message);
+    }
+  }
+
+  if (!result) {
+    result = { result: 'BLOCK', reason: 'No AI provider available', provider: 'none' };
+  }
+
+  // Cache by domain
+  webCache.set(cacheKey, { result, timestamp: Date.now() });
+  return result;
+}
+
 /**
  * Clear the classification cache.
  * @returns {{ success: boolean, clearedCount: number }}
  */
 export function clearCache() {
-  const count = cache.size;
+  const count = cache.size + webCache.size;
   cache.clear();
+  webCache.clear();
   return { success: true, clearedCount: count };
 }
 

@@ -8,6 +8,7 @@
   let pauseInterval = null;
   let strikeTimer = null; // 10-second countdown timer
   let strikeReported = false; // prevent duplicate reports for same video
+  let currentBlockedVideoId = null; // track which video is currently showing overlay
 
   /* ===== CLASSIFICATION CONFIG ===== */
   const BLOCKED_CATEGORIES = [
@@ -24,6 +25,32 @@
   // Cache: videoId -> { result: 'ALLOW'|'BLOCK', data: {...} }
   const cache = {};
 
+  /* ===== GENERAL WEB PAGE CLASSIFICATION ===== */
+  const SAFE_DOMAINS = [
+    'google.com', 'google.com.vn', 'google.co', 'googleapis.com',
+    'stackoverflow.com', 'stackexchange.com',
+    'github.com', 'github.io', 'gitlab.com', 'bitbucket.org',
+    'wikipedia.org', 'wikimedia.org', 'wiktionary.org',
+    'docs.google.com', 'drive.google.com', 'classroom.google.com',
+    'notion.so', 'notion.site',
+    'chatgpt.com', 'openai.com', 'claude.ai', 'anthropic.com',
+    'gemini.google.com', 'bard.google.com',
+    'w3schools.com', 'developer.mozilla.org', 'mdn.mozilla.org', 'devdocs.io',
+    'leetcode.com', 'hackerrank.com', 'codepen.io', 'replit.com', 'codesandbox.io',
+    'coursera.org', 'udemy.com', 'edx.org', 'khanacademy.org', 'skillshare.com',
+    'medium.com', 'dev.to', 'hashnode.dev',
+    'translate.google.com', 'deepl.com',
+    'microsoft.com', 'office.com', 'live.com', 'outlook.com',
+    'zoom.us', 'meet.google.com', 'teams.microsoft.com',
+    'trello.com', 'asana.com', 'jira.atlassian.com', 'slack.com',
+    'figma.com', 'canva.com',
+    'localhost', '127.0.0.1'
+  ];
+  const pageDomainCache = {}; // domain -> 'ALLOW' | 'BLOCK' | 'PENDING'
+  let pageClassified = false;
+  let pageStrikeTimer = null;
+  let pageStrikeReported = false;
+
   /* ===== INIT ===== */
   fetch(chrome.runtime.getURL('data/channels.json'))
     .then(r => r.json())
@@ -35,21 +62,39 @@
     if (res.allowedCategories) allowedCategories = res.allowedCategories;
     if (res.focusMode !== undefined) {
       focusMode = res.focusMode;
-      checkPage();
+      if (focusMode) {
+        checkPage();
+        checkGeneralWebPage();
+      }
     }
   });
 
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'FOCUS_MODE_CHANGED') {
       focusMode = msg.enabled;
-      focusMode ? checkPage() : cleanup();
+      if (focusMode) {
+        checkPage();
+        checkGeneralWebPage();
+      } else {
+        cleanup();
+        removePageOverlay();
+      }
     }
-    // Receive AI classification result
+    // Receive AI classification result for YouTube video
     if (msg.type === 'CLASSIFY_RESULT' && msg.videoId) {
       console.log('[FocusGuard] AI result for', msg.videoId, ':', msg.result, msg.reason);
       cache[msg.videoId] = { result: msg.result, data: cache[msg.videoId]?.data || {} };
       if (msg.videoId === currentVideoId) {
         apply(msg.result, cache[msg.videoId].data);
+      }
+    }
+    // Receive AI classification result for general web page
+    if (msg.type === 'CLASSIFY_PAGE_RESULT' && msg.domain) {
+      console.log('[FocusGuard] Web AI result for', msg.domain, ':', msg.result, msg.reason);
+      pageDomainCache[msg.domain] = msg.result;
+      removePageLoadingBadge();
+      if (msg.result === 'BLOCK') {
+        showPageBlockOverlay(msg.domain, msg.reason);
       }
     }
     // Receive Settings update
@@ -87,23 +132,73 @@
   if (document.body) obs.observe(document.body, { subtree: true, childList: true });
 
   /* ===== CORE ===== */
+  const SOCIAL_SITE_INFO = {
+    'facebook.com':  { name: 'Facebook',  icon: '📘', color: '#1877F2' },
+    'twitter.com':   { name: 'Twitter/X', icon: '🐦', color: '#1DA1F2' },
+    'x.com':         { name: 'X (Twitter)', icon: '✖️', color: '#000' },
+    'tiktok.com':    { name: 'TikTok',    icon: '🎵', color: '#ff0050' },
+    'threads.net':   { name: 'Threads',   icon: '🧵', color: '#000' },
+    'instagram.com': { name: 'Instagram', icon: '📸', color: '#E4405F' },
+  };
+
+  let socialStrikeReported = false;
+  let socialStrikeTimer = null;
+
   function checkAndBlockSocialMedia() {
     if (!focusMode) return false;
     const hostname = window.location.hostname;
-    const isSocialMedia = SOCIAL_MEDIA_DOMAINS.some(domain => hostname.includes(domain));
-    if (isSocialMedia) {
-      showSocialOverlay('Mạng xã hội này đã bị khóa trong giờ tập trung.');
+    const matchedDomain = SOCIAL_MEDIA_DOMAINS.find(domain => hostname.includes(domain));
+    if (matchedDomain) {
+      const info = SOCIAL_SITE_INFO[matchedDomain] || { name: matchedDomain, icon: '🚫', color: '#ef4444' };
+      showSocialOverlay(info);
       document.body.style.overflow = 'hidden';
+      startSocialStrikeCountdown(info);
       return true;
     }
     return false;
   }
 
+  function startSocialStrikeCountdown(info) {
+    if (socialStrikeReported || socialStrikeTimer) return;
+    let secondsLeft = 10;
+    updateSocialCountdown(secondsLeft);
+
+    socialStrikeTimer = setInterval(() => {
+      secondsLeft--;
+      updateSocialCountdown(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(socialStrikeTimer);
+        socialStrikeTimer = null;
+        socialStrikeReported = true;
+        chrome.runtime.sendMessage({
+          type: 'STRIKE_REPORT',
+          videoTitle: info.name,
+          reason: `Truy cập ${info.name} trong giờ tập trung (10s+)`
+        }, () => { void chrome.runtime.lastError; });
+        showSocialStrikeRecorded();
+      }
+    }, 1000);
+  }
+
+  function updateSocialCountdown(seconds) {
+    const el = document.getElementById('fg-social-countdown-timer');
+    if (el) el.textContent = seconds + 's';
+    const bar = document.getElementById('fg-social-progress');
+    if (bar) bar.style.width = ((10 - seconds) / 10 * 100) + '%';
+  }
+
+  function showSocialStrikeRecorded() {
+    const el = document.getElementById('fg-social-countdown');
+    if (el) {
+      el.innerHTML = '<div class="fg-social-strike-done">🚨 Đã ghi nhận vi phạm!</div>';
+    }
+  }
+
+  // Social media check only (no re-checking YouTube every second)
   setInterval(() => {
     if (!focusMode) return;
-    if (checkAndBlockSocialMedia()) return;
-    checkPage();
-  }, 1000);
+    checkAndBlockSocialMedia();
+  }, 3000);
 
   function getVideoIdFromUrl() {
     return new URLSearchParams(location.search).get('v');
@@ -196,15 +291,20 @@
     if (result === 'PENDING') return; // Do nothing, let loading overlay stay
 
     if (result === 'BLOCK') {
-      showOverlay(data);
-      keepPaused();
-      startStrikeCountdown(data);
-      chrome.runtime.sendMessage({
-        type: 'VIDEO_BLOCKED', videoId: currentVideoId,
-        category: data?.category || ''
-      }, () => { void chrome.runtime.lastError; });
+      // Only create overlay if not already showing for this video
+      if (currentBlockedVideoId !== currentVideoId) {
+        currentBlockedVideoId = currentVideoId;
+        showOverlay(data);
+        keepPaused();
+        startStrikeCountdown(data);
+        chrome.runtime.sendMessage({
+          type: 'VIDEO_BLOCKED', videoId: currentVideoId,
+          category: data?.category || ''
+        }, () => { void chrome.runtime.lastError; });
+      }
     } else {
       cleanup();
+      currentBlockedVideoId = null;
     }
   }
 
@@ -285,17 +385,13 @@
 
     overlayEl = document.createElement('div');
     overlayEl.id = 'focusguard-overlay';
+    overlayEl.className = 'fg-loading-badge';
     overlayEl.innerHTML = `
-      <div class="fg-backdrop"></div>
-      <div class="fg-card">
-        <div class="fg-icon">🤖</div>
-        <h2 class="fg-heading">Đang phân tích...</h2>
-        <div class="fg-divider"></div>
-        <p class="fg-msg">AI đang kiểm tra nội dung video này.<br/>Vui lòng đợi...</p>
-      </div>`;
+      <div class="fg-loading-icon">🤖</div>
+      <span class="fg-loading-text">AI đang phân tích...</span>
+    `;
     container.style.position = 'relative';
     container.appendChild(overlayEl);
-    keepPaused();
   }
 
   function showOverlay(data) {
@@ -324,20 +420,51 @@
     container.appendChild(overlayEl);
   }
 
-  function showSocialOverlay(msg) {
-    if (document.getElementById('focusguard-overlay')) return;
-    overlayEl = document.createElement('div');
-    overlayEl.id = 'focusguard-overlay';
-    overlayEl.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;color:white;font-family:sans-serif;';
-    overlayEl.innerHTML = `<div style="text-align:center;"><h1>🚫</h1><h2>${msg}</h2></div>`;
-    document.body.appendChild(overlayEl);
+  function showSocialOverlay(info) {
+    if (document.getElementById('focusguard-social-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'focusguard-social-overlay';
+    overlay.innerHTML = `
+      <div class="fg-social-bg"></div>
+      <div class="fg-social-card">
+        <div class="fg-social-icon" style="background:${info.color}">${info.icon}</div>
+        <h2 class="fg-social-title">${info.name} đã bị chặn</h2>
+        <div class="fg-social-divider"></div>
+        <p class="fg-social-desc">
+          Trang này thuộc danh mục <strong>Mạng xã hội</strong> và bị khóa trong giờ tập trung.<br/>
+          Hãy quay lại học tập! 📚
+        </p>
+        <div class="fg-social-countdown" id="fg-social-countdown">
+          <div class="fg-social-countdown-label">⚠️ Cảnh báo vi phạm</div>
+          <div class="fg-social-progress-track">
+            <div class="fg-social-progress-bar" id="fg-social-progress"></div>
+          </div>
+          <div class="fg-social-countdown-row">
+            <span>Rời trang ngay!</span>
+            <span class="fg-social-countdown-num" id="fg-social-countdown-timer">10s</span>
+          </div>
+        </div>
+        <div class="fg-social-footer">
+          <span class="fg-social-badge">🛡️ Focus Guard</span>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
   }
 
   function removeOverlay() {
     cancelStrikeCountdown();
+    // Remove video overlay
     const el = document.getElementById('focusguard-overlay');
     if (el) el.remove();
     overlayEl = null;
+    // Remove social overlay
+    const socialEl = document.getElementById('focusguard-social-overlay');
+    if (socialEl) socialEl.remove();
+    // Reset social strike state
+    if (socialStrikeTimer) { clearInterval(socialStrikeTimer); socialStrikeTimer = null; }
+    socialStrikeReported = false;
     document.body.style.overflow = '';
   }
 
@@ -355,10 +482,195 @@
   function cleanup() {
     removeOverlay();
     cancelStrikeCountdown();
+    currentBlockedVideoId = null;
     if (pauseInterval) { clearInterval(pauseInterval); pauseInterval = null; }
     const v = document.querySelector('video.html5-main-video') || document.querySelector('video');
     if (v) v.muted = false;
   }
 
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  /* ═══════════════════════════════════════════════════════════
+     GENERAL WEB PAGE CLASSIFICATION (non-YouTube, non-Social)
+     ═══════════════════════════════════════════════════════════ */
+
+  function isYouTube() {
+    return location.hostname.includes('youtube.com');
+  }
+
+  function isSocialMediaSite() {
+    return SOCIAL_MEDIA_DOMAINS.some(d => location.hostname.includes(d));
+  }
+
+  function isDomainSafe(hostname) {
+    return SAFE_DOMAINS.some(safe => {
+      // Match exact or subdomain (e.g. 'docs.google.com' matches 'google.com')
+      return hostname === safe || hostname.endsWith('.' + safe);
+    });
+  }
+
+  function extractPageMetadata() {
+    const getMeta = (name) => {
+      const el = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
+      return el ? el.getAttribute('content') || '' : '';
+    };
+    return {
+      url: location.href,
+      domain: location.hostname,
+      title: document.title || '',
+      description: getMeta('description'),
+      ogTitle: getMeta('og:title'),
+      ogDescription: getMeta('og:description'),
+      keywords: getMeta('keywords'),
+      h1: document.querySelector('h1')?.textContent?.trim()?.substring(0, 100) || ''
+    };
+  }
+
+  function checkGeneralWebPage() {
+    if (!focusMode) return;
+    if (isYouTube() || isSocialMediaSite()) return; // handled separately
+    if (pageClassified) return; // already checked this page
+
+    const hostname = location.hostname;
+    if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') return;
+
+    // Check extension pages
+    if (location.protocol === 'chrome-extension:' || location.protocol === 'chrome:' ||
+        location.protocol === 'edge:' || location.protocol === 'about:') return;
+
+    // Check safe whitelist
+    if (isDomainSafe(hostname)) {
+      console.log('[FocusGuard] Safe domain:', hostname);
+      pageClassified = true;
+      return;
+    }
+
+    // Check domain cache
+    if (pageDomainCache[hostname]) {
+      pageClassified = true;
+      if (pageDomainCache[hostname] === 'BLOCK') {
+        showPageBlockOverlay(hostname, 'Cached result');
+      }
+      return;
+    }
+
+    // Need AI classification — show loading badge, send to background
+    pageClassified = true;
+    pageDomainCache[hostname] = 'PENDING';
+    showPageLoadingBadge();
+
+    // Wait for DOM to have metadata (delay a bit)
+    setTimeout(() => {
+      const metadata = extractPageMetadata();
+      console.log('[FocusGuard] Sending page for AI classification:', hostname, metadata.title);
+      chrome.runtime.sendMessage({
+        type: 'CLASSIFY_PAGE',
+        metadata
+      }, () => { void chrome.runtime.lastError; });
+    }, 2000);
+  }
+
+  function showPageLoadingBadge() {
+    if (document.getElementById('focusguard-page-badge')) return;
+    const badge = document.createElement('div');
+    badge.id = 'focusguard-page-badge';
+    badge.className = 'fg-page-loading-badge';
+    badge.innerHTML = `
+      <span class="fg-page-badge-icon">🛡️</span>
+      <span class="fg-page-badge-text">AI đang phân tích...</span>
+    `;
+    document.documentElement.appendChild(badge);
+  }
+
+  function removePageLoadingBadge() {
+    const el = document.getElementById('focusguard-page-badge');
+    if (el) el.remove();
+  }
+
+  function showPageBlockOverlay(domain, reason) {
+    if (document.getElementById('focusguard-page-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'focusguard-page-overlay';
+    overlay.innerHTML = `
+      <div class="fg-social-bg"></div>
+      <div class="fg-social-card">
+        <div class="fg-social-icon" style="background:#ef4444">🚫</div>
+        <h2 class="fg-social-title">${esc(domain)}</h2>
+        <div class="fg-social-divider"></div>
+        <p class="fg-social-desc">
+          AI đã phân tích trang web này và xác định nó <strong>không liên quan đến học tập</strong>.<br/>
+          <em style="color:#64748b;font-size:13px;">${esc(reason || '')}</em>
+        </p>
+        <div class="fg-social-countdown" id="fg-page-countdown">
+          <div class="fg-social-countdown-label">⚠️ Cảnh báo vi phạm</div>
+          <div class="fg-social-progress-track">
+            <div class="fg-social-progress-bar" id="fg-page-progress"></div>
+          </div>
+          <div class="fg-social-countdown-row">
+            <span>Rời trang ngay!</span>
+            <span class="fg-social-countdown-num" id="fg-page-countdown-timer">10s</span>
+          </div>
+        </div>
+        <div class="fg-social-footer">
+          <span class="fg-social-badge">🛡️ Focus Guard — AI Classification</span>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    // Start strike countdown
+    startPageStrikeCountdown(domain);
+  }
+
+  function startPageStrikeCountdown(domain) {
+    if (pageStrikeReported || pageStrikeTimer) return;
+    let secondsLeft = 10;
+
+    pageStrikeTimer = setInterval(() => {
+      secondsLeft--;
+      const timerEl = document.getElementById('fg-page-countdown-timer');
+      if (timerEl) timerEl.textContent = secondsLeft + 's';
+      const barEl = document.getElementById('fg-page-progress');
+      if (barEl) barEl.style.width = ((10 - secondsLeft) / 10 * 100) + '%';
+
+      if (secondsLeft <= 0) {
+        clearInterval(pageStrikeTimer);
+        pageStrikeTimer = null;
+        pageStrikeReported = true;
+        chrome.runtime.sendMessage({
+          type: 'STRIKE_REPORT',
+          videoTitle: domain,
+          reason: `Truy cập ${domain} — trang không liên quan học tập (10s+)`
+        }, () => { void chrome.runtime.lastError; });
+        const cdEl = document.getElementById('fg-page-countdown');
+        if (cdEl) {
+          cdEl.innerHTML = '<div class="fg-social-strike-done">🚨 Đã ghi nhận vi phạm!</div>';
+        }
+      }
+    }, 1000);
+  }
+
+  function removePageOverlay() {
+    removePageLoadingBadge();
+    const el = document.getElementById('focusguard-page-overlay');
+    if (el) el.remove();
+    if (pageStrikeTimer) { clearInterval(pageStrikeTimer); pageStrikeTimer = null; }
+    pageStrikeReported = false;
+    pageClassified = false;
+    document.body.style.overflow = '';
+  }
+
+  // ── Trigger general page check on DOM ready ──
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (focusMode) checkGeneralWebPage();
+    });
+  } else {
+    setTimeout(() => {
+      if (focusMode) checkGeneralWebPage();
+    }, 500);
+  }
+
 })();

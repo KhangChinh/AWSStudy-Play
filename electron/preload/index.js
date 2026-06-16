@@ -18,7 +18,9 @@ contextBridge.exposeInMainWorld('api', {
       'secureStore:setItem',
       'secureStore:getItem',
       'secureStore:removeItem',
-      'secureStore:clear'
+      'secureStore:clear',
+      'setup:openExtensionFolder',
+      'setup:openBrowserExtPage'
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
@@ -30,7 +32,10 @@ contextBridge.exposeInMainWorld('api', {
   send: (channel, data) => {
     const validChannels = [
       'login-success',
-      'logout'
+      'logout',
+      'focus:widget-state',
+      'focus:widget-timer',
+      'focus:widget-cam'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);
@@ -48,7 +53,8 @@ contextBridge.exposeInMainWorld('api', {
       'timer-expired',
       'strike-recorded',
       'session-failed',
-      'ai-status-lost'
+      'ai-status-lost',
+      'ai-classifying'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (_event, ...args) => callback(...args));
