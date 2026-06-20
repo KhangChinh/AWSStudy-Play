@@ -1,34 +1,103 @@
-import { COSMETICS } from '../data/cosmetics';
+import { COSMETICS, S3_ASSETS_BASE } from '../data/cosmetics';
+
+/**
+ * Tự động tạo URL tài nguyên dựa trên QUY CHUẨN:
+ * Folder = SK, File = SK.extension (trong folder assets)
+ */
+const resolveAutoAssets = (item) => {
+  const { SK, itemType } = item;
+  const base = S3_ASSETS_BASE || '';
+  
+  // Đường dẫn thư mục gốc của item: items/background/SK/
+  const itemRoot = `items/${itemType}/${SK}`;
+
+  // Kiểm tra trường hợp đặc biệt cho tên file CSS (có cái tên là SK, có cái tên là galactic_nebula...)
+  // Theo quy chuẩn mới của bạn: File chính phải trùng tên SK
+  let cssName = SK;
+  if (SK === 'bg_galactic_nebula') cssName = 'galactic_nebula'; // Fallback cho folder cũ bạn đang có
+
+  return {
+    css: `${base}/${itemRoot}/assets/${cssName}.css`,
+    image: `${base}/${itemRoot}/${SK}.jpg` // Theo cấu trúc thực tế tôi thấy trong folder của bạn
+  };
+};
+
+/** Chuyển "bg_dark_void" thành "Dark Void" */
+const formatName = (sk) => {
+  return sk.replace(/^bg_/, '').split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
 
 class CosmeticManager {
   constructor() {
-    this.data = COSMETICS;
+    this.data = JSON.parse(JSON.stringify(COSMETICS));
     this.activeStyleElement = null;
   }
 
-  // Get full data for an item by its category and id (supports both old ID and new SK)
-  getCosmeticInfo(category, id) {
-    return this.data[category]?.find(item => (item.id === id || item.SK === id));
+  loadFromMasterData(items) {
+    if (!Array.isArray(items)) return;
+
+    const categoryMap = {
+      background: 'backgrounds',
+      frame:      'frames',
+      title:      'titles',
+    };
+
+    items.forEach(item => {
+      const category = categoryMap[item.itemType];
+      if (!category || !this.data[category]) return;
+
+      const autoUrls = resolveAutoAssets(item);
+
+      const mappedItem = {
+        name: formatName(item.SK), // Tự tạo tên đẹp từ ID
+        ...item,
+        id: item.SK,
+        assets: {
+          css: item.assets?.css ? `${S3_ASSETS_BASE}/${item.assets.css}` : autoUrls.css,
+        },
+        imageUrl: item.imageUrl ? `${S3_ASSETS_BASE}/${item.imageUrl}` : autoUrls.image,
+        preview: `url("${item.imageUrl ? `${S3_ASSETS_BASE}/${item.imageUrl}` : autoUrls.image}") center/cover no-repeat`
+      };
+
+      const idx = this.data[category].findIndex(i => i.id === item.SK);
+      if (idx > -1) {
+        this.data[category][idx] = { ...this.data[category][idx], ...mappedItem };
+      } else {
+        this.data[category].push(mappedItem);
+      }
+    });
+
+    console.log('[CosmeticManager] Đã nạp danh sách nền từ Cloud:', this.data.backgrounds.map(b => b.id));
   }
 
-  // Dynamic Theme Asset Management
-  applyThemeAssets(themeId) {
-    const theme = this.getCosmeticInfo('themes', themeId);
-    if (!theme) return;
+  getCosmeticInfo(category, id) {
+    return this.data[category]?.find(i => i.id === id || i.SK === id) || null;
+  }
 
-    // Handle CSS injection if asset provided
-    if (theme.assets && theme.assets.css) {
-      this.injectExternalCSS(theme.assets.css);
-    } else {
+  applyAssets(category, id) {
+    const item = this.getCosmeticInfo(category, id);
+    if (!item) {
       this.removeExternalCSS();
+      return;
     }
     
-    // BGM and Particles (Placeholder for later)
+    // Nếu là default thì dùng CSS gốc của App, không inject external
+    if (id === 'bg_default') {
+      this.removeExternalCSS();
+      return;
+    }
+
+    if (item.assets?.css) {
+      this.injectExternalCSS(item.assets.css);
+    }
+  }
+
+  applyBackgroundAssets(bgId) {
+    this.applyAssets('backgrounds', bgId);
   }
 
   injectExternalCSS(url) {
     this.removeExternalCSS();
-
     const link = document.createElement('link');
     link.id = 'dynamic-theme-style';
     link.rel = 'stylesheet';
@@ -38,22 +107,8 @@ class CosmeticManager {
   }
 
   removeExternalCSS() {
-    const oldLink = document.getElementById('dynamic-theme-style');
-    if (oldLink) oldLink.remove();
-    this.activeStyleElement = null;
-  }
-
-  // Generate combined classNames based on current equipment state
-  getCombinedClasses(equipment) {
-    const classes = [];
-    if (equipment.frame) classes.push(this.getCosmeticInfo('frames', equipment.frame)?.className);
-    if (equipment.title) classes.push(this.getCosmeticInfo('titles', equipment.title)?.className);
-    if (equipment.theme) {
-      const theme = this.getCosmeticInfo('themes', equipment.theme);
-      if (theme) classes.push(theme.className);
-    }
-    
-    return classes.filter(Boolean).join(' ');
+    const old = document.getElementById('dynamic-theme-style');
+    if (old) old.remove();
   }
 
   getAllInCategory(category) {
