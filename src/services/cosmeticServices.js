@@ -81,3 +81,19 @@ export const handleEquipCosmeticsApi = async (data) => {
     throw e;
   }
 };
+
+/**
+ * Thay đổi tên hiển thị của User
+ * @param {string} newName 
+ */
+export const handleUpdateNameApi = async (newName) => {
+  try {
+    return await authFetch('/user/profile', {
+      method: 'POST',
+      body: JSON.stringify({ name: newName })
+    });
+  } catch (e) {
+    console.warn('[cosmeticServices] FAIL handleUpdateNameApi:', e.message);
+    throw e;
+  }
+};

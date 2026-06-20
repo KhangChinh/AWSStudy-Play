@@ -243,19 +243,19 @@ class Profile extends Component {
                 <span className="rank-chip">{rankLabel}</span>
               </div>
               <div className="wallet-info">
-                <div className="coin-pill pink" title="Sanity">
+                <div className="coin-pill pink" title={t('common.sanity')}>
                   <IonIcon icon={starOutline} className="coin-icon" />
                   <span className="coin-val">{economy?.sanity || 0}</span>
                 </div>
-                <div className="coin-pill" title="eCoin">
+                <div className="coin-pill" title={t('common.ecoin')}>
                   <IonIcon icon={cashOutline} className="coin-icon" />
                   <span className="coin-val">{pCoins.toLocaleString()}</span>
                 </div>
-                <div className="coin-pill blue" title="Knowledge Points">
+                <div className="coin-pill blue" title={t('common.knowledge_points')}>
                   <IonIcon icon={cubeOutline} className="coin-icon" />
                   <span className="coin-val">{economy?.knowledgePoint?.toLocaleString() || 0}</span>
                 </div>
-                <div className="streak-badge" title="Study Streak">
+                <div className="streak-badge" title={t('common.streak')}>
                   🔥 <span>{userInfo?.streak || 0}</span>
                 </div>
               </div>
