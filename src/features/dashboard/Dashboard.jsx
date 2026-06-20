@@ -145,7 +145,7 @@ class Dashboard extends Component {
       currentRank: 'diamond',
       currentBackground: 'bg_default',
       currentTitle: 'title_newbie',
-      currentFrame: 'frame_gold',
+      currentFrame: 'frame_none',
       currentSystemIcon: 'icon_default',
       animationsEnabled: true,
       isVacuuming: false,
