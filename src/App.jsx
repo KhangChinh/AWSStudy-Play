@@ -11,7 +11,7 @@ import AuthPage from './features/auth/AuthPage';
 import Spinner from './components/Spinner';
 import { notifyLoginSuccess, notifyLogout } from './services/ipcWindowService';
 import { getUserFromApi } from './services/userService';
-import { userLogin, userLogout } from './store/actions';
+import { userLogin, userLogout, setDailyQuests } from './store/actions';
 import './index.css';
 
 /**
@@ -129,6 +129,20 @@ class App extends Component {
         key: 'lastActiveTimestamp',
         value: String(Date.now()),
       }).catch(() => { });
+
+      // 4e. Load cached quest data từ electron-store
+      try {
+        const questResult = await window.api.invoke('quest:load');
+        if (questResult?.data?.quests && questResult.data.expiresAt) {
+          const now = Math.floor(Date.now() / 1000);
+          if (questResult.data.expiresAt > now) {
+            this.props.setDailyQuests(questResult.data);
+            console.log('[App] Loaded cached quests from store');
+          }
+        }
+      } catch (e) {
+        console.warn('[App] Failed to load quests from store:', e);
+      }
     }
   };
 
@@ -184,6 +198,7 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => ({
   userLogin: (info) => dispatch(userLogin(info)),
   userLogout: () => dispatch(userLogout()),
+  setDailyQuests: (data) => dispatch(setDailyQuests(data)),
 });
 
 const ConnectedApp = connect(mapStateToProps, mapDispatchToProps)(App);

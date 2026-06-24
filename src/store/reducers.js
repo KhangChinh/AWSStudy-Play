@@ -34,6 +34,8 @@ const initialState = {
   friends: [],
   // Minigame
   minigameHighscores: {},
+  // Quest
+  dailyQuests: null,
 };
 
 const appReducer = (state = initialState, action) => {
@@ -82,6 +84,18 @@ const appReducer = (state = initialState, action) => {
       return {
         ...state,
         friends: action.payload,
+      };
+    case 'SET_DAILY_QUESTS':
+      return {
+        ...state,
+        dailyQuests: action.payload,
+      };
+    case 'UPDATE_QUEST_PROGRESS':
+      return {
+        ...state,
+        dailyQuests: state.dailyQuests
+          ? { ...state.dailyQuests, quests: action.payload }
+          : null,
       };
     default:
       return state;

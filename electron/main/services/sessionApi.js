@@ -15,7 +15,7 @@ export async function startSession(token, { mode, durationMinutes }) {
   if (!API_BASE) { console.error('[SessionAPI] API_BASE not set'); return { success: false }; }
   
   const cleanBase = API_BASE.replace(/\/$/, ''); // Xóa dấu / ở cuối nếu có
-  const url = `${cleanBase}/start-session`;
+  const url = `${cleanBase}/start-study-session`;
   console.log(`\n[SessionAPI] 🟢 Đang gọi API Bắt đầu Session:`, url);
   console.log(`[SessionAPI] Token có tồn tại không?:`, !!token);
   console.log(`[SessionAPI] Payload gửi đi:`, { mode, durationMinutes });
@@ -69,7 +69,7 @@ export async function endSession(token, { sessionId }) {
   if (!API_BASE) { console.error('[SessionAPI] API_BASE not set'); return { success: false }; }
   
   const cleanBase = API_BASE.replace(/\/$/, '');
-  const url = `${cleanBase}/end-session`;
+  const url = `${cleanBase}/end-study-session`;
   console.log(`\n[SessionAPI] 🟢 Đang gọi API Kết thúc Session:`, url, { sessionId });
 
   try {

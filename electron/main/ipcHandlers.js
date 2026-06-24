@@ -14,6 +14,7 @@ import { startFocus, stopFocus, getSessionStatus, setFocusWin, setUserId, setAut
 import { classifyContent, clearCache, getAiStatus, getAllowedCategories, saveAllowedCategories, getGroqKey, saveGroqKey } from './services/aiGuard.js';
 import { secureSetItem, secureGetItem, secureRemoveItem, secureClear } from './services/secureStore.js';
 import { setApiUrl } from './services/sessionApi.js';
+import { saveQuestsToStore, loadQuestsFromStore, clearQuestsStore } from './services/questStore.js';
 
 export function registerIpcHandlers(ipcMain, win) {
   // Set BrowserWindow reference for focusEngine renderer communication
@@ -72,6 +73,21 @@ export function registerIpcHandlers(ipcMain, win) {
     if (token) setAuthToken(token);
     if (apiUrl) setApiUrl(apiUrl);
     return { success: true };
+  });
+
+  // ═══════════════════════════════════════════
+  //  QUEST STORE — Lưu/đọc daily quests (base64)
+  // ═══════════════════════════════════════════
+  ipcMain.handle('quest:save', async (_event, data) => {
+    return saveQuestsToStore(data);
+  });
+
+  ipcMain.handle('quest:load', async () => {
+    return loadQuestsFromStore();
+  });
+
+  ipcMain.handle('quest:clear', async () => {
+    return clearQuestsStore();
   });
 
   // ═══════════════════════════════════════════

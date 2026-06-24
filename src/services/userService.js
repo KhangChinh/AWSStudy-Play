@@ -8,7 +8,8 @@ const getUserFromApi = async () => {
     if (!idToken) {
       return { success: false, error: 'Unauthorized: No token available' };
     }
-    const response = await fetch(`${API_URL}/get-user`, {
+    const cleanApiUrl = API_URL.replace(/\/$/, '');
+    const response = await fetch(`${cleanApiUrl}/get-profile`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${idToken}`,

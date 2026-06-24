@@ -185,6 +185,25 @@ const FocusGuard = () => {
           resumeTracking();
         }
       },
+      'quest-updated': (updatedQuests) => {
+        if (updatedQuests && window.api?.invoke) {
+          // Lưu vào electron-store
+          window.api.invoke('quest:load').then((stored) => {
+            const existingDaily = stored?.data || {};
+            const updatedDaily = { ...existingDaily, quests: updatedQuests };
+            window.api.invoke('quest:save', updatedDaily);
+          });
+          // Kiểm tra có quest nào vừa hoàn thành không
+          for (const [key, quest] of Object.entries(updatedQuests)) {
+            if (key !== 'all_daily' && quest.isCompleted) {
+              toast.success(`🎯 Nhiệm vụ "${quest.name}" đã hoàn thành!`);
+            }
+          }
+          if (updatedQuests.all_daily?.isCompleted) {
+            toast.success('🏆 Hoàn thành tất cả nhiệm vụ ngày!');
+          }
+        }
+      },
     };
 
     const cleanups = Object.entries(handlers).map(([event, handler]) => {

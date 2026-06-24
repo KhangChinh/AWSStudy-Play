@@ -51,3 +51,14 @@ export const setFriends = (data) => ({
   type: 'SET_FRIENDS',
   payload: data,
 });
+
+//quest
+export const setDailyQuests = (data) => ({
+  type: 'SET_DAILY_QUESTS',
+  payload: data,
+});
+
+export const updateQuestProgress = (quests) => ({
+  type: 'UPDATE_QUEST_PROGRESS',
+  payload: quests,
+});

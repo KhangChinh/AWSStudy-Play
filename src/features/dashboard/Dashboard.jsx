@@ -7,7 +7,7 @@ import {
   settingsOutline, cubeOutline, ticketOutline, gameControllerOutline,
   cartOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
   imageOutline, personOutline, globeOutline, cart, planetOutline, starOutline,
-  copyOutline
+  copyOutline, checkmarkDoneOutline
 } from 'ionicons/icons';
 
 import FocusGuard from '../focus/FocusGuard';
@@ -16,6 +16,7 @@ import Inventory from '../inventory/Inventory';
 import GachaStation from '../gacha/GachaStation';
 import GachaTestApp from '../gacha/GachaTestApp';
 import MinigameHub from '../minihub/MinigameHub';
+import QuestPanel from '../quest/QuestPanel';
 import { withRouter } from '../../utils/withRouter';
 import { notifyLogout } from '../../services/ipcWindowService';
 import { userLogout } from '../../store/actions';
@@ -161,6 +162,7 @@ const APPS = [
   { id: 'gacha', name: 'Gacha', className: 'gacha', icon: ticketOutline, content: <GachaStation /> },
   { id: 'gacha-test', name: 'Gacha Test', className: 'gacha-test', icon: starOutline, content: <GachaTestApp /> },
   { id: 'minigame', name: 'Mini Games', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
+  { id: 'quest', name: 'Quests', className: 'quest', icon: checkmarkDoneOutline, content: <QuestPanel /> },
   { id: 'store', name: 'Store', className: 'store', icon: cartOutline, content: <StoreApp /> },
 ];
 
