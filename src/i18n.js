@@ -24,6 +24,10 @@ i18n
             cancel: 'Cancel',
             rename: 'Rename',
             username: 'Username',
+            ecoin: 'eCoin',
+            sanity: 'Sanity',
+            knowledge_points: 'Knowledge Points',
+            streak: 'Study Streak',
           },
           rank: {
             bronze: 'Bronze',
@@ -58,6 +62,7 @@ i18n
             rename_cost: '* Rename costs 10,000 P-Coin',
             english: 'English',
             vietnamese: 'Vietnamese',
+            rename_error: 'Failed to update name. Please try again!',
           },
           titles: {
             unlocked: 'Unlocked',
@@ -185,6 +190,10 @@ i18n
             cancel: 'Hủy',
             rename: 'Đổi tên',
             username: 'Tên người dùng',
+            ecoin: 'eCoin',
+            sanity: 'Năng lượng',
+            knowledge_points: 'Điểm tri thức',
+            streak: 'Chuỗi ngày học',
           },
           rank: {
             bronze: 'Đồng',
@@ -219,6 +228,7 @@ i18n
             rename_cost: '* Đổi tên tốn 10.000 P-Coin',
             english: 'Tiếng Anh',
             vietnamese: 'Tiếng Việt',
+            rename_error: 'Đổi tên thất bại. Vui lòng thử lại!',
           },
           titles: {
             unlocked: 'Đã mở',

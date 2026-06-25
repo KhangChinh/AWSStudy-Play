@@ -47,22 +47,11 @@ class Profile extends Component {
     super(props);
     this.state = {
       activeTab: 'backgrounds',
-      customBackgrounds: [],
     };
-    this.fileInputRef = React.createRef();
   }
 
   getBackgrounds = () => {
-    const baseBackgrounds = cosmeticManager.getAllInCategory('backgrounds');
-    const selectedBackground = resolveBackground(this.props.currentBackground);
-    const customBackgrounds = selectedBackground?.custom
-      ? [selectedBackground, ...this.state.customBackgrounds]
-      : this.state.customBackgrounds;
-    const uniqueCustomBackgrounds = customBackgrounds.filter((background, index, list) => (
-      list.findIndex(item => item.id === background.id) === index
-    ));
-
-    return [...uniqueCustomBackgrounds, ...baseBackgrounds];
+    return cosmeticManager.getAllInCategory('backgrounds');
   };
 
   handleCoverEdit = () => {
@@ -73,35 +62,6 @@ class Profile extends Component {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     this.handleCoverEdit();
-  };
-
-  handleAddBackground = () => {
-    this.fileInputRef.current?.click();
-  };
-
-  handleBackgroundFileChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const imageUrl = `url("${reader.result}")`;
-      const customBackground = {
-        id: `custom_bg_${Date.now()}`,
-        name: file.name.replace(/\.[^.]+$/, '').slice(0, 24) || 'Custom',
-        preview: `${imageUrl} center / cover`,
-        profileBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.38) 0%, rgba(2, 6, 23, 0.84) 100%), ${imageUrl} center / cover no-repeat`,
-        desktopBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.34) 0%, rgba(2, 6, 23, 0.68) 100%), ${imageUrl} center / cover no-repeat`,
-        custom: true,
-      };
-
-      this.setState(
-        (prev) => ({ customBackgrounds: [customBackground, ...prev.customBackgrounds] }),
-        () => this.props.onBackgroundChange?.(customBackground)
-      );
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
   };
 
   renderTabContent = () => {
@@ -125,31 +85,22 @@ class Profile extends Component {
 
       return (
         <div className="backgrounds-grid">
-          <input
-            ref={this.fileInputRef}
-            className="background-file-input"
-            type="file"
-            accept="image/*"
-            onChange={this.handleBackgroundFileChange}
-          />
-          <div className="bg-item-card add-btn" onClick={this.handleAddBackground}>
-            <div className="bg-preview add-icon">
-              <IonIcon icon={addOutline} />
-            </div>
-            <div className="bg-name">{translate('profile.add_file')}</div>
-          </div>
           {backgrounds.map(background => {
+            const isUnlocked = inventoryManager.hasItem(background.id)
+              || background.id === 'bg_default'
+              || background.custom
+              || !background.SK;
             const isActive = activeBackgroundId === background.id;
 
             return (
               <div
                 key={background.id}
-                className={`bg-item-card ${isActive ? 'active' : ''}`}
-                onClick={() => onBackgroundChange?.(background.custom ? background : background.id)}
+                className={`bg-item-card ${isActive ? 'active' : ''} ${!isUnlocked ? 'locked' : ''}`}
+                onClick={() => isUnlocked && onBackgroundChange?.(background.custom ? background : background.id)}
               >
                 <div
                   className="bg-preview"
-                  style={{ background: background.preview || background.profileBackground }}
+                  style={{ background: background.preview || background.profileBackground || '#1e293b' }}
                 />
                 <div className="bg-name">{background.name}</div>
                 {isActive && <div className="bg-active-dot" title={translate('profile.equipped')} />}
@@ -201,19 +152,22 @@ class Profile extends Component {
 
       return (
         <div className="frames-grid">
-          {frames.map(frame => (
-            <div
-              key={frame.id}
-              className={`frame-item-card ${currentFrame === frame.id ? 'active' : ''}`}
-              onClick={() => onFrameChange?.(frame.id)}
-            >
-              <RankFrame tier={frame.tier} size={92}>
-                <IonIcon icon={personCircleOutline} />
-              </RankFrame>
-              <div className="frame-name">{frame.name}</div>
-              {currentFrame === frame.id && <div className="active-dot" />}
-            </div>
-          ))}
+          {frames.map(frame => {
+            const isUnlocked = inventoryManager.hasItem(frame.id) || frame.id === 'frame_none';
+            return (
+              <div
+                key={frame.id}
+                className={`frame-item-card ${currentFrame === frame.id ? 'active' : ''} ${!isUnlocked ? 'locked' : ''}`}
+                onClick={() => isUnlocked && onFrameChange?.(frame.id)}
+              >
+                <RankFrame tier={frame.tier} size={92}>
+                  <IonIcon icon={personCircleOutline} />
+                </RankFrame>
+                <div className="frame-name">{frame.name}</div>
+                {currentFrame === frame.id && <div className="active-dot" />}
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -281,7 +235,11 @@ class Profile extends Component {
           </div>
           <div className="user-profile-section">
             <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
-              <IonIcon icon={personCircleOutline} />
+              {userInfo?.avatar ? (
+                <img src={userInfo.avatar} alt="avatar" className="avatar-img-large" />
+              ) : (
+                <IonIcon icon={personCircleOutline} />
+              )}
             </RankFrame>
             <div className="user-main-info">
               <div className="username-line">
@@ -294,9 +252,20 @@ class Profile extends Component {
                 <span className="rank-chip">{rankLabel}</span>
               </div>
               <div className="wallet-info">
-                <div className="coin-pill">
+                <div className="coin-pill pink" title={t('common.sanity')}>
+                  <IonIcon icon={starOutline} className="coin-icon" />
+                  <span className="coin-val">{economy?.sanity || 0}</span>
+                </div>
+                <div className="coin-pill" title={t('common.ecoin')}>
                   <IonIcon icon={cashOutline} className="coin-icon" />
                   <span className="coin-val">{pCoins.toLocaleString()}</span>
+                </div>
+                <div className="coin-pill blue" title={t('common.knowledge_points')}>
+                  <IonIcon icon={cubeOutline} className="coin-icon" />
+                  <span className="coin-val">{economy?.knowledgePoint?.toLocaleString() || 0}</span>
+                </div>
+                <div className="streak-badge" title={t('common.streak')}>
+                  🔥 <span>{userInfo?.streak || 0}</span>
                 </div>
               </div>
             </div>

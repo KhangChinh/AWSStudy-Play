@@ -26,7 +26,9 @@ import SettingsApp from '../settings/SettingsApp';
 import RankFrame from '../../components/RankFrame';
 import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authServices';
-import { userLogout } from '../../store/actions';
+import { handleGetMasterDataApi, handleSyncAllApi, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
+import { userLogout, setEconomy, setInventory, userLogin } from '../../store/actions';
+import inventoryManager from '../../managers/inventoryManager';
 import './Dashboard.scss';
 
 const RANK_KEYS = {
@@ -76,7 +78,11 @@ const UserProfileWidget = ({
   return (
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
       <RankFrame tier={frameTier} size={64} className="widget-rank-frame">
-        <IonIcon icon={personOutline} />
+        {userInfo?.avatar ? (
+          <img src={userInfo.avatar} alt="avatar" className="avatar-img" />
+        ) : (
+          <IonIcon icon={personOutline} />
+        )}
       </RankFrame>
       <div className="user-info">
         <div className="user-name-line">
@@ -139,7 +145,7 @@ class Dashboard extends Component {
       currentRank: 'diamond',
       currentBackground: 'bg_default',
       currentTitle: 'title_newbie',
-      currentFrame: 'frame_gold',
+      currentFrame: 'frame_none',
       currentSystemIcon: 'icon_default',
       animationsEnabled: true,
       isVacuuming: false,
@@ -158,13 +164,80 @@ class Dashboard extends Component {
     this.missionsBtnRef = React.createRef();
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     this.timerInterval = setInterval(() => {
       this.setState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
     }, 60000);
     document.addEventListener('mousedown', this.handleClickOutside);
+
+    // Apply background ban đầu (dùng data local từ cosmetics.js)
+    cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
+
+    // Load master data từ cloud — sau đó re-render để Profile thấy bg mới
+    try {
+      const response = await handleGetMasterDataApi();
+      if (response && Array.isArray(response.items) && response.items.length > 0) {
+        cosmeticManager.loadFromMasterData(response.items);
+        this.setState({ masterDataLoaded: true });
+        cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
+      }
+    } catch (e) {
+      console.warn('Không thể tải master data:', e);
+    }
+
+    // ĐỒNG BỘ CLOUD: Lấy Profile, Inventory, Coin từ Serverless
+    try {
+      const syncResponse = await handleSyncAllApi();
+      if (syncResponse && syncResponse.profile) {
+        const { profile, inventory } = syncResponse;
+        const cosmetics = profile.equippedCosmetics || {};
+
+        // Cập nhật Inventory Manager
+        if (inventory) {
+          inventoryManager.inventory = inventory.map(item => ({
+            id: item.SK,
+            SK: item.SK,
+            amount: item.amount || 1
+          }));
+          this.props.setInventory({ items: inventory });
+        }
+
+        // Đẩy dữ liệu vào Redux Store
+        this.props.userLogin({
+          ...this.props.userInfo,
+          username: profile.information?.name || this.props.userInfo?.username || 'Player_9999',
+          avatar: profile.information?.avatarUrl,
+          streak: profile.studyStats?.streak || 0, // Streak mới từ Cloud
+        });
+
+        if (profile.budget) {
+          this.props.setEconomy({
+            pCoins: profile.budget.eCoin || 0,
+            knowledgePoint: profile.budget.knowledgePoint || 0,
+            sanity: profile.budget.sanity || 0, // Sanity mới từ Cloud
+          });
+        }
+
+        // Cập nhật State Dashboard theo Cloud
+        this.setState({
+          currentBackground: cosmetics.equippedBackground || 'bg_default',
+          currentFrame: cosmetics.equippedFrame || 'frame_none',
+          currentTitle: (cosmetics.equippedTitles && cosmetics.equippedTitles[0]) || 'title_newbie',
+        });
+
+        console.log('[Dashboard] Cloud Sync hoàn tất:', profile);
+      }
+    } catch (e) {
+      console.warn('[Dashboard] Cloud Sync thất bại:', e);
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.currentBackground !== this.state.currentBackground) {
+      cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
+    }
   }
 
   componentWillUnmount() {
@@ -198,20 +271,42 @@ class Dashboard extends Component {
     }, 800);
   };
 
-  handleTitleChange = (newTitleId) => {
+  handleTitleChange = async (newTitleId) => {
     this.setState({ currentTitle: newTitleId });
+    try {
+      await handleEquipCosmeticsApi({
+        backgroundId: this.state.currentBackground,
+        frameId: this.state.currentFrame,
+        titles: [newTitleId]
+      });
+    } catch (e) { console.warn('Sync Title fail:', e); }
   };
 
-  handleFrameChange = (newFrameId) => {
+  handleFrameChange = async (newFrameId) => {
     this.setState({ currentFrame: newFrameId });
+    try {
+      await handleEquipCosmeticsApi({
+        backgroundId: this.state.currentBackground,
+        frameId: newFrameId,
+        titles: [this.state.currentTitle]
+      });
+    } catch (e) { console.warn('Sync Frame fail:', e); }
   };
 
   handleToggleAnimations = () => {
     this.setState(prev => ({ animationsEnabled: !prev.animationsEnabled }));
   };
 
-  handleBackgroundChange = (newBackground) => {
-    this.setState({ currentBackground: newBackground });
+  handleBackgroundChange = async (newBackground) => {
+    const bgId = typeof newBackground === 'string' ? newBackground : newBackground.id;
+    this.setState({ currentBackground: bgId });
+    try {
+      await handleEquipCosmeticsApi({
+        backgroundId: bgId,
+        frameId: this.state.currentFrame,
+        titles: [this.state.currentTitle]
+      });
+    } catch (e) { console.warn('Sync Background fail:', e); }
   };
 
   handleSystemIconChange = (id) => {
@@ -717,6 +812,9 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => ({
   userLogout: () => dispatch(userLogout()),
+  userLogin: (info) => dispatch(userLogin(info)),
+  setEconomy: (data) => dispatch(setEconomy(data)),
+  setInventory: (data) => dispatch(setInventory(data)),
 });
 
 export default withTranslation()(withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard)));

@@ -157,7 +157,10 @@
         background: rgba(255, 255, 255, 0.05);
         border: 2px solid rgba(255, 255, 255, 0.1);
 
-        .avatar-content {
+        .avatar-content, .avatar-img-large {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
           font-size: 50px;
           color: rgba(255, 255, 255, 0.6);
         }
@@ -261,6 +264,33 @@
               font-weight: 800;
               color: #fbbf24;
             }
+
+            &.pink {
+              background: rgba(236, 72, 153, 0.1);
+              border-color: rgba(236, 72, 153, 0.2);
+              .coin-icon, .coin-val { color: #f472b6; }
+            }
+
+            &.blue {
+              background: rgba(59, 130, 246, 0.1);
+              border-color: rgba(59, 130, 246, 0.2);
+              .coin-icon, .coin-val { color: #60a5fa; }
+            }
+          }
+
+          .streak-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: 800;
+            color: #f87171;
+            margin-left: 8px;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
           }
         }
       }
@@ -403,6 +433,22 @@
           }
         }
 
+        &.locked {
+          opacity: 0.5;
+          cursor: not-allowed;
+          filter: grayscale(0.8);
+          background: rgba(15, 23, 42, 0.3);
+
+          .bg-name {
+            color: #64748b;
+          }
+
+          &:hover {
+            transform: none;
+            background: rgba(15, 23, 42, 0.3);
+          }
+        }
+
         .equipped-tag {
           position: absolute;
           top: 6px;
@@ -519,6 +565,20 @@
         &.active {
           border-color: #c084fc;
           background: rgba(192, 132, 252, 0.05);
+        }
+
+        &.locked {
+          opacity: 0.5;
+          cursor: not-allowed;
+          filter: grayscale(0.9);
+          
+          .frame-name {
+            color: #64748b;
+          }
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.03);
+          }
         }
 
         .frame-preview-outer {

@@ -1,22 +1,26 @@
 /**
- * Cosmetic Database
+ * Cosmetic Database (Local Fallback + Cloud SK registry)
  */
+
+export const S3_ASSETS_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '').replace(/\/$/, '');
+
+// Background IDs on S3 / AWSServerless — loaded via cosmeticManager.loadFromMasterData
+export const CLOUD_BACKGROUND_SKS = [
+  'bg_crimson_void',
+  'bg_dark',
+  'bg_light',
+  'bg_purple',
+];
 
 export const COSMETICS = {
   backgrounds: [
     {
       id: 'bg_default',
       name: 'Aurora Study',
+      assets: {},
       preview: 'radial-gradient(circle at 18% 16%, rgba(34, 211, 238, 0.38) 0%, transparent 28%), radial-gradient(circle at 82% 20%, rgba(217, 70, 239, 0.34) 0%, transparent 30%), radial-gradient(circle at 68% 78%, rgba(251, 191, 36, 0.24) 0%, transparent 30%), linear-gradient(135deg, rgba(9, 16, 43, 0.98) 0%, rgba(13, 37, 67, 0.96) 42%, rgba(26, 12, 53, 0.96) 100%)',
       profileBackground: 'linear-gradient(180deg, rgba(2, 6, 23, 0.32) 0%, rgba(2, 6, 23, 0.76) 100%), radial-gradient(circle at 18% 16%, rgba(34, 211, 238, 0.38) 0%, transparent 28%), radial-gradient(circle at 82% 20%, rgba(217, 70, 239, 0.34) 0%, transparent 30%), radial-gradient(circle at 68% 78%, rgba(251, 191, 36, 0.24) 0%, transparent 30%), linear-gradient(135deg, rgba(9, 16, 43, 0.98) 0%, rgba(13, 37, 67, 0.96) 42%, rgba(26, 12, 53, 0.96) 100%)',
       desktopBackground: 'radial-gradient(circle at 18% 16%, rgba(34, 211, 238, 0.38) 0%, transparent 28%), radial-gradient(circle at 82% 20%, rgba(217, 70, 239, 0.34) 0%, transparent 30%), radial-gradient(circle at 68% 78%, rgba(251, 191, 36, 0.24) 0%, transparent 30%), linear-gradient(135deg, rgba(9, 16, 43, 0.98) 0%, rgba(13, 37, 67, 0.96) 42%, rgba(26, 12, 53, 0.96) 100%)',
-    },
-    {
-      id: 'bg_purple',
-      name: 'Nebula',
-      preview: 'radial-gradient(circle at 22% 18%, rgba(168, 85, 247, 0.42) 0%, transparent 28%), radial-gradient(circle at 78% 24%, rgba(217, 70, 239, 0.36) 0%, transparent 30%), radial-gradient(circle at 62% 82%, rgba(139, 92, 246, 0.28) 0%, transparent 32%), linear-gradient(135deg, rgba(15, 5, 32, 0.98) 0%, rgba(43, 12, 61, 0.96) 42%, rgba(12, 2, 24, 0.98) 100%)',
-      profileBackground: 'linear-gradient(180deg, rgba(2, 6, 23, 0.32) 0%, rgba(2, 6, 23, 0.76) 100%), radial-gradient(circle at 22% 18%, rgba(168, 85, 247, 0.42) 0%, transparent 28%), radial-gradient(circle at 78% 24%, rgba(217, 70, 239, 0.36) 0%, transparent 30%), radial-gradient(circle at 62% 82%, rgba(139, 92, 246, 0.28) 0%, transparent 32%), linear-gradient(135deg, rgba(15, 5, 32, 0.98) 0%, rgba(43, 12, 61, 0.96) 42%, rgba(12, 2, 24, 0.98) 100%)',
-      desktopBackground: 'radial-gradient(circle at 22% 18%, rgba(168, 85, 247, 0.42) 0%, transparent 28%), radial-gradient(circle at 78% 24%, rgba(217, 70, 239, 0.36) 0%, transparent 30%), radial-gradient(circle at 62% 82%, rgba(139, 92, 246, 0.28) 0%, transparent 32%), linear-gradient(135deg, rgba(15, 5, 32, 0.98) 0%, rgba(43, 12, 61, 0.96) 42%, rgba(12, 2, 24, 0.98) 100%)',
     },
     {
       id: 'bg_black',
@@ -47,17 +51,7 @@ export const COSMETICS = {
     { id: 'title_legend', i18nKey: 'titles.legend', className: 't-legend', color: '#fbbf24' },
     { id: 'title_admin', i18nKey: 'titles.admin', className: 't-admin', color: '#ef4444' },
   ],
-  // effects: [
-  //   { id: 'eff_none', name: 'No Effect', className: 'e-none' },
-  //   { id: 'eff_sparkle', name: 'Sparkle', className: 'e-sparkle' },
-  //   { id: 'eff_fire', name: 'Phoenix Flame', className: 'e-fire' },
-  //   { id: 'eff_snow', name: 'Winter Frost', className: 'e-snow' },
-  // ],
-  themes: [
-    { id: 'theme_dark', name: 'Deep Space', className: 'theme-dark' },
-    { id: 'theme_light', name: 'Star Light', className: 'theme-light' },
-    { id: 'theme_halloween', name: 'Halloween Night', className: 'theme-halloween' },
-  ],
+  themes: [],
   systemIcons: [
     { id: 'icon_default', name: 'Linear Neon', type: 'outline' },
     { id: 'icon_solid', name: 'Neural Solid', type: 'filled' },
