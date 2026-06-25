@@ -1,29 +1,25 @@
-/**
- * Economy Services — Gọi AWS cho Economy (P-Coin, Balance)
- * React <-> AWS (Gọi Mây) qua HTTP
- */
-
-import { apiCall } from '../utils/package';
+import { economyApi, syncApi } from '../utils/api';
 
 export const handleGetBalanceApi = async () => {
   try {
-    const response = await apiCall('/economy/balance');
-    return response;
+    const response = await syncApi.profile();
+    return response.profile?.budget || {};
   } catch (e) {
     console.log('Error getting balance:', e);
-    return { errCode: -1, errMessage: e.message };
+    return { success: false, message: e.message };
   }
 };
 
-export const handleSyncGameResultApi = async (data) => {
+export const handleExchangeKPToCoreApi = async (amount) => {
   try {
-    const response = await apiCall('/economy/sync', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return response;
+    return await economyApi.exchange(amount);
   } catch (e) {
-    console.log('Error syncing game result:', e);
-    return { errCode: -1, errMessage: e.message };
+    console.log('Error exchanging currency:', e);
+    return { success: false, message: e.message };
   }
 };
+
+export const handleSyncGameResultApi = async () => ({
+  success: false,
+  message: 'Game session sync is currently handled by Lambda minigame session endpoints.',
+});

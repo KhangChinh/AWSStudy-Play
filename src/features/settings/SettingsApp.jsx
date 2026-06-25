@@ -44,7 +44,7 @@ const SettingsApp = ({
         });
         setIsEditingName(false);
       }
-    } catch (e) {
+    } catch (_e) {
       alert(t('settings.rename_error') || 'Lỗi khi đổi tên');
     } finally {
       setLoading(false);

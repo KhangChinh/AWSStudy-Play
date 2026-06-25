@@ -1,16 +1,19 @@
-/**
- * Gacha Services — Gọi AWS Lambda cho Gacha Station
- * React <-> AWS (Gọi Mây) qua HTTP
- */
+import { gachaApi, syncApi } from '../utils/api';
 
-import { apiCall } from '../utils/package';
-
-export const handleRollGachaApi = async () => {
+export const handleRollGachaApi = async (count = 1) => {
   try {
-    const response = await apiCall('/gacha/roll', { method: 'POST' });
-    return response;
+    return await gachaApi.roll(count);
   } catch (e) {
     console.log('Error rolling gacha:', e);
-    return { errCode: -1, errMessage: e.message };
+    return { success: false, message: e.message };
+  }
+};
+
+export const handleGetGachaHistoryApi = async (lastKey = null) => {
+  try {
+    return await syncApi.gachaHistory(lastKey);
+  } catch (e) {
+    console.log('Error getting gacha history:', e);
+    return { success: false, message: e.message };
   }
 };

@@ -11,10 +11,27 @@ const CLOUD_API_URL = (
   || ''
 ).replace(/\/$/, '');
 
+const readJsonResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const body = await response.text().catch(() => '');
+    const hint = body.trim().startsWith('<!doctype') || body.trim().startsWith('<html')
+      ? ' Got the frontend HTML instead, so VITE_CLOUD_API_URL is probably missing or wrong.'
+      : '';
+    throw new Error(`API returned non-JSON response.${hint}`);
+  }
+
+  return response.json();
+};
+
 /**
  * Helper gọi API với Auth Token
  */
 const authFetch = async (endpoint, options = {}) => {
+  if (!CLOUD_API_URL) {
+    throw new Error('Cloud API URL is not configured. Set VITE_CLOUD_API_URL in .env and restart the dev server.');
+  }
+
   const session = await fetchAuthSession();
   const token = session.tokens?.accessToken?.toString() || session.tokens?.idToken?.toString();
 
@@ -31,11 +48,11 @@ const authFetch = async (endpoint, options = {}) => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = await readJsonResponse(response).catch(() => ({}));
     throw new Error(errorData.message || `API Error: ${response.status}`);
   }
 
-  return response.json();
+  return readJsonResponse(response);
 };
 
 /**

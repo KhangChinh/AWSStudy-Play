@@ -6,6 +6,7 @@
 const initialState = {
   // Auth
   userInfo: null,
+  profile: null,
   isLoggedIn: false,
   accessToken: null,
   // Economy
@@ -32,6 +33,11 @@ const initialState = {
   activeSession: null,
   // Social
   friends: [],
+  friendsLastKey: null,
+  daily: null,
+  gachaHistory: [],
+  gachaHistoryLastKey: null,
+  masterData: [],
   // Minigame
   minigameHighscores: {},
 };
@@ -61,7 +67,7 @@ const appReducer = (state = initialState, action) => {
     case 'SET_INVENTORY':
       return {
         ...state,
-        inventory: { ...state.inventory, ...action.payload },
+        inventory: Array.isArray(action.payload) ? action.payload : { ...state.inventory, ...action.payload },
       };
     case 'SET_FOCUS_SETTINGS':
       return {
@@ -81,7 +87,36 @@ const appReducer = (state = initialState, action) => {
     case 'SET_FRIENDS':
       return {
         ...state,
-        friends: action.payload,
+        friends: action.payload?.items || action.payload || [],
+        friendsLastKey: action.payload?.lastEvaluatedKey || null,
+      };
+    case 'SET_PROFILE':
+      return {
+        ...state,
+        profile: action.payload,
+        userInfo: {
+          ...state.userInfo,
+          username: action.payload?.information?.name || state.userInfo?.username,
+          email: action.payload?.information?.email || state.userInfo?.email,
+          avatar: action.payload?.information?.avatarUrl || state.userInfo?.avatar,
+          streak: action.payload?.studyStats?.streak ?? state.userInfo?.streak,
+        },
+      };
+    case 'SET_DAILY':
+      return {
+        ...state,
+        daily: action.payload,
+      };
+    case 'SET_GACHA_HISTORY':
+      return {
+        ...state,
+        gachaHistory: action.payload?.items || action.payload || [],
+        gachaHistoryLastKey: action.payload?.lastEvaluatedKey || null,
+      };
+    case 'SET_MASTER_DATA':
+      return {
+        ...state,
+        masterData: action.payload || [],
       };
     default:
       return state;

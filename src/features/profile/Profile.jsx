@@ -1,14 +1,17 @@
 import React, { Component } from 'react';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
+import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import {
   personCircleOutline, starOutline, cubeOutline,
-  cashOutline, imageOutline, addOutline
+  cashOutline, imageOutline, createOutline, saveOutline, closeOutline
 } from 'ionicons/icons';
 import cosmeticManager from '../../managers/cosmeticManager';
 import inventoryManager from '../../managers/inventoryManager';
 import RankFrame from '../../components/RankFrame';
+import { userLogin, setProfile } from '../../store/actions';
+import { handleUpdateProfileNameApi, handleUploadAvatarApi, resolveAssetUrl } from '../../services/profileServices';
 import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
@@ -47,7 +50,12 @@ class Profile extends Component {
     super(props);
     this.state = {
       activeTab: 'backgrounds',
+      isEditingName: false,
+      nameDraft: '',
+      isSavingName: false,
+      isUploadingAvatar: false,
     };
+    this.avatarInputRef = React.createRef();
   }
 
   getBackgrounds = () => {
@@ -62,6 +70,63 @@ class Profile extends Component {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     this.handleCoverEdit();
+  };
+
+  handleEditName = () => {
+    this.setState({
+      isEditingName: true,
+      nameDraft: this.props.userInfo?.username || '',
+    });
+  };
+
+  handleSaveName = async () => {
+    const name = this.state.nameDraft.trim();
+    if (!name) return;
+
+    this.setState({ isSavingName: true });
+    try {
+      const response = await handleUpdateProfileNameApi(name);
+      if (!response?.success) throw new Error(response?.message || 'Update failed');
+      const profile = response.profile;
+      this.props.setProfile(profile);
+      this.props.userLogin({
+        ...this.props.userInfo,
+        username: profile?.information?.name || name,
+      });
+      this.setState({ isEditingName: false });
+      toast.success('Profile updated');
+    } catch (error) {
+      toast.error(error.message || 'Update failed');
+    } finally {
+      this.setState({ isSavingName: false });
+    }
+  };
+
+  handlePickAvatar = () => {
+    if (this.state.isUploadingAvatar) return;
+    this.avatarInputRef.current?.click();
+  };
+
+  handleAvatarFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.setState({ isUploadingAvatar: true });
+    try {
+      const response = await handleUploadAvatarApi(file);
+      if (!response?.success) throw new Error(response?.message || 'Avatar upload failed');
+      const avatar = resolveAssetUrl(response.avatarUrl);
+      this.props.userLogin({
+        ...this.props.userInfo,
+        avatar,
+      });
+      toast.success('Avatar updated');
+    } catch (error) {
+      toast.error(error.message || 'Avatar upload failed');
+    } finally {
+      this.setState({ isUploadingAvatar: false });
+      event.target.value = '';
+    }
   };
 
   renderTabContent = () => {
@@ -207,7 +272,7 @@ class Profile extends Component {
       currentRank = 'diamond',
       t,
     } = this.props;
-    const { activeTab } = this.state;
+    const { activeTab, isEditingName, nameDraft, isSavingName, isUploadingAvatar } = this.state;
     const pCoins = economy?.pCoins || 0;
     const rankLabel = translateRank(currentRank, t);
     const equippedTitle = cosmeticManager.getCosmeticInfo('titles', currentTitle)
@@ -233,6 +298,13 @@ class Profile extends Component {
           <div className="profile-cover-edit" aria-hidden="true">
             <IonIcon icon={imageOutline} />
           </div>
+          <input
+            ref={this.avatarInputRef}
+            className="avatar-file-input"
+            type="file"
+            accept="image/*"
+            onChange={this.handleAvatarFileChange}
+          />
           <div className="user-profile-section">
             <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
               {userInfo?.avatar ? (
@@ -243,7 +315,36 @@ class Profile extends Component {
             </RankFrame>
             <div className="user-main-info">
               <div className="username-line">
-                <span className="name">{displayName}</span>
+                {isEditingName ? (
+                  <input
+                    className="profile-name-input"
+                    value={nameDraft}
+                    maxLength={32}
+                    onClick={(event) => event.stopPropagation()}
+                    onChange={(event) => this.setState({ nameDraft: event.target.value })}
+                  />
+                ) : (
+                  <span className="name">{displayName}</span>
+                )}
+                <div className="profile-inline-actions" onClick={(event) => event.stopPropagation()}>
+                  {isEditingName ? (
+                    <>
+                      <button className="profile-icon-btn" onClick={this.handleSaveName} disabled={isSavingName}>
+                        <IonIcon icon={saveOutline} />
+                      </button>
+                      <button className="profile-icon-btn" onClick={() => this.setState({ isEditingName: false })}>
+                        <IonIcon icon={closeOutline} />
+                      </button>
+                    </>
+                  ) : (
+                    <button className="profile-icon-btn" onClick={this.handleEditName}>
+                      <IonIcon icon={createOutline} />
+                    </button>
+                  )}
+                  <button className="profile-icon-btn" onClick={this.handlePickAvatar} disabled={isUploadingAvatar}>
+                    <IonIcon icon={imageOutline} />
+                  </button>
+                </div>
               </div>
               <div className="title-line">
                 <span className="title-badge" style={{ color: equippedTitle?.color }}>
@@ -300,4 +401,9 @@ const mapStateToProps = (state) => ({
   economy: state.economy,
 });
 
-export default withTranslation()(connect(mapStateToProps)(Profile));
+const mapDispatchToProps = (dispatch) => ({
+  userLogin: (info) => dispatch(userLogin(info)),
+  setProfile: (profile) => dispatch(setProfile(profile)),
+});
+
+export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Profile));

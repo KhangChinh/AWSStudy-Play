@@ -51,3 +51,23 @@ export const setFriends = (data) => ({
   type: 'SET_FRIENDS',
   payload: data,
 });
+
+export const setProfile = (data) => ({
+  type: 'SET_PROFILE',
+  payload: data,
+});
+
+export const setDaily = (data) => ({
+  type: 'SET_DAILY',
+  payload: data,
+});
+
+export const setGachaHistory = (data) => ({
+  type: 'SET_GACHA_HISTORY',
+  payload: data,
+});
+
+export const setMasterData = (data) => ({
+  type: 'SET_MASTER_DATA',
+  payload: data,
+});

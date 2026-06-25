@@ -12,7 +12,8 @@ import {
   bulbOutline, libraryOutline, readerOutline, documentTextOutline,
   journalOutline, newspaperOutline, createOutline, flaskOutline,
   telescopeOutline, easelOutline, statsChartOutline, ribbonOutline,
-  medalOutline, trophyOutline, hourglassOutline, clipboardOutline
+  medalOutline, trophyOutline, hourglassOutline, clipboardOutline,
+  peopleOutline
 } from 'ionicons/icons';
 
 import FocusWidget from '../focus/FocusWidget';
@@ -22,12 +23,25 @@ import cosmeticManager from '../../managers/cosmeticManager';
 import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
 import Store from '../store/Store';
+import FriendsApp from '../social/FriendsApp';
 import SettingsApp from '../settings/SettingsApp';
 import RankFrame from '../../components/RankFrame';
 import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authServices';
 import { handleGetMasterDataApi, handleSyncAllApi, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
-import { userLogout, setEconomy, setInventory, userLogin } from '../../store/actions';
+import { handleClaimQuestApi } from '../../services/questServices';
+import { resolveAssetUrl } from '../../services/profileServices';
+import {
+  userLogout,
+  setEconomy,
+  setInventory,
+  userLogin,
+  setProfile,
+  setDaily,
+  setFriends,
+  setGachaHistory,
+  setMasterData
+} from '../../store/actions';
 import inventoryManager from '../../managers/inventoryManager';
 import './Dashboard.scss';
 
@@ -59,6 +73,20 @@ const resolveBackground = (background) => {
 const backgroundId = (background) => (
   typeof background === 'string' ? background : background?.id
 );
+
+const mapDailyToMissions = (daily) => {
+  const quests = daily?.quests || {};
+  return Object.entries(quests).map(([questKey, quest]) => ({
+    id: questKey,
+    questKey,
+    title: quest.name || questKey,
+    desc: quest.description || '',
+    status: `${Math.min(quest.progress || 0, quest.target || 1)}/${quest.target || 1}`,
+    rewardKnowledgePoint: quest.knowledgePoint || 0,
+    isCompleted: !!quest.isCompleted,
+    isClaimed: !!quest.isClaimed,
+  }));
+};
 
 const UserProfileWidget = ({
   currentTitle,
@@ -103,6 +131,7 @@ const APPS = [
   { id: 'gacha', nameKey: 'common.gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
   { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
   { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
+  { id: 'friends', nameKey: 'common.friends', className: 'friends', icon: peopleOutline, content: <FriendsApp /> },
   { id: 'focus', nameKey: 'common.focus_mode', className: 'focus', icon: lockClosedOutline, content: <FocusWidget /> },
 ];
 
@@ -151,12 +180,7 @@ class Dashboard extends Component {
       isVacuuming: false,
       isMissionsOpen: false,
       isMissionsCollapsed: true,
-      missions: [
-        { id: 1, title: 'Mission 1', desc: 'So khai the gioi', status: '1/1' },
-        { id: 2, title: 'Mission 2', desc: 'Thu thach tan thu', status: '4/4' },
-        { id: 3, title: 'Mission 3', desc: 'Nha suu tam', status: '3/3' },
-        { id: 4, title: 'Mission 4', desc: 'Dai gia lo dien', status: '1/1' },
-      ],
+      missions: [],
       stackOrder: [], // Order of windows from bottom to top
     };
     this.timerInterval = null;
@@ -180,6 +204,7 @@ class Dashboard extends Component {
       const response = await handleGetMasterDataApi();
       if (response && Array.isArray(response.items) && response.items.length > 0) {
         cosmeticManager.loadFromMasterData(response.items);
+        this.props.setMasterData(response.items);
         this.setState({ masterDataLoaded: true });
         cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
       }
@@ -191,7 +216,7 @@ class Dashboard extends Component {
     try {
       const syncResponse = await handleSyncAllApi();
       if (syncResponse && syncResponse.profile) {
-        const { profile, inventory } = syncResponse;
+        const { profile, inventory, daily, friends, gachaHistory, items } = syncResponse;
         const cosmetics = profile.equippedCosmetics || {};
 
         // Cập nhật Inventory Manager
@@ -204,18 +229,49 @@ class Dashboard extends Component {
           this.props.setInventory({ items: inventory });
         }
 
+        if (Array.isArray(gachaHistory)) {
+          inventoryManager.history = gachaHistory.map(item => ({
+            ...item,
+            id: item.SK || item.name,
+            timestamp: item.SK || item.acquiredAt || item.updatedAt || Date.now(),
+          }));
+          this.props.setGachaHistory({
+            items: gachaHistory,
+            lastEvaluatedKey: syncResponse.gachaHistoryLastKey,
+          });
+        }
+
+        if (Array.isArray(friends)) {
+          this.props.setFriends({
+            items: friends,
+            lastEvaluatedKey: syncResponse.friendsLastKey,
+          });
+        }
+
+        if (Array.isArray(items)) {
+          this.props.setMasterData(items);
+        }
+
+        if (daily) {
+          this.props.setDaily(daily);
+          this.setState({ missions: mapDailyToMissions(daily) });
+        }
+
         // Đẩy dữ liệu vào Redux Store
+        this.props.setProfile(profile);
         this.props.userLogin({
           ...this.props.userInfo,
           username: profile.information?.name || this.props.userInfo?.username || 'Player_9999',
-          avatar: profile.information?.avatarUrl,
+          avatar: resolveAssetUrl(profile.information?.avatarUrl),
           streak: profile.studyStats?.streak || 0, // Streak mới từ Cloud
         });
 
         if (profile.budget) {
           this.props.setEconomy({
             pCoins: profile.budget.eCoin || 0,
+            eCoin: profile.budget.eCoin || 0,
             knowledgePoint: profile.budget.knowledgePoint || 0,
+            knowledgeCore: profile.budget.knowledgeCore || 0,
             sanity: profile.budget.sanity || 0, // Sanity mới từ Cloud
           });
         }
@@ -271,25 +327,29 @@ class Dashboard extends Component {
     }, 800);
   };
 
+  buildEquipPayload = (overrides = {}) => {
+    const backgroundId = overrides.backgroundId ?? this.state.currentBackground;
+    const frameId = overrides.frameId ?? this.state.currentFrame;
+    const titleId = overrides.titleId ?? this.state.currentTitle;
+
+    return {
+      backgroundId,
+      frameId: frameId && frameId !== 'frame_none' ? frameId : null,
+      titles: titleId && titleId !== 'title_newbie' ? [titleId] : [],
+    };
+  };
+
   handleTitleChange = async (newTitleId) => {
     this.setState({ currentTitle: newTitleId });
     try {
-      await handleEquipCosmeticsApi({
-        backgroundId: this.state.currentBackground,
-        frameId: this.state.currentFrame,
-        titles: [newTitleId]
-      });
+      await handleEquipCosmeticsApi(this.buildEquipPayload({ titleId: newTitleId }));
     } catch (e) { console.warn('Sync Title fail:', e); }
   };
 
   handleFrameChange = async (newFrameId) => {
     this.setState({ currentFrame: newFrameId });
     try {
-      await handleEquipCosmeticsApi({
-        backgroundId: this.state.currentBackground,
-        frameId: newFrameId,
-        titles: [this.state.currentTitle]
-      });
+      await handleEquipCosmeticsApi(this.buildEquipPayload({ frameId: newFrameId }));
     } catch (e) { console.warn('Sync Frame fail:', e); }
   };
 
@@ -301,11 +361,7 @@ class Dashboard extends Component {
     const bgId = typeof newBackground === 'string' ? newBackground : newBackground.id;
     this.setState({ currentBackground: bgId });
     try {
-      await handleEquipCosmeticsApi({
-        backgroundId: bgId,
-        frameId: this.state.currentFrame,
-        titles: [this.state.currentTitle]
-      });
+      await handleEquipCosmeticsApi(this.buildEquipPayload({ backgroundId: bgId }));
     } catch (e) { console.warn('Sync Background fail:', e); }
   };
 
@@ -455,18 +511,49 @@ class Dashboard extends Component {
     }));
   };
 
-  handleClaimAllMissions = () => {
+  handleClaimAllMissions = async () => {
+    const claimable = this.state.missions.filter(m => m.isCompleted && !m.isClaimed);
+    if (claimable.length === 0) return;
+
+    for (const mission of claimable) {
+      await this.handleClaimMission(mission.questKey || mission.id, false);
+    }
+
     toast.success(this.props.t('missions.rewards_claimed'), {
       icon: 'gift',
       theme: 'dark',
     });
   };
 
-  handleClaimMission = () => {
-    toast.success('Claimed: +40 P-Coin!', {
-      icon: 'ok',
-      theme: 'dark',
-    });
+  handleClaimMission = async (questKey, showToast = true) => {
+    try {
+      const response = await handleClaimQuestApi(questKey);
+      if (!response?.success) {
+        throw new Error(response?.message || 'Claim failed');
+      }
+
+      this.setState(prev => ({
+        missions: prev.missions.map(m => (
+          (m.questKey || m.id) === questKey ? { ...m, isClaimed: true } : m
+        )),
+      }));
+
+      if (response.newKnowledgePoint !== undefined) {
+        this.props.setEconomy({
+          ...this.props.economy,
+          knowledgePoint: response.newKnowledgePoint,
+        });
+      }
+
+      if (showToast) {
+        toast.success(`Claimed: +${response.rewardKnowledgePoint || 0} KP`, {
+          icon: 'ok',
+          theme: 'dark',
+        });
+      }
+    } catch (error) {
+      toast.error(error.message || 'Claim failed');
+    }
   };
 
   handleClickOutside = (event) => {
@@ -636,7 +723,6 @@ class Dashboard extends Component {
     const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon)
       || cosmeticManager.getAllInCategory('systemIcons')[0]
       || { type: 'outline' };
-    const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
     const activeBgId = backgroundId(currentBackground) || 'bg_default';
     const presetBgIds = ['bg_default', 'bg_purple', 'bg_black', 'bg_white'];
     const bgThemeId = selectedBackground?.custom || !presetBgIds.includes(activeBgId)
@@ -808,6 +894,7 @@ class Dashboard extends Component {
 
 const mapStateToProps = (state) => ({
   userInfo: state.userInfo,
+  economy: state.economy,
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -815,6 +902,11 @@ const mapDispatchToProps = (dispatch) => ({
   userLogin: (info) => dispatch(userLogin(info)),
   setEconomy: (data) => dispatch(setEconomy(data)),
   setInventory: (data) => dispatch(setInventory(data)),
+  setProfile: (data) => dispatch(setProfile(data)),
+  setDaily: (data) => dispatch(setDaily(data)),
+  setFriends: (data) => dispatch(setFriends(data)),
+  setGachaHistory: (data) => dispatch(setGachaHistory(data)),
+  setMasterData: (data) => dispatch(setMasterData(data)),
 });
 
 export default withTranslation()(withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard)));

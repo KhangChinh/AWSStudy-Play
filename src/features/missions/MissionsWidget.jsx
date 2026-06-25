@@ -4,10 +4,11 @@ import { flagOutline, giftOutline } from 'ionicons/icons';
 import './MissionsWidget.scss';
 
 const MissionsWidget = ({ missions = [], isCollapsed, onToggle, onClaimAll, onClaimMission, t }) => {
-  const completedCount = missions.filter(m => {
-    const [curr, total] = m.status.split('/').map(Number);
+  const completedCount = missions.filter(m => m.isCompleted || (() => {
+    const [curr, total] = String(m.status || '0/1').split('/').map(Number);
     return curr >= total;
-  }).length;
+  })()).length;
+  const claimableCount = missions.filter(m => m.isCompleted && !m.isClaimed).length;
   const isAllCompleted = missions.length > 0 && completedCount === missions.length;
 
   return (
@@ -17,7 +18,7 @@ const MissionsWidget = ({ missions = [], isCollapsed, onToggle, onClaimAll, onCl
           <IonIcon icon={flagOutline} />
           <span>{t('dashboard.missions')}</span>
         </div>
-        {isCollapsed && isAllCompleted ? (
+        {isCollapsed && claimableCount > 0 ? (
           <button className="btn-mini-claim-all" onClick={(e) => { e.stopPropagation(); onClaimAll(); }}>
             {t('missions.claim_all')}
           </button>
@@ -29,15 +30,18 @@ const MissionsWidget = ({ missions = [], isCollapsed, onToggle, onClaimAll, onCl
         <>
           <div className="mission-mini-list">
             {missions.map(m => {
-              const [curr, total] = m.status.split('/').map(Number);
-              const isDone = curr >= total;
+              const [curr, total] = String(m.status || '0/1').split('/').map(Number);
+              const isDone = m.isCompleted || curr >= total;
+              const isClaimed = !!m.isClaimed;
               return (
-                <div key={m.id} className={`mini-item ${isDone ? 'done' : ''}`}>
+                <div key={m.id} className={`mini-item ${isDone ? 'done' : ''} ${isClaimed ? 'claimed' : ''}`}>
                   <div className="indicator-dot" />
                   <span className="name">{m.title}</span>
-                  {!isAllCompleted && (
+                  {isClaimed ? (
+                    <span className="prog">Claimed</span>
+                  ) : (
                     isDone ? (
-                      <button className="btn-mini-claim" onClick={() => onClaimMission(m.id)}>
+                      <button className="btn-mini-claim" onClick={() => onClaimMission(m.questKey || m.id)}>
                         {t('missions.claim')}
                       </button>
                     ) : (
@@ -48,7 +52,7 @@ const MissionsWidget = ({ missions = [], isCollapsed, onToggle, onClaimAll, onCl
               );
             })}
           </div>
-          {isAllCompleted && (
+          {isAllCompleted && claimableCount > 0 && (
             <button className="btn-claim-all" onClick={onClaimAll}>
               <IonIcon icon={giftOutline} /> {t('missions.claim_all')}
             </button>
