@@ -8,13 +8,9 @@ import {
   trophyOutline, timeOutline, alertCircleOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
-<<<<<<< HEAD:src/features/minihub/SudokuGame.jsx
-import { setHighscores } from '../../store/actions';
-import { handleSyncGameResultApi } from '../../services/economyServices';
-=======
-import { setEconomy, setHighscores } from '../../../src/store/actions';
+import { setHighscores } from '../../../src/store/actions';
 import { handleSyncGameResultApi } from '../../../src/services/economyServices';
->>>>>>> 5b55491c92ee5d9d73bb1b7be63e9dc8e534ff58:public/games/sudoku/SudokuGame.jsx
+
 import './SudokuGame.scss';
 
 // ═══ Sudoku Solver & Generator Helpers ═══
