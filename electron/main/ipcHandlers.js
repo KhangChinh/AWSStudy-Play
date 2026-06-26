@@ -15,6 +15,13 @@ import { classifyContent, clearCache, getAiStatus, getAllowedCategories, saveAll
 import { secureSetItem, secureGetItem, secureRemoveItem, secureClear } from './services/secureStore.js';
 import { setApiUrl } from './services/sessionApi.js';
 import { saveQuestsToStore, loadQuestsFromStore, clearQuestsStore } from './services/questStore.js';
+import { chatWithAI, generateStudyPlan, generateQuiz } from './services/aiStudyService.js';
+import {
+  loadChatHistory, saveChatSession, deleteChatSession,
+  loadStudyPlans, saveStudyPlan, deleteStudyPlan,
+  loadQuizHistory, saveQuizResult, deleteQuizResult,
+  loadStudySettings, saveStudySettings
+} from './services/studyPlannerStore.js';
 
 export function registerIpcHandlers(ipcMain, win) {
   // Set BrowserWindow reference for focusEngine renderer communication
@@ -170,4 +177,32 @@ export function registerIpcHandlers(ipcMain, win) {
     }
     return { success: true };
   });
+  // ═══════════════════════════════════════════
+  //  STUDY PLANNER — AI Chat, Plans, Quizzes
+  // ═══════════════════════════════════════════
+  ipcMain.handle('study:chat', async (_event, { messages }) => {
+    return chatWithAI(messages);
+  });
+
+  ipcMain.handle('study:generatePlan', async (_event, { collectedInfo }) => {
+    return generateStudyPlan(collectedInfo);
+  });
+
+  ipcMain.handle('study:generateQuiz', async (_event, { phase, planTitle }) => {
+    return generateQuiz(phase, planTitle);
+  });
+
+  // Study Planner Store
+  ipcMain.handle('study:loadChats', async () => loadChatHistory());
+  ipcMain.handle('study:saveChat', async (_event, session) => saveChatSession(session));
+  ipcMain.handle('study:deleteChat', async (_event, chatId) => deleteChatSession(chatId));
+  ipcMain.handle('study:loadPlans', async () => loadStudyPlans());
+  ipcMain.handle('study:savePlan', async (_event, plan) => saveStudyPlan(plan));
+  ipcMain.handle('study:deletePlan', async (_event, planId) => deleteStudyPlan(planId));
+  ipcMain.handle('study:loadQuizzes', async () => loadQuizHistory());
+  ipcMain.handle('study:saveQuiz', async (_event, quiz) => saveQuizResult(quiz));
+  ipcMain.handle('study:deleteQuiz', async (_event, quizId) => deleteQuizResult(quizId));
+
+  ipcMain.handle('study:loadSettings', async () => loadStudySettings());
+  ipcMain.handle('study:saveSettings', async (_event, settings) => saveStudySettings(settings));
 }
