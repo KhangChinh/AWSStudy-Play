@@ -70,18 +70,18 @@ class SocialApp extends Component {
       this.setState({ apiNotConfigured: false });
       if (isFirstPage) {
         setFriends({ friends: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
-        if (window.api) window.api.invoke('secureStore:setItem', 'friends_cache', res.friends);
+        if (window.api) window.api.invoke('secureStore:setItem', { key: 'friends_cache', value: JSON.stringify(res.friends) });
       } else {
         appendFriends({ friends: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
         if (window.api) {
           const current = this.props.friends;
-          window.api.invoke('secureStore:setItem', 'friends_cache', [...current, ...res.friends]);
+          window.api.invoke('secureStore:setItem', { key: 'friends_cache', value: JSON.stringify([...current, ...res.friends]) });
         }
       }
 
       if (res.updatedAt) {
         this.props.setFriendSyncTime(res.updatedAt);
-        if (window.api) window.api.invoke('secureStore:setItem', 'friend_sync_time', res.updatedAt);
+        if (window.api) window.api.invoke('secureStore:setItem', { key: 'friend_sync_time', value: String(res.updatedAt) });
       }
     } else if (res?.errMessage === 'API_NOT_CONFIGURED') {
       // Chưa cấu hình API URL — hiện trạng thái tĩnh, không spam toast

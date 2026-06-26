@@ -224,7 +224,9 @@ export async function chatWithAI(messages) {
       return { success: true, reply: content, collectedInfo: {}, readyToGenerate: false };
     }
   } catch (error) {
-    console.error('[AIStudy] Chat error:', error.message);
+    if (!error.message.includes('ECONNREFUSED')) {
+      console.error('[AIStudy] Chat error:', error.message);
+    }
     return { success: false, error: error.message };
   }
 }
@@ -278,7 +280,9 @@ CHI TRA VE JSON.`;
       return { success: false, error: 'Khong the parse ke hoach tu Ollama' };
     }
   } catch (error) {
-    console.error('[AIStudy] Generate plan error:', error.message);
+    if (!error.message.includes('ECONNREFUSED')) {
+      console.error('[AIStudy] Generate plan error:', error.message);
+    }
     return { success: false, error: error.message };
   }
 }
@@ -327,7 +331,9 @@ CHI TRA VE JSON.`;
       return { success: false, error: 'Khong the parse quiz tu Ollama' };
     }
   } catch (error) {
-    console.error('[AIStudy] Generate quiz error:', error.message);
+    if (!error.message.includes('ECONNREFUSED')) {
+      console.error('[AIStudy] Generate quiz error:', error.message);
+    }
     return { success: false, error: error.message };
   }
 }

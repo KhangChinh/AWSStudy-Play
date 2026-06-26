@@ -83,7 +83,9 @@ function httpRequest(url, options, body) {
     });
 
     req.on('error', (e) => {
-      console.error('[AI] HTTP error:', e.message);
+      if (!options.silent) {
+        console.error('[AI] HTTP error:', e.message);
+      }
       reject(e);
     });
     req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
@@ -96,7 +98,7 @@ function httpRequest(url, options, body) {
 // ===== Ollama =====
 async function checkOllama() {
   try {
-    const res = await httpRequest(`${OLLAMA_BASE}/api/tags`, { method: 'GET', timeout: 5000 });
+    const res = await httpRequest(`${OLLAMA_BASE}/api/tags`, { method: 'GET', timeout: 5000, silent: true });
     if (res.status === 200 && res.data && res.data.models) {
       const hasModel = res.data.models.some(m => m.name && m.name.startsWith('qwen3'));
       return { available: true, hasModel, models: res.data.models.map(m => m.name) };
@@ -138,7 +140,8 @@ async function checkGroq() {
     const res = await httpRequest(`${GROQ_BASE}/models`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${key}` },
-      timeout: 5000
+      timeout: 5000,
+      silent: true
     });
     if (res.status === 200) return { available: true };
     if (res.status === 401) return { available: false, reason: 'invalid_key' };
