@@ -7,7 +7,7 @@ import './MinigameHub.scss';
 import { setHighscores } from '../../store/actions';
 import { handleGetLeaderboardApi } from '../../services/socialServices';
 import { toast } from 'react-toastify';
-import SudokuGame from '../../../public/games/sudoku/SudokuGame';
+import SudokuGame from './SudokuGame';
 
 const getMinigames = (t) => [
   { id: 'all', label: t('minigames.total_wins'), icon: '🏅' },
