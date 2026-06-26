@@ -1,10 +1,9 @@
-/* GACHA ANIMATION — Genshin style */
-$rarity-3-color: #6366f1;
-$rarity-3-glow: rgba(99, 102, 241, 0.6);
-$rarity-4-color: #c084fc;
-$rarity-4-glow: rgba(192, 132, 252, 0.6);
-$rarity-5-color: #fbbf24;
-$rarity-5-glow: rgba(251, 191, 36, 0.6);
+$rarity-r-color: #94a3b8;
+$rarity-r-glow: rgba(148, 163, 184, 0.4);
+$rarity-sr-color: #c084fc;
+$rarity-sr-glow: rgba(192, 132, 252, 0.6);
+$rarity-ssr-color: #fbbf24;
+$rarity-ssr-glow: rgba(251, 191, 36, 0.6);
 
 .gacha-overlay {
   position: fixed;
@@ -67,18 +66,30 @@ $rarity-5-glow: rgba(251, 191, 36, 0.6);
     animation: trailStretch 1.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
   }
 
-  &.rarity-3 {
-    .meteor-head { background: #818cf8; box-shadow: 0 0 30px #6366f1; }
-    .meteor-trail { background: linear-gradient(270deg, #6366f1, transparent); } 
+  &.rarity-r {
+    .meteor-head { background: #94a3b8; box-shadow: 0 0 20px #64748b; }
+    .meteor-trail { background: linear-gradient(270deg, #64748b, transparent); } 
   }
-  &.rarity-4 {
+  &.rarity-sr {
     .meteor-head { background: #c084fc; box-shadow: 0 0 40px #a855f7; }
     .meteor-trail { background: linear-gradient(270deg, #a855f7, transparent); }
   }
-  &.rarity-5 {
-    .meteor-head { background: #fbbf24; box-shadow: 0 0 50px #f59e0b; }
-    .meteor-trail { background: linear-gradient(270deg, #f59e0b, transparent); }
+  &.rarity-ssr {
+    .meteor-head { 
+      background: #ffffff;
+      box-shadow: 0 0 30px #fbbf24, 0 0 60px #fbbf24, 0 0 100px #ffffff;
+      animation: supernova-pulse 1s ease-in-out infinite alternate;
+    }
+    .meteor-trail { 
+      background: linear-gradient(270deg, #ffffff, #fbbf24, #f59e0b, transparent);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+    }
   }
+}
+
+@keyframes supernova-pulse {
+  from { transform: scale(1); filter: brightness(1); }
+  to { transform: scale(1.2); filter: brightness(1.5); }
 }
 
 @keyframes meteorFlyNew {
@@ -117,9 +128,16 @@ $rarity-5-glow: rgba(251, 191, 36, 0.6);
   .ring-2 { width: 100px; height: 100px; animation-delay: 0.1s; }
   .ring-3 { width: 100px; height: 100px; animation-delay: 0.2s; }
   
-  &.rarity-3 { .burst-flash { background: radial-gradient(circle, white, #6366f1, transparent); } .burst-ring { border-color: #6366f1; box-shadow: 0 0 30px #6366f1; } }
-  &.rarity-4 { .burst-flash { background: radial-gradient(circle, white, #c084fc, transparent); } .burst-ring { border-color: #c084fc; box-shadow: 0 0 40px #c084fc; } }
-  &.rarity-5 { .burst-flash { background: radial-gradient(circle, white, #fbbf24, transparent); } .burst-ring { border-color: #fbbf24; box-shadow: 0 0 50px #fbbf24; } }
+  &.rarity-r { .burst-flash { background: radial-gradient(circle, white, #94a3b8, transparent); } .burst-ring { border-color: #94a3b8; box-shadow: 0 0 20px #94a3b8; } }
+  &.rarity-sr { .burst-flash { background: radial-gradient(circle, white, #c084fc, transparent); } .burst-ring { border-color: #c084fc; box-shadow: 0 0 40px #c084fc; } }
+  &.rarity-ssr { 
+    .burst-flash { background: radial-gradient(circle, white, #fbbf24, #ffffff, transparent); } 
+    .burst-ring { 
+      border-color: #fbbf24;
+      box-shadow: 0 0 50px #fbbf24, inset 0 0 30px #ffffff;
+      border-width: 6px;
+    } 
+  }
 }
 
 @keyframes flashBang { 
@@ -167,9 +185,23 @@ $rarity-5-glow: rgba(251, 191, 36, 0.6);
       z-index: -1; 
       animation: glowPulse 2s infinite alternate; 
     }
-    .item-icon { font-size: 100px; z-index: 2; animation: iconBounce 2s infinite; }
+    .item-icon { 
+      font-size: 100px; 
+      z-index: 2; 
+      animation: iconBounce 2s infinite; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .img-icon-render {
+        width: 120px;
+        height: 120px;
+        object-fit: contain;
+        filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
+      }
+    }
     .item-name { font-size: 32px; font-weight: 700; color: #fff; z-index: 2; margin-top: 20px; text-shadow: 0 0 20px rgba(0,0,0,0.5); }
-    .item-rarity { font-size: 24px; letter-spacing: 6px; z-index: 2; margin-top: 10px; }
+    .item-rarity { font-size: 24px; font-weight: 900; letter-spacing: 6px; z-index: 2; margin-top: 10px; }
   }
 
   &.multi-grid {
@@ -196,18 +228,56 @@ $rarity-5-glow: rgba(251, 191, 36, 0.6);
 
       &:hover { transform: scale(1.05); background: rgba(255,255,255,0.1); }
 
-      .grid-icon { font-size: 40px; }
-      .grid-stars { font-size: 10px; color: #fbbf24; }
+      .grid-icon { 
+        font-size: 40px; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
-      &.rarity-3 { border-bottom: 3px solid #6366f1; }
-      &.rarity-4 { border-bottom: 3px solid #c084fc; box-shadow: 0 0 15px rgba(192, 132, 252, 0.2); }
-      &.rarity-5 { border-bottom: 3px solid #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
+        .img-icon-render {
+          width: 48px;
+          height: 48px;
+          object-fit: cover;
+          border-radius: 4px;
+        }
+      }
+      .grid-stars { font-size: 11px; font-weight: 800; color: #fbbf24; }
+
+      &.rarity-r { border-bottom: 3px solid #94a3b8; }
+      &.rarity-sr { border-bottom: 3px solid #c084fc; box-shadow: 0 0 15px rgba(192, 132, 252, 0.2); }
+      &.rarity-ssr { 
+        border-bottom: 3px solid #fbbf24; 
+        box-shadow: 0 0 25px rgba(251, 191, 36, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.2); 
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(255, 255, 255, 0.05));
+      }
+
     }
   }
 
-  &.rarity-3 { .item-glow { background: $rarity-3-glow; } .item-rarity { color: $rarity-3-color; } }
-  &.rarity-4 { .item-glow { background: $rarity-4-glow; } .item-rarity { color: $rarity-4-color; } }
-  &.rarity-5 { .item-glow { background: $rarity-5-glow; } .item-rarity { color: $rarity-5-color; } }
+  &.rarity-r { .item-glow { background: $rarity-r-glow; } .item-rarity { color: $rarity-r-color; } }
+  &.rarity-sr { .item-glow { background: $rarity-sr-glow; } .item-rarity { color: $rarity-sr-color; } }
+  &.rarity-ssr { 
+    .item-glow { 
+      background: radial-gradient(circle, #ffffff, #fbbf24, #f59e0b, transparent);
+      opacity: 0.8;
+      animation: supernova-glow 2s infinite alternate;
+    } 
+    .item-rarity { 
+      color: #fbbf24;
+      text-shadow: 0 0 10px #fbbf24, 0 0 20px #ffffff;
+      font-weight: 900;
+    } 
+  }
+}
+
+@keyframes supernova-glow {
+  from { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  to { transform: translate(-50%, -50%) scale(1.3); opacity: 0.9; }
+}
+
+@keyframes rainbow-text {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
 
 @keyframes zoomOutBg { 
@@ -222,9 +292,13 @@ $rarity-5-glow: rgba(251, 191, 36, 0.6);
 .particle-field {
   position: absolute; inset: 0; z-index: 5;
   .particle { position: absolute; border-radius: 50%; animation: particleFloat linear infinite; }
-  &.rarity-3 .particle { background: $rarity-3-color; }
-  &.rarity-4 .particle { background: $rarity-4-color; }
-  &.rarity-5 .particle { background: $rarity-5-color; }
+  &.rarity-r .particle { background: $rarity-r-color; }
+  &.rarity-sr .particle { background: $rarity-sr-color; }
+  &.rarity-ssr .particle { 
+    background: #ffffff; 
+    box-shadow: 0 0 10px #fbbf24;
+    border: 1px solid #fbbf24;
+  }
 }
 
 @keyframes particleFloat {
@@ -256,7 +330,41 @@ $rarity-5-glow: rgba(251, 191, 36, 0.6);
 .fadeout-layer { position: absolute; inset: 0; background: #000; z-index: 1000; animation: fadeToBlack 0.5s ease forwards; }
 
 .gacha-overlay.reveal {
-  &.rarity-3 { background: radial-gradient(circle, #1a1a3e, #050510); }
-  &.rarity-4 { background: radial-gradient(circle, #2d1b4e, #0a0515); }
-  &.rarity-5 { background: radial-gradient(circle, #3d2b0a, #0f0a02); }
+  &.rarity-r { background: radial-gradient(circle, #1a1a2e, #050510); }
+  &.rarity-sr { background: radial-gradient(circle, #2d1b4e, #0a0515); }
+  &.rarity-ssr { background: radial-gradient(circle, #3d2b0a, #0f0a02); }
+}
+
+.gacha-skip-btn {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 24px;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+  animation: fadeIn 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

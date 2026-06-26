@@ -4,6 +4,7 @@ import { Amplify } from 'aws-amplify';
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito';
 
 import './index.css'
+import './i18n'
 import App from './App.jsx'
 import { cognitoSecureStorage } from './services/cognitoSecureStorage';
 

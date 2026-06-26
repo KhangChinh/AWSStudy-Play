@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld('api', {
       'secureStore:clear',
       'setup:openExtensionFolder',
       'setup:openBrowserExtPage',
+      // Auth
+      'auth:saveToken',
+      'auth:loadToken',
+      'auth:clearToken',
       // Quest
       'quest:save',
       'quest:load',
@@ -50,6 +54,7 @@ contextBridge.exposeInMainWorld('api', {
   // ═══ Gửi tín hiệu 1 chiều (fire-and-forget) ═══
   send: (channel, data) => {
     const validChannels = [
+      'login',
       'login-success',
       'logout',
       'focus:widget-state',

@@ -1,264 +1,394 @@
 import React, { Component } from 'react';
+import { withTranslation } from 'react-i18next';
 import { signOut } from 'aws-amplify/auth';
 import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import {
-  settingsOutline, cubeOutline, ticketOutline, gameControllerOutline,
+  settingsOutline, ticketOutline, gameControllerOutline,
   cartOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
-  imageOutline, personOutline, globeOutline, cart, planetOutline, starOutline,
-  copyOutline, checkmarkDoneOutline, schoolOutline
+  personOutline, planetOutline, copyOutline, lockClosedOutline,
+  bookOutline, schoolOutline, calculatorOutline, pencilOutline,
+  bulbOutline, libraryOutline, readerOutline, documentTextOutline,
+  journalOutline, newspaperOutline, createOutline, flaskOutline,
+  telescopeOutline, easelOutline, statsChartOutline, ribbonOutline,
+  medalOutline, trophyOutline, hourglassOutline, clipboardOutline,
+  peopleOutline, cubeOutline, checkmarkDoneOutline
 } from 'ionicons/icons';
 
 import FocusGuard from '../focus/FocusGuard';
-import SetupWizard from '../setup/SetupWizard';
-import Inventory from '../inventory/Inventory';
-import GachaStation from '../gacha/GachaStation';
-import GachaTestApp from '../gacha/GachaTestApp';
-import MinigameHub from '../minihub/MinigameHub';
+import Profile from '../profile/Profile';
 import QuestPanel from '../quest/QuestPanel';
+import Inventory from '../inventory/Inventory';
 import StudyPlanner from '../study-planner/StudyPlanner';
+import cosmeticManager from '../../managers/cosmeticManager';
+import GachaTestApp from '../gacha/GachaApp';
+import MinigameHub from '../minihub/MinigameHub';
+import Store from '../store/Store';
+import SettingsApp from '../settings/SettingsApp';
+import SocialApp from '../social/SocialApp';
+import RankFrame from '../../components/RankFrame';
 import { withRouter } from '../../utils/withRouter';
-import { notifyLogout } from '../../services/ipcWindowService';
-import { userLogout } from '../../store/actions';
+import { handleLogoutApi } from '../../services/authService';
+import { handleGetMasterDataApi, handleSyncAllApi } from '../../services/cosmeticServices';
+import { userLogout, setEconomy, setInventory, userLogin, setFriendSyncTime } from '../../store/actions';
+import inventoryManager from '../../managers/inventoryManager';
 import './Dashboard.scss';
 
-const TITLES = [
-  { id: 'newbie', name: 'Tân Thủ', color: '#94a3b8', hint: 'Danh hiệu mặc định cho người mới' },
-  { id: 'scholar', name: 'Học Giả', color: '#60a5fa', hint: 'Điều kiện: Tổng thời gian học > 10 giờ' },
-  { id: 'warrior', name: 'Chiến Thần', color: '#f87171', hint: 'Điều kiện: Thắng 100 trận Minigames' },
-  { id: 'collector', name: 'Nhà Sưu Tầm', color: '#fbbf24', hint: 'Điều kiện: Thu thập 50 vật phẩm Inventory' },
-  { id: 'whale', name: 'Đại Gia', color: '#a855f7', hint: 'Điều kiện: Tiêu phí 1.000.000 P-Coin' },
-  { id: 'admin', name: 'Người Điều Hành', color: '#ef4444', hint: 'Danh hiệu dành cho Quản trị viên' },
-];
+const RANK_KEYS = {
+  bronze: 'rank.bronze',
+  silver: 'rank.silver',
+  gold: 'rank.gold',
+  platinum: 'rank.platinum',
+  diamond: 'rank.diamond',
+  master: 'rank.master',
+};
 
-// ═══ Settings App ═══
-//placeholder
-const SettingsApp = ({ currentTitle, onTitleChange }) => {
-  const selectedTitleData = TITLES.find(t => t.id === currentTitle) || TITLES[0];
+const translateRank = (rank, t) => {
+  const translate = typeof t === 'function' ? t : (key) => key;
+  return translate(RANK_KEYS[rank] || RANK_KEYS.diamond);
+};
+
+const translateCosmeticName = (item, t) => {
+  if (!item) return '';
+  if (item.i18nKey && typeof t === 'function') return t(`${item.i18nKey}.name`);
+  return item.name || '';
+};
+
+const resolveBackground = (background) => {
+  if (background && typeof background === 'object') return background;
+  return cosmeticManager.getCosmeticInfo('backgrounds', background);
+};
+
+const backgroundId = (background) => (
+  typeof background === 'string' ? background : background?.id
+);
+
+const UserProfileWidget = ({
+  currentTitle,
+  currentFrame,
+  currentRank = 'diamond',
+  userInfo,
+  onClick,
+  t,
+}) => {
+  const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
+    || cosmeticManager.getAllInCategory('titles')[0];
+  const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
+  const displayName = userInfo?.username || 'Player_9999';
+  const rankLabel = translateRank(currentRank, t);
+  const titleName = translateCosmeticName(titleData, t);
 
   return (
-    <div className="app-container settings-app">
-      <h2 className="app-title"><IonIcon icon={settingsOutline} /> User Preferences</h2>
-
-      <div className="section">
-        <h3><IonIcon icon={imageOutline} /> Profile Avatar</h3>
-        <div className="avatar-upload">
-          <div className="avatar-circle">
-            <IonIcon icon={personOutline} style={{ fontSize: 32 }} />
-          </div>
-          <div>
-            <p style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 6 }}>Upload new avatar</p>
-            <p style={{ fontSize: 12, color: '#94a3b8' }}>Optimal size 256x256. Max 2MB.</p>
-          </div>
+    <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
+      <RankFrame tier={frameTier} size={64} className="widget-rank-frame">
+        {userInfo?.avatar ? (
+          <img src={userInfo.avatar} alt="avatar" className="avatar-img" />
+        ) : (
+          <IonIcon icon={personOutline} />
+        )}
+      </RankFrame>
+      <div className="user-info">
+        <div className="user-name-line">
+          <span className="username">{displayName}</span>
         </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={personOutline} /> Account Details</h3>
-        <div className="account-details">
-          <div className="info">
-            <p className="label">Username</p>
-            <div className="name-wrapper">
-              <span className="name">Player_9999</span>
-              <span className="user-title" style={{ color: selectedTitleData.color }}>
-                [{selectedTitleData.name}]
-              </span>
-            </div>
-            <p className="note">* Đổi tên tốn 10.000 P-Coin</p>
-          </div>
-          <button className="btn-rename">Rename</button>
+        <div className="title-rank-line">
+          <span className="user-title" style={{ color: titleData.color }}>[{titleName}]</span>
+          <span className={`user-rank rank-${currentRank}`}>{t('dashboard.rank')}: {rankLabel}</span>
         </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={starOutline} /> Danh Hiệu (Titles)</h3>
-        <p className="section-desc">Chọn danh hiệu hiển thị phía sau tên của bạn.</p>
-        <div className="titles-grid">
-          {TITLES.map(title => (
-            <div
-              key={title.id}
-              className={`title-badge ${currentTitle === title.id ? 'active' : ''}`}
-              style={{ '--title-color': title.color }}
-              onClick={() => onTitleChange(title.id)}
-            >
-              <div className="badge-bg"></div>
-              <span className="badge-name">{title.name}</span>
-              <div className="badge-info">
-                <IonIcon icon={ticketOutline} />
-                <span>{title.hint}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={cubeOutline} /> Avatar Frame / Khung Avatar</h3>
-        <div className="frame-grid">
-          {['None', 'Neon', 'Gold', 'Galactic'].map(frame => (
-            <div className="frame-option" key={frame}>
-              <div className={`frame-preview ${frame.toLowerCase()}`}>
-                <IonIcon icon={personOutline} />
-              </div>
-              <span>{frame}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* RE-ADDED SECTION: Profile Effect */}
-      <div className="section">
-        <h3><IonIcon icon={ticketOutline} /> Profile Effect / Hiệu ứng</h3>
-        <div className="effect-list">
-          <select className="effect-select">
-            <option value="none" style={{ color: 'white' }}>No Effect</option>
-            <option value="sparkle" style={{ color: 'white' }}>✨ Sparkle Particles</option>
-            <option value="fire" style={{ color: 'white' }}>🔥 Phoenix Flame</option>
-            <option value="snow" style={{ color: 'white' }}>❄️ Winter Frost</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="section">
-        <h3><IonIcon icon={globeOutline} /> Language / Ngôn ngữ</h3>
-        <select className="language-select">
-          <option value="en" style={{ color: 'black' }}>English</option>
-          <option value="vi" style={{ color: 'black' }}>Tiếng Việt</option>
-        </select>
       </div>
     </div>
   );
 };
 
-// ═══ Cosmetics Store ═══
-//placeholder
-const StoreApp = () => (
-  <div className="app-container">
-    <h2 className="app-title"><IonIcon icon={cartOutline} /> Cosmetics Store</h2>
-    <div className="store-grid">
-      {[
-        { name: 'Neon Frame', price: 1500, icon: '🖼️' },
-        { name: 'VIP Badge', price: 5000, icon: '🛡️' },
-        { name: 'Galaxy Trail', price: 3000, icon: '✨' },
-        { name: 'Golden Name', price: 10000, icon: '👑' }
-      ].map(item => (
-        <div className="store-item" key={item.name}>
-          <div className="item-cover">{item.icon}</div>
-          <div className="item-info">
-            <span className="item-title">{item.name}</span>
-            <span className="item-price">🪙 {item.price} P-Coin</span>
-            <button style={{ background: '#10b981' }}><IonIcon icon={cart} /> Purchase</button>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-// ═══ App Registry ═══
 const APPS = [
-  { id: 'settings', name: 'Settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
+  { id: 'settings', nameKey: 'common.settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
+  { id: 'profile', nameKey: 'common.profile', className: 'profile', icon: personOutline, content: <Profile /> },
+  { id: 'gacha', nameKey: 'common.gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
+  { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
+  { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
+  { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
   { id: 'inventory', name: 'Inventory', className: 'inventory', icon: cubeOutline, content: <Inventory /> },
-  { id: 'gacha', name: 'Gacha', className: 'gacha', icon: ticketOutline, content: <GachaStation /> },
-  { id: 'gacha-test', name: 'Gacha Test', className: 'gacha-test', icon: starOutline, content: <GachaTestApp /> },
-  { id: 'minigame', name: 'Mini Games', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
   { id: 'quest', name: 'Quests', className: 'quest', icon: checkmarkDoneOutline, content: <QuestPanel /> },
-  { id: 'study-planner', name: 'Study Planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> },
-  { id: 'store', name: 'Store', className: 'store', icon: cartOutline, content: <StoreApp /> },
+  { id: 'study-planner', name: 'Study Planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> }
 ];
 
-// ═══ MAIN DASHBOARD COMPONENT ═══
+const STUDY_FLOAT_ICONS = [
+  { icon: bookOutline, top: '9%', color: '#67e8f9', duration: '24s', delay: '-3s', direction: 'right' },
+  { icon: schoolOutline, top: '18%', color: '#f0abfc', duration: '28s', delay: '-15s', direction: 'left' },
+  { icon: calculatorOutline, top: '29%', color: '#fde68a', duration: '31s', delay: '-8s', direction: 'right' },
+  { icon: pencilOutline, top: '40%', color: '#a7f3d0', duration: '26s', delay: '-5s', direction: 'left' },
+  { icon: bulbOutline, top: '51%', color: '#fda4af', duration: '34s', delay: '-20s', direction: 'right' },
+  { icon: libraryOutline, top: '63%', color: '#bfdbfe', duration: '36s', delay: '-22s', direction: 'left' },
+  { icon: readerOutline, top: '75%', color: '#c4b5fd', duration: '29s', delay: '-17s', direction: 'right' },
+  { icon: documentTextOutline, top: '14%', color: '#99f6e4', duration: '33s', delay: '-11s', direction: 'right' },
+  { icon: journalOutline, top: '23%', color: '#f9a8d4', duration: '30s', delay: '-24s', direction: 'left' },
+  { icon: newspaperOutline, top: '35%', color: '#bae6fd', duration: '38s', delay: '-13s', direction: 'right' },
+  { icon: createOutline, top: '47%', color: '#fed7aa', duration: '27s', delay: '-19s', direction: 'left' },
+  { icon: flaskOutline, top: '58%', color: '#86efac', duration: '35s', delay: '-27s', direction: 'right' },
+  { icon: telescopeOutline, top: '69%', color: '#ddd6fe', duration: '32s', delay: '-9s', direction: 'left' },
+  { icon: easelOutline, top: '82%', color: '#fef08a', duration: '40s', delay: '-30s', direction: 'right' },
+  { icon: statsChartOutline, top: '6%', color: '#93c5fd', duration: '37s', delay: '-26s', direction: 'left' },
+  { icon: ribbonOutline, top: '88%', color: '#fb7185', duration: '29s', delay: '-6s', direction: 'left' },
+  { icon: medalOutline, top: '32%', color: '#fcd34d', duration: '42s', delay: '-33s', direction: 'right' },
+  { icon: trophyOutline, top: '55%', color: '#fdba74', duration: '39s', delay: '-16s', direction: 'left' },
+  { icon: hourglassOutline, top: '78%', color: '#7dd3fc', duration: '44s', delay: '-35s', direction: 'right' },
+  { icon: clipboardOutline, top: '66%', color: '#d8b4fe', duration: '41s', delay: '-28s', direction: 'left' },
+];
+
 class Dashboard extends Component {
   constructor(props) {
     super(props);
     this.state = {
       activeApp: null,
-      openApps: [], // Danh sách các ID app đang mở
-      minimizedApps: [], // Danh sách các ID app đang ẩn (thu nhỏ)
-      maximizedApp: null, // ID của app đang phóng to toàn màn hình
-      windowPositions: {}, // Map { appId: { x, y } }
+      openApps: [],
+      minimizedApps: [],
+      maximizedApp: null,
+      windowPositions: {},
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       disabledButtons: { logout: false },
       isDragging: null,
       dragOffset: { x: 0, y: 0 },
-      selectedTitle: 'newbie',
-      extensionConnected: false,
-      showSetupWizard: !localStorage.getItem('setupWizardDismissed'),
+      currentRank: 'diamond',
+      currentBackground: 'bg_default',
+      currentTitle: 'title_newbie',
+      currentFrame: 'frame_none',
+      currentSystemIcon: 'icon_default',
+      animationsEnabled: true,
+      isVacuuming: false,
+      isMissionsOpen: false,
+      isMissionsCollapsed: true,
+      missions: [
+        { id: 1, title: 'Mission 1', desc: 'So khai the gioi', status: '1/1' },
+        { id: 2, title: 'Mission 2', desc: 'Thu thach tan thu', status: '4/4' },
+        { id: 3, title: 'Mission 3', desc: 'Nha suu tam', status: '3/3' },
+        { id: 4, title: 'Mission 4', desc: 'Dai gia lo dien', status: '1/1' },
+      ],
+      stackOrder: [], // Order of windows from bottom to top
     };
     this.timerInterval = null;
+    this.missionsPanelRef = React.createRef();
+    this.missionsBtnRef = React.createRef();
   }
 
-  handleTitleChange = (newTitleId) => {
-    this.setState({ selectedTitle: newTitleId });
-  };
-
-  componentDidMount() {
+  async componentDidMount() {
     this.timerInterval = setInterval(() => {
       this.setState({
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
     }, 60000);
+    document.addEventListener('mousedown', this.handleClickOutside);
 
-    // Listen for gate-status to detect extension connection
-    if (window.api?.on) {
-      this._gateHandler = (data) => {
-        if (data) {
-          const connected = Array.isArray(data.connected) ? data.connected.length > 0 : !!data.connected;
-          this.setState({ extensionConnected: connected });
+    // Apply background ban đầu (dùng data local từ cosmetics.js)
+    cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
+
+    // Load master data từ cloud — sau đó re-render để Profile thấy bg mới
+    try {
+      const response = await handleGetMasterDataApi();
+      if (response && Array.isArray(response.items) && response.items.length > 0) {
+        cosmeticManager.loadFromMasterData(response.items);
+        this.setState({ masterDataLoaded: true });
+        cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
+      }
+    } catch (e) {
+      console.warn('Không thể tải master data:', e);
+    }
+
+    // ĐỒNG BỘ CLOUD: Lấy Profile, Inventory, Coin từ Serverless
+    try {
+      const syncResponse = await handleSyncAllApi();
+      if (syncResponse && syncResponse.profile) {
+        const { profile, inventory } = syncResponse;
+        const cosmetics = profile.equippedCosmetics || {};
+
+        // Cập nhật Inventory Manager
+        if (inventory) {
+          inventoryManager.inventory = inventory.map(item => ({
+            id: item.SK,
+            SK: item.SK,
+            amount: item.amount || 1
+          }));
+          this.props.setInventory({ items: inventory });
         }
-      };
-      window.api.on('gate-status', this._gateHandler);
+
+        // Đẩy dữ liệu vào Redux Store
+        this.props.userLogin({
+          ...this.props.userInfo,
+          username: profile.information?.name || 'Player',
+          avatar: profile.information?.avatarUrl,
+          streak: profile.studyStats?.streak || 0,
+        });
+
+        if (profile.metadata?.friendUpdatedAt) {
+          this.props.setFriendSyncTime(profile.metadata.friendUpdatedAt);
+        }
+
+        if (profile.budget) {
+          this.props.setEconomy({
+            pCoins: profile.budget.eCoin || 0,
+            knowledgePoint: profile.budget.knowledgePoint || 0,
+            sanity: profile.budget.sanity || 0, // Sanity mới từ Cloud
+          });
+        }
+
+        // Cập nhật State Dashboard theo Cloud
+        this.setState({
+          currentBackground: cosmetics.equippedBackground || 'bg_default',
+          currentFrame: cosmetics.equippedFrame || 'frame_none',
+          currentTitle: (cosmetics.equippedTitles && cosmetics.equippedTitles[0]) || 'title_newbie',
+        });
+
+        console.log('[Dashboard] Cloud Sync hoàn tất:', profile);
+      }
+    } catch (e) {
+      console.warn('[Dashboard] Cloud Sync thất bại:', e);
     }
   }
 
-  handleDismissWizard = () => {
-    localStorage.setItem('setupWizardDismissed', 'true');
-    this.setState({ showSetupWizard: false });
-  };
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.currentBackground !== this.state.currentBackground) {
+      cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
+    }
+  }
 
   componentWillUnmount() {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
+    document.removeEventListener('mousedown', this.handleClickOutside);
     window.removeEventListener('mousemove', this.handleDragging);
     window.removeEventListener('mouseup', this.handleDragEnd);
+    window.removeEventListener('touchmove', this.handleDragging);
+    window.removeEventListener('touchend', this.handleDragEnd);
   }
 
-  // --- QUẢN LÝ ỨNG DỤNG ---
+  handleClearAllApps = () => {
+    if (this.state.openApps.length === 0) return;
+
+    this.setState({ isVacuuming: true });
+
+    setTimeout(() => {
+      this.setState({
+        openApps: [],
+        activeApp: null,
+        minimizedApps: [],
+        maximizedApp: null,
+        isVacuuming: false,
+      });
+      toast.success(this.props.t('dashboard.system_cleanup_complete'), {
+        icon: 'clean',
+        theme: 'dark',
+        autoClose: 1500,
+      });
+    }, 800);
+  };
+
+  handleTitleChange = async (newTitleId) => {
+    this.setState({ currentTitle: newTitleId });
+    try {
+      await handleEquipCosmeticsApi({
+        backgroundId: this.state.currentBackground,
+        frameId: this.state.currentFrame,
+        titles: [newTitleId]
+      });
+    } catch (e) { console.warn('Sync Title fail:', e); }
+  };
+
+  handleFrameChange = async (newFrameId) => {
+    this.setState({ currentFrame: newFrameId });
+    try {
+      await handleEquipCosmeticsApi({
+        backgroundId: this.state.currentBackground,
+        frameId: newFrameId,
+        titles: [this.state.currentTitle]
+      });
+    } catch (e) { console.warn('Sync Frame fail:', e); }
+  };
+
+  handleToggleAnimations = () => {
+    this.setState(prev => ({ animationsEnabled: !prev.animationsEnabled }));
+  };
+
+  handleBackgroundChange = async (newBackground) => {
+    const bgId = typeof newBackground === 'string' ? newBackground : newBackground.id;
+    this.setState({ currentBackground: bgId });
+    try {
+      await handleEquipCosmeticsApi({
+        backgroundId: bgId,
+        frameId: this.state.currentFrame,
+        titles: [this.state.currentTitle]
+      });
+    } catch (e) { console.warn('Sync Background fail:', e); }
+  };
+
+  handleSystemIconChange = (id) => {
+    this.setState({ currentSystemIcon: id });
+  };
+
+  toggleMissions = () => {
+    this.setState(prev => ({ isMissionsCollapsed: !prev.isMissionsCollapsed }));
+  };
+
   openApp = (appId) => {
     this.setState((prev) => {
       const isAlreadyOpen = prev.openApps.includes(appId);
       const newOpenApps = isAlreadyOpen ? prev.openApps : [...prev.openApps, appId];
-
       const newPositions = { ...prev.windowPositions };
+
+      // Update stack order: move appId to the top (end of array)
+      const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+      newStackOrder.push(appId);
+
       if (!newPositions[appId]) {
-        // AUTO CENTER: Tính toán tâm màn hình
         const winW = 900;
         const winH = 600;
         const screenW = window.innerWidth;
-        const screenH = window.innerHeight - 48; // Trừ taskbar
+        const screenH = window.innerHeight - 48;
+
+        // Calculate offset based on number of currently open (non-minimized) windows
+        const openCount = prev.openApps.filter(id => !prev.minimizedApps.includes(id)).length;
+        const cascadeOffset = (openCount % 5) * 30; // Wrap after 5 windows
 
         newPositions[appId] = {
-          x: Math.max(0, (screenW - winW) / 2) + (newOpenApps.length * 10),
-          y: Math.max(0, (screenH - winH) / 2) + (newOpenApps.length * 10)
+          x: Math.max(20, (screenW - winW) / 2 - 100 + cascadeOffset),
+          y: Math.max(20, (screenH - winH) / 2 - 80 + cascadeOffset),
         };
       }
 
       return {
         openApps: newOpenApps,
         activeApp: appId,
-        minimizedApps: prev.minimizedApps.filter(id => id !== appId)
+        stackOrder: newStackOrder,
+        minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+        windowPositions: newPositions,
+      };
+    });
+  };
+
+  bringToFront = (appId) => {
+    this.setState(prev => {
+      if (prev.activeApp === appId) return null;
+      const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+      newStackOrder.push(appId);
+      return {
+        activeApp: appId,
+        stackOrder: newStackOrder
       };
     });
   };
 
   closeApp = (e, appId) => {
     e.stopPropagation();
-    this.setState(prev => ({
-      openApps: prev.openApps.filter(id => id !== appId),
-      minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-      activeApp: prev.activeApp === appId ? (prev.openApps.filter(id => id !== appId)[0] || null) : prev.activeApp,
-      maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp
-    }));
+    this.setState(prev => {
+      const remainingApps = prev.openApps.filter(id => id !== appId);
+      const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+      return {
+        openApps: remainingApps,
+        stackOrder: newStackOrder,
+        minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+        activeApp: prev.activeApp === appId ? (newStackOrder[newStackOrder.length - 1] || null) : prev.activeApp,
+        maximizedApp: prev.maximizedApp === appId ? null : prev.maximizedApp,
+      };
+    });
   };
 
   toggleMinimize = (e, appId) => {
@@ -266,73 +396,156 @@ class Dashboard extends Component {
     this.setState(prev => {
       const isMinimized = prev.minimizedApps.includes(appId);
       if (isMinimized) {
+        const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+        newStackOrder.push(appId);
         return {
           minimizedApps: prev.minimizedApps.filter(id => id !== appId),
-          activeApp: appId
-        };
-      } else {
-        return {
-          minimizedApps: [...prev.minimizedApps, appId],
-          activeApp: prev.openApps.find(id => id !== appId && !prev.minimizedApps.includes(id)) || null
+          activeApp: appId,
+          stackOrder: newStackOrder,
         };
       }
+
+      const newMinimized = [...prev.minimizedApps, appId];
+      const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+      // When minimizing, find the next top visible app in stack
+      const nextActive = prev.stackOrder
+        .slice()
+        .reverse()
+        .find(id => id !== appId && !newMinimized.includes(id)) || null;
+
+      return {
+        minimizedApps: newMinimized,
+        activeApp: nextActive,
+        stackOrder: newStackOrder // Optional: keep in stack but activeApp handles focus
+      };
+    });
+  };
+
+  handleTaskbarClick = (e, appId) => {
+    e.stopPropagation();
+    const { activeApp, minimizedApps } = this.state;
+    const isMinimized = minimizedApps.includes(appId);
+
+    if (isMinimized) {
+      this.setState(prev => {
+        const newStackOrder = prev.stackOrder.filter(id => id !== appId);
+        newStackOrder.push(appId);
+        return {
+          minimizedApps: prev.minimizedApps.filter(id => id !== appId),
+          activeApp: appId,
+          stackOrder: newStackOrder
+        };
+      });
+    } else if (activeApp !== appId) {
+      this.bringToFront(appId);
+    } else {
+      this.toggleMinimize(e, appId);
+    }
+  };
+
+  handleMinimizeAll = () => {
+    const { openApps } = this.state;
+    if (openApps.length === 0) return;
+
+    this.setState({
+      minimizedApps: [...openApps],
+      activeApp: null,
+    });
+
+    toast.info(this.props.t('dashboard.minimize_all'), {
+      icon: 'min',
+      theme: 'dark',
+      autoClose: 1000,
     });
   };
 
   toggleMaximize = (e, appId) => {
     e.stopPropagation();
     this.setState(prev => ({
-      maximizedApp: prev.maximizedApp === appId ? null : appId
+      maximizedApp: prev.maximizedApp === appId ? null : appId,
     }));
   };
 
-  // --- LOGIC KÉO THẢ (DRAG) ---
+  handleClaimAllMissions = () => {
+    toast.success(this.props.t('missions.rewards_claimed'), {
+      icon: 'gift',
+      theme: 'dark',
+    });
+  };
+
+  handleClaimMission = () => {
+    toast.success('Claimed: +40 P-Coin!', {
+      icon: 'ok',
+      theme: 'dark',
+    });
+  };
+
+  handleClickOutside = (event) => {
+    if (
+      this.state.isMissionsOpen
+      && this.missionsPanelRef.current
+      && !this.missionsPanelRef.current.contains(event.target)
+      && this.missionsBtnRef.current
+      && !this.missionsBtnRef.current.contains(event.target)
+    ) {
+      this.setState({ isMissionsOpen: false });
+    }
+  };
+
   handleDragStart = (e, appId) => {
     if (this.state.maximizedApp === appId) return;
 
+    const event = e.touches ? e.touches[0] : e;
     this.setState({
       activeApp: appId,
       isDragging: appId,
+      stackOrder: [...this.state.stackOrder.filter(id => id !== appId), appId],
       dragOffset: {
-        x: e.clientX - (this.state.windowPositions[appId]?.x || 0),
-        y: e.clientY - (this.state.windowPositions[appId]?.y || 0)
-      }
+        x: event.clientX - (this.state.windowPositions[appId]?.x || 0),
+        y: event.clientY - (this.state.windowPositions[appId]?.y || 0),
+      },
     });
 
-    window.addEventListener('mousemove', this.handleDragging);
-    window.addEventListener('mouseup', this.handleDragEnd);
+    if (e.touches) {
+      window.addEventListener('touchmove', this.handleDragging, { passive: false });
+      window.addEventListener('touchend', this.handleDragEnd);
+    } else {
+      window.addEventListener('mousemove', this.handleDragging);
+      window.addEventListener('mouseup', this.handleDragEnd);
+    }
   };
 
   handleDragging = (e) => {
     if (!this.state.isDragging) return;
-    const appId = this.state.isDragging;
+    if (e.cancelable) e.preventDefault();
 
-    // GIỚI HẠN VỊ TRÍ (CONSTRAINT)
+    const appId = this.state.isDragging;
+    const event = e.touches ? e.touches[0] : e;
     const headerHeight = 42;
     const taskbarHeight = 48;
-    const padding = 100; // Đảm bảo còn 100px tiêu đề trong màn hình
+    const padding = 100;
 
-    let newX = e.clientX - this.state.dragOffset.x;
-    let newY = e.clientY - this.state.dragOffset.y;
+    const newX = Math.max(-(900 - padding), Math.min(event.clientX - this.state.dragOffset.x, window.innerWidth - padding));
+    const newY = Math.max(0, Math.min(event.clientY - this.state.dragOffset.y, window.innerHeight - taskbarHeight - headerHeight));
 
-    // Giới hạn trục Y (Không vượt giới hạn trên và Taskbar)
-    newY = Math.max(0, Math.min(newY, window.innerHeight - taskbarHeight - headerHeight));
-
-    // Giới hạn trục X (Đảm bảo tiêu đề không trôi mất)
-    newX = Math.max(-(900 - padding), Math.min(newX, window.innerWidth - padding));
-
-    this.setState(prev => ({
-      windowPositions: {
-        ...prev.windowPositions,
-        [appId]: { x: newX, y: newY }
-      }
-    }));
+    if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
+    this.dragRaf = requestAnimationFrame(() => {
+      this.setState(prev => ({
+        windowPositions: {
+          ...prev.windowPositions,
+          [appId]: { x: newX, y: newY },
+        },
+      }));
+    });
   };
 
   handleDragEnd = () => {
     this.setState({ isDragging: null });
     window.removeEventListener('mousemove', this.handleDragging);
     window.removeEventListener('mouseup', this.handleDragEnd);
+    window.removeEventListener('touchmove', this.handleDragging);
+    window.removeEventListener('touchend', this.handleDragEnd);
+    if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
   };
 
   handleLogout = async () => {
@@ -342,108 +555,183 @@ class Dashboard extends Component {
       new Promise((resolve) => {
         toast(
           <div>
-            <p>Xác nhận đăng xuất?</p>
+            <p>{this.props.t('dashboard.logout_confirm')}</p>
             <button
               className="toast-confirm-btn"
               onClick={() => { resolve(true); toast.dismiss(); }}
             >
-              Có
+              {this.props.t('common.yes')}
             </button>
             <button
               className="toast-cancel-btn"
               onClick={() => { resolve(false); toast.dismiss(); }}
             >
-              Không
+              {this.props.t('common.no')}
             </button>
           </div>,
           {
             autoClose: 2000,
             closeOnClick: false,
-            onClose: () => { this.setState({ disabledButtons: { ...this.state.disabledButtons, logout: false } }) },
-          }
+            onClose: () => {
+              this.setState({
+                disabledButtons: { ...this.state.disabledButtons, logout: false },
+              });
+            },
+          },
         );
       });
 
     const isConfirmed = await confirmAction();
     if (isConfirmed) {
       try {
-        await signOut(); // Xóa session Cognito
-        notifyLogout(); // Gửi IPC để thu nhỏ cửa sổ về Login mode
-        this.props.userLogout(); // Clear Redux
-        toast.success('Đăng xuất thành công!');
+        await signOut();
+        handleLogoutApi();
+        this.props.userLogout();
+        toast.success(this.props.t('dashboard.logout_success'));
         this.props.navigate('/login');
       } catch (e) {
         console.log(e);
-        toast.error('Đăng xuất thất bại. Vui lòng thử lại!');
+        toast.error(this.props.t('dashboard.logout_failed'));
       }
     }
   };
 
+  renderDesktopLineBackground = (bgId = 'bg_default') => (
+    <div className={`desktop-line-bg bg-${bgId}`} aria-hidden="true">
+      <div className="aurora-field aurora-cyan"></div>
+      <div className="aurora-field aurora-magenta"></div>
+      <div className="aurora-field aurora-gold"></div>
+      <div className="holo-orbit holo-orbit-one"></div>
+      <div className="holo-orbit holo-orbit-two"></div>
+      <div className="holo-panel holo-panel-one"></div>
+      <div className="holo-panel holo-panel-two"></div>
+      <div className="study-float-icons">
+        {STUDY_FLOAT_ICONS.map((item, index) => (
+          <div
+            className={`study-float-icon float-${item.direction}`}
+            key={index}
+            style={{
+              '--float-top': item.top,
+              '--float-color': item.color,
+              '--float-duration': item.duration,
+              '--float-delay': item.delay,
+            }}
+          >
+            <IonIcon icon={item.icon} />
+          </div>
+        ))}
+      </div>
+      <div className="line-grid line-grid-primary"></div>
+      <div className="line-grid line-grid-secondary"></div>
+      <div className="line-scan"></div>
+    </div>
+  );
+
   render() {
-    const { openApps, activeApp, minimizedApps, maximizedApp, windowPositions, time, disabledButtons } = this.state;
+    const {
+      openApps,
+      activeApp,
+      minimizedApps,
+      maximizedApp,
+      windowPositions,
+      time,
+      disabledButtons,
+      animationsEnabled,
+      currentBackground,
+      currentSystemIcon,
+      currentRank,
+    } = this.state;
+    const { t, i18n } = this.props;
+    const selectedBackground = resolveBackground(currentBackground)
+      || cosmeticManager.getAllInCategory('backgrounds')[0];
+    const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon)
+      || cosmeticManager.getAllInCategory('systemIcons')[0]
+      || { type: 'outline' };
+    const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
+    const activeBgId = backgroundId(currentBackground) || 'bg_default';
+    const presetBgIds = ['bg_default', 'bg_purple', 'bg_black', 'bg_white'];
+    const bgThemeId = selectedBackground?.custom || !presetBgIds.includes(activeBgId)
+      ? 'bg_default'
+      : activeBgId;
+    const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
+    const desktopStyle = desktopBackground
+      ? {
+        '--desktop-user-background': desktopBackground,
+        ...(animationsEnabled ? {} : { background: desktopBackground }),
+      }
+      : undefined;
+    const desktopClassName = [
+      'os-desktop',
+      !animationsEnabled ? 'no-animations' : '',
+      `icon-style-${iconData.type}`,
+    ].filter(Boolean).join(' ');
 
     return (
-      <div className="os-desktop">
-        {/* Setup Wizard */}
-        {this.state.showSetupWizard && !this.state.extensionConnected && (
-          <SetupWizard
-            isConnected={this.state.extensionConnected}
-            onDismiss={this.handleDismissWizard}
-          />
-        )}
-        {/* Background Layers */}
-        <div className="stars"></div>
-        <div className="twinkling"></div>
-        <div className="purple-nebula"></div>
+      <div className={desktopClassName} style={desktopStyle}>
+        {animationsEnabled && this.renderDesktopLineBackground(bgThemeId)}
+        <div className="desktop-bg-dim"></div>
+        {this.state.isDragging && <div className="drag-overlay"></div>}
 
+        <UserProfileWidget
+          currentTitle={this.state.currentTitle}
+          currentFrame={this.state.currentFrame}
+          currentRank={currentRank}
+          userInfo={this.props.userInfo}
+          onClick={() => this.openApp('profile')}
+          t={t}
+        />
 
-        {/* Desktop Icons Array */}
         <div className="desktop-icons">
-          {APPS.map(app => (
+          {APPS.filter(app => app.id !== 'profile').map(app => (
             <div className={`icon ${app.className}`} key={app.id} onClick={() => this.openApp(app.id)}>
               <div className="icon-img">
                 <IonIcon icon={app.icon} style={{ color: 'white', fontSize: 28 }} />
               </div>
-              <span>{app.name}</span>
+              <span>{app.nameKey ? t(app.nameKey) : app.name}</span>
             </div>
           ))}
-
-          {/* FocusGuard is now a desktop icon! */}
+          
           <FocusGuard />
         </div>
 
-        {/* Cửa sổ các ứng dụng đang chạy */}
         {openApps.map(appId => {
           const app = APPS.find(a => a.id === appId);
+          if (!app) return null;
+
           const isMinimized = minimizedApps.includes(appId);
           const isMaximized = maximizedApp === appId;
           const pos = windowPositions[appId] || { x: 100, y: 100 };
 
-          if (isMinimized) return null; // Ẩn hoàn toàn cửa sổ nếu đã thu nhỏ
+          if (isMinimized) return null;
 
           return (
             <div
               key={appId}
-              className={`os-window ${activeApp === appId ? 'active' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
+              className={`os-window ${app.className} ${appId === 'profile' ? `rank-${currentRank}` : ''} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
               style={{
                 top: isMaximized ? 0 : pos.y,
                 left: isMaximized ? 0 : pos.x,
-                zIndex: activeApp === appId ? 100 : 50
+                zIndex: this.state.stackOrder.indexOf(appId) + 10,
               }}
-              onMouseDown={() => this.setState({ activeApp: appId })}
+              onMouseDown={() => this.bringToFront(appId)}
             >
-              <div className="window-header" onMouseDown={(e) => this.handleDragStart(e, appId)}>
+              <div
+                className="window-header"
+                onMouseDown={(e) => this.handleDragStart(e, appId)}
+                onTouchStart={(e) => this.handleDragStart(e, appId)}
+              >
                 <div className="window-title">
-                  {app.name}
-                  <span style={{ fontSize: '10px', marginLeft: '8px', color: TITLES.find(t => t.id === this.state.selectedTitle)?.color }}>
-                    [{TITLES.find(t => t.id === this.state.selectedTitle)?.name}]
-                  </span>
+                  {app.nameKey ? t(app.nameKey) : app.name}
                 </div>
                 <div className="window-controls">
                   <button className="control minimize" onClick={(e) => this.toggleMinimize(e, appId)}>
                     <IonIcon icon={removeOutline} />
                   </button>
-                  <button className="control maximize" title={isMaximized ? "Restore" : "Maximize"} onClick={(e) => this.toggleMaximize(e, appId)}>
+                  <button
+                    className="control maximize"
+                    title={isMaximized ? t('dashboard.restore') : t('dashboard.maximize')}
+                    onClick={(e) => this.toggleMaximize(e, appId)}
+                  >
                     <IonIcon icon={isMaximized ? copyOutline : squareOutline} style={{ fontSize: isMaximized ? 11 : 9 }} />
                   </button>
                   <button className="control close" onClick={(e) => this.closeApp(e, appId)}>
@@ -453,29 +741,55 @@ class Dashboard extends Component {
               </div>
               <div className="window-content">
                 {React.cloneElement(app.content, {
-                  currentTitle: this.state.selectedTitle,
-                  onTitleChange: this.handleTitleChange
+                  currentBackground: this.state.currentBackground,
+                  currentTitle: this.state.currentTitle,
+                  currentFrame: this.state.currentFrame,
+                  currentRank: this.state.currentRank,
+                  currentSystemIcon: this.state.currentSystemIcon,
+                  animationsEnabled: this.state.animationsEnabled,
+                  userInfo: this.props.userInfo,
+                  onToggleAnimations: this.handleToggleAnimations,
+                  onTitleChange: this.handleTitleChange,
+                  onFrameChange: this.handleFrameChange,
+                  onBackgroundChange: this.handleBackgroundChange,
+                  onSystemIconChange: this.handleSystemIconChange,
+                  t,
+                  i18n,
                 })}
               </div>
             </div>
           );
         })}
 
-        {/* Taskbar */}
         <div className="os-taskbar">
           <div className="taskbar-start">
-            <div className="start-btn"><IonIcon icon={planetOutline} /></div>
+            <div
+              className="minimize-all-btn"
+              onClick={this.handleMinimizeAll}
+              title={t('dashboard.minimize_all')}
+            >
+              <IonIcon icon={removeOutline} />
+            </div>
+            <div
+              className={`start-btn ${this.state.isVacuuming ? 'active' : ''}`}
+              onClick={this.handleClearAllApps}
+              title={t('dashboard.cleanup')}
+            >
+              <IonIcon icon={planetOutline} className={this.state.isVacuuming ? 'spinning' : ''} />
+            </div>
           </div>
 
           <div className="taskbar-apps">
             {openApps.map(appId => {
               const app = APPS.find(a => a.id === appId);
+              if (!app) return null;
+
               return (
                 <div
                   key={appId}
                   className={`taskbar-icon ${activeApp === appId ? 'active' : ''} ${minimizedApps.includes(appId) ? 'minimized' : ''}`}
-                  onClick={(e) => this.toggleMinimize(e, appId)}
-                  title={app.name}
+                  onClick={(e) => this.handleTaskbarClick(e, appId)}
+                  title={t(app.nameKey)}
                 >
                   <IonIcon icon={app.icon} style={{ fontSize: 22 }} />
                   <div className="indicator"></div>
@@ -486,7 +800,7 @@ class Dashboard extends Component {
 
           <div className="taskbar-sys">
             <span className="os-time">{time}</span>
-            <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout}>
+            <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout} title={t('common.logout')}>
               <IonIcon icon={logOutOutline} />
             </button>
           </div>
@@ -502,6 +816,10 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => ({
   userLogout: () => dispatch(userLogout()),
+  userLogin: (info) => dispatch(userLogin(info)),
+  setEconomy: (data) => dispatch(setEconomy(data)),
+  setInventory: (data) => dispatch(setInventory(data)),
+  setFriendSyncTime: (time) => dispatch(setFriendSyncTime(time)),
 });
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard));
+export default withTranslation()(withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard)));

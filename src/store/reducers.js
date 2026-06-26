@@ -32,6 +32,8 @@ const initialState = {
   activeSession: null,
   // Social
   friends: [],
+  friendLastEvaluatedKey: null,
+  friendUpdatedAt: null,
   // Minigame
   minigameHighscores: {},
   // Quest
@@ -83,7 +85,19 @@ const appReducer = (state = initialState, action) => {
     case 'SET_FRIENDS':
       return {
         ...state,
-        friends: action.payload,
+        friends: action.payload.friends || [],
+        friendLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
+      };
+    case 'APPEND_FRIENDS':
+      return {
+        ...state,
+        friends: [...state.friends, ...(action.payload.friends || [])],
+        friendLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
+      };
+    case 'SET_FRIEND_SYNC_TIME':
+      return {
+        ...state,
+        friendUpdatedAt: action.payload,
       };
     case 'SET_DAILY_QUESTS':
       return {

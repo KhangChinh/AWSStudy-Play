@@ -1,8 +1,9 @@
 import { config } from 'dotenv';
 import { app, BrowserWindow, ipcMain, Menu, screen, shell } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { registerIpcHandlers } from './ipcHandlers.js';
+import { clearToken } from './services/authHelper.js';
 
 // Load .env cho Main Process (Vite chỉ handle VITE_* cho renderer)
 const __filename = fileURLToPath(import.meta.url);
@@ -227,11 +228,19 @@ ipcMain.on('login-success', () => {
 
 ipcMain.on('logout', () => {
   if (!win || win.isDestroyed()) return;
+
+  // Đảm bảo thoát chế độ phóng to/toàn màn hình trước khi chỉnh size
+  if (win.isMaximized()) win.unmaximize();
+  if (win.isFullScreen()) win.setFullScreen(false);
+
   win.setMinimumSize(450, 600);
   win.setSize(450, 600);
   win.setResizable(false);
   win.center();
   win.removeMenu();
+
+  // Xóa token xác thực khỏi ổ đĩa khi đăng xuất
+  clearToken();
 });
 
 app.whenReady().then(() => {
