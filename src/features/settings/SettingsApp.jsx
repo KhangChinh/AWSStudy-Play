@@ -89,11 +89,11 @@ const SettingsApp = ({
                     className="btn-save-name" 
                     onClick={handleSaveName} 
                     disabled={loading}
-                    title={loading ? 'Saving...' : 'Save'}
+                    title={loading ? '...' : t('common.save')}
                   >
                     <IonIcon icon={loading ? globeOutline : checkmarkOutline} className={loading ? 'spinning' : ''} />
                   </button>
-                  <button className="btn-cancel-name" onClick={() => setIsEditingName(false)} disabled={loading}>
+                  <button className="btn-cancel-name" onClick={() => setIsEditingName(false)} disabled={loading} title={t('common.cancel')}>
                     <IonIcon icon={closeOutline} />
                   </button>
                 </div>

@@ -212,7 +212,7 @@ class SocialApp extends Component {
       <div className="list-container" onScroll={this.handleScroll}>
         {friends.length > 0 ? friends.map(friend => (
           <div key={friend.SK} className="friend-card">
-            <div className="avatar-container status-online">
+            <div className="avatar-container">
               <div className="avatar-placeholder">
                 {friend.friendAvatarUrl ? (
                   <img src={friend.friendAvatarUrl} alt="avatar" />
@@ -220,19 +220,17 @@ class SocialApp extends Component {
                   <IonIcon icon={peopleOutline} />
                 )}
               </div>
-              <div className="status-indicator" />
             </div>
             <div className="friend-info">
               <div className="name-row">
                 <span className="friend-name">{friend.friendName || 'Unknown'}</span>
-                {friend.level && <span className="friend-rank">Lv.{friend.level}</span>}
+                {friend.level && <span className="friend-rank">{this.props.t('social.level_short')}{friend.level}</span>}
               </div>
-              <span className="friend-status-text">Online</span>
             </div>
             <div className="friend-actions">
               <button
                 className="action-btn delete"
-                title={this.props.t('common.remove') || 'Remove'}
+                title={this.props.t('social.remove_friend')}
                 onClick={() => this.handleSocialAction('remove', friend.SK)}
                 disabled={this.state.isActionLoading === friend.SK}
               >
@@ -349,7 +347,7 @@ class SocialApp extends Component {
                 </div>
                 <div className="user-details">
                   <span className="user-name">{user.name}</span>
-                  <span className="user-meta">Streak: {user.streak || 0} • {user.titles?.[0] || 'Newbie'}</span>
+                  <span className="user-meta">{t('common.streak')}: {user.streak || 0} • {user.titles?.[0] || 'Newbie'}</span>
                 </div>
                 <button
                   className="add-btn"
@@ -409,7 +407,7 @@ class SocialApp extends Component {
           </button>
 
           <div className="sidebar-footer">
-            <button className="sync-btn" onClick={() => this.fetchFriends(true)} title="Sync Friends">
+            <button className="sync-btn" onClick={() => this.fetchFriends(true)} title={t('social.sync_friends')}>
               <IonIcon icon={refreshOutline} className={this.state.isLoading ? 'spinning' : ''} />
             </button>
           </div>

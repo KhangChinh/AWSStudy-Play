@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { connect } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import {
@@ -20,6 +21,7 @@ const QUEST_ICONS = {
 };
 
 const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [claimingKey, setClaimingKey] = useState(null);
 
@@ -78,7 +80,7 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
     try {
       const result = await claimQuestReward(questKey);
       if (result.success) {
-        toast.success(`✨ ${result.message || 'Nhận thưởng thành công!'}`);
+        toast.success(`✨ ${result.message || t('missions.rewards_claimed')}`);
 
         // Cập nhật quest state
         const updatedQuests = { ...dailyQuests.quests };
@@ -105,10 +107,10 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
           await window.api.invoke('quest:save', updatedDaily);
         }
       } else {
-        toast.error(result.error || result.message || 'Nhận thưởng thất bại!');
+        toast.error(result.error || result.message || 'Action failed!');
       }
     } catch (err) {
-      toast.error('Lỗi kết nối server!');
+      toast.error('Connection error!');
     }
     setClaimingKey(null);
   };
@@ -122,7 +124,7 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
       <div className="quest-panel">
         <div className="quest-loading">
           <div className="quest-spinner" />
-          <p>Đang tải nhiệm vụ...</p>
+          <p>{t('quest.loading')}</p>
         </div>
       </div>
     );
@@ -133,8 +135,8 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
       <div className="quest-panel">
         <div className="quest-empty">
           <IonIcon icon={ribbonOutline} className="empty-icon" />
-          <p>Chưa có nhiệm vụ ngày nào.</p>
-          <button className="quest-btn refresh-btn" onClick={loadQuests}>Tải lại</button>
+          <p>{t('quest.empty')}</p>
+          <button className="quest-btn refresh-btn" onClick={loadQuests}>{t('common.reload')}</button>
         </div>
       </div>
     );
@@ -143,9 +145,9 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
   return (
     <div className="quest-panel">
       <div className="quest-header">
-        <h2><IonIcon icon={trophyOutline} /> Nhiệm vụ ngày</h2>
+        <h2><IonIcon icon={trophyOutline} /> {t('quest.daily_quests')}</h2>
         <span className="quest-timer">
-          Hết hạn: {new Date(dailyQuests.expiresAt * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+          {t('quest.expires_at')}: {new Date(dailyQuests.expiresAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
 
@@ -175,7 +177,7 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
                 <span className="quest-reward-amount">+{quest.knowledgePoint || 0} KP</span>
                 {isClaimed ? (
                   <div className="quest-btn claimed-badge">
-                    <IonIcon icon={checkmarkCircleOutline} /> Đã nhận
+                    <IonIcon icon={checkmarkCircleOutline} /> {t('quest.claimed')}
                   </div>
                 ) : (
                   <button
@@ -187,7 +189,7 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
                       <span className="btn-spinner" />
                     ) : (
                       <>
-                        <IonIcon icon={giftOutline} /> Nhận
+                        <IonIcon icon={giftOutline} /> {t('missions.claim')}
                       </>
                     )}
                   </button>
@@ -221,7 +223,7 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
             <span className="quest-reward-amount bonus">+{allDaily.knowledgePoint || 100} KP</span>
             {allDaily.isClaimed ? (
               <div className="quest-btn claimed-badge">
-                <IonIcon icon={checkmarkCircleOutline} /> Đã nhận
+                <IonIcon icon={checkmarkCircleOutline} /> {t('quest.claimed')}
               </div>
             ) : (
               <button
@@ -233,7 +235,7 @@ const QuestPanel = ({ dailyQuests, dispatch, economy }) => {
                   <span className="btn-spinner" />
                 ) : (
                   <>
-                    <IonIcon icon={giftOutline} /> Nhận
+                    <IonIcon icon={giftOutline} /> {t('missions.claim')}
                   </>
                 )}
               </button>

@@ -7,8 +7,8 @@ import {
   trophyOutline, heartOutline, timeOutline, alertCircleOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
-import { setEconomy, setHighscores } from '../../../src/store/actions';
-import { handleSyncGameResultApi } from '../../../src/services/economyServices';
+import { setEconomy, setHighscores } from '../../../../store/actions';
+import { handleSyncGameResultApi } from '../../../../services/economyServices';
 import './SudokuGame.scss';
 
 // ═══ Sudoku Solver & Generator Helpers ═══

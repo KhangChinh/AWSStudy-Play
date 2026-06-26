@@ -1,3 +1,7 @@
+.hidden {
+  display: none !important;
+}
+
 .os-desktop {
   width: 100vw;
   height: 100vh;
@@ -2276,6 +2280,146 @@
   }
 }
 
+.floating-app-launcher {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.4),
+    0 8px 10px -6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  animation: launcher-slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .taskbar-nav-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 28px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.1);
+    }
+
+    &:disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+    }
+  }
+
+  .taskbar-launcher {
+    display: flex;
+    gap: 12px;
+    padding: 2px;
+
+    .launcher-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      flex-shrink: 0;
+
+      .icon-img-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .indicator {
+        position: absolute;
+        bottom: 3px;
+        height: 3px;
+        width: 0;
+        background: #c084fc;
+        border-radius: 2px;
+        transition: width 0.3s ease, background 0.3s ease;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
+        transform: translateY(-5px);
+        border-color: rgba(192, 132, 252, 0.4);
+
+        .icon-img-wrapper {
+          transform: scale(1.1);
+          color: white;
+        }
+      }
+
+      &.opened {
+        .indicator {
+          width: 12px;
+        }
+      }
+
+      &.minimized {
+        opacity: 0.5;
+        filter: grayscale(0.5);
+
+        .indicator {
+          background: #94a3b8;
+          width: 8px;
+        }
+      }
+
+      &.active {
+        background: rgba(192, 132, 252, 0.15);
+        border-color: #c084fc;
+        box-shadow: 0 0 20px rgba(192, 132, 252, 0.3);
+
+        .icon-img-wrapper {
+          color: white;
+        }
+
+        .indicator {
+          width: 22px;
+          background: #d946ef;
+          box-shadow: 0 0 10px #d946ef;
+        }
+      }
+    }
+  }
+}
+
+@keyframes launcher-slide-up {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 .os-taskbar {
   z-index: 1000;
   background: rgba(3, 12, 28, 0.58);
@@ -2301,22 +2445,6 @@
         box-shadow:
           inset 0 1px 1px rgba(255, 255, 255, 0.22),
           0 18px 40px rgba(0, 0, 0, 0.42);
-      }
-    }
-  }
-
-  .taskbar-apps {
-    .taskbar-icon {
-      background: rgba(255, 255, 255, 0.055);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-
-      &:hover,
-      &.active {
-        background: rgba(255, 255, 255, 0.12);
-      }
-
-      &.active .indicator {
-        background: rgba(255, 255, 255, 0.9);
       }
     }
   }

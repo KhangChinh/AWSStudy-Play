@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { withTranslation } from 'react-i18next';
 import { IonIcon } from '@ionic/react';
 import { playOutline, trophyOutline, timeOutline, gameControllerOutline } from 'ionicons/icons';
 
@@ -7,7 +8,7 @@ import './MinigameHub.scss';
 import { setHighscores } from '../../store/actions';
 import { handleGetLeaderboardApi } from '../../services/socialServices';
 import { toast } from 'react-toastify';
-import SudokuGame from '../../../public/games/sudoku/SudokuGame';
+import SudokuGame from './games/sudoku/SudokuGame.jsx';
 
 const MINIGAMES = [
   { id: 'all', label: 'Tổng Wins', icon: '🏅' },
@@ -189,6 +190,7 @@ class MinigameHub extends Component {
   }
 }
 
+
 const mapStateToProps = (state) => ({
   minigameHighscores: state.minigameHighscores,
 });
@@ -197,4 +199,4 @@ const mapDispatchToProps = (dispatch) => ({
   setHighscores: (data) => dispatch(setHighscores(data)),
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(MinigameHub);
+export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(MinigameHub));

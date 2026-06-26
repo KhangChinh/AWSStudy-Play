@@ -13,7 +13,7 @@ class RewardManager {
    */
   processGachaResult(serverData) {
     const { rarityMap, items, sanityBreakdown, knowledgeUsed } = serverData;
-    
+
     const results = rarityMap.map((rarity, index) => {
       // Rarity 3 -> Sanity (Currency)
       if (Math.floor(rarity) === 3) {

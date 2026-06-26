@@ -40,10 +40,18 @@ function createWindow() {
   const url = process.env.VITE_DEV_SERVER_URL;
   if (url) {
     win.loadURL(url);
-    win.webContents.openDevTools(); // Tự mở DevTools khi dev
+    // win.webContents.openDevTools(); // Tự mở DevTools khi dev - Removed by user request
   } else {
     win.loadFile(path.join(__dirname, '../../dist/index.html'));
   }
+
+  // Ctrl+Shift+I to toggle DevTools
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+      win.webContents.toggleDevTools();
+      event.preventDefault();
+    }
+  });
 
   registerIpcHandlers(ipcMain, win);
 

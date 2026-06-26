@@ -13,7 +13,9 @@ import {
   journalOutline, newspaperOutline, createOutline, flaskOutline,
   telescopeOutline, easelOutline, statsChartOutline, ribbonOutline,
   medalOutline, trophyOutline, hourglassOutline, clipboardOutline,
-  peopleOutline, cubeOutline, checkmarkDoneOutline
+  peopleOutline, cubeOutline, checkmarkDoneOutline,
+  chevronBackOutline, chevronForwardOutline,
+  shieldCheckmarkOutline
 } from 'ionicons/icons';
 
 import FocusGuard from '../focus/FocusGuard';
@@ -108,9 +110,10 @@ const APPS = [
   { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
   { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
   { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
-  { id: 'inventory', name: 'Inventory', className: 'inventory', icon: cubeOutline, content: <Inventory /> },
-  { id: 'quest', name: 'Quests', className: 'quest', icon: checkmarkDoneOutline, content: <QuestPanel /> },
-  { id: 'study-planner', name: 'Study Planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> }
+  { id: 'inventory', nameKey: 'common.inventory', className: 'inventory', icon: cubeOutline, content: <Inventory /> },
+  { id: 'quest', nameKey: 'common.quests', className: 'quest', icon: checkmarkDoneOutline, content: <QuestPanel /> },
+  { id: 'focus', nameKey: 'common.focus', className: 'focus', icon: shieldCheckmarkOutline, content: <FocusGuard /> },
+  { id: 'study-planner', nameKey: 'common.study_planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> }
 ];
 
 const STUDY_FLOAT_ICONS = [
@@ -159,12 +162,14 @@ class Dashboard extends Component {
       isMissionsOpen: false,
       isMissionsCollapsed: true,
       missions: [
-        { id: 1, title: 'Mission 1', desc: 'So khai the gioi', status: '1/1' },
-        { id: 2, title: 'Mission 2', desc: 'Thu thach tan thu', status: '4/4' },
-        { id: 3, title: 'Mission 3', desc: 'Nha suu tam', status: '3/3' },
-        { id: 4, title: 'Mission 4', desc: 'Dai gia lo dien', status: '1/1' },
+        { id: 1, titleKey: 'missions.mission_1.title', descKey: 'missions.mission_1.desc', status: '1/1' },
+        { id: 2, titleKey: 'missions.mission_2.title', descKey: 'missions.mission_2.desc', status: '4/4' },
+        { id: 3, titleKey: 'missions.mission_3.title', descKey: 'missions.mission_3.desc', status: '3/3' },
+        { id: 4, titleKey: 'missions.mission_4.title', descKey: 'missions.mission_4.desc', status: '1/1' },
       ],
       stackOrder: [], // Order of windows from bottom to top
+      launcherPage: 0,
+      appsPerPage: 5,
     };
     this.timerInterval = null;
     this.missionsPanelRef = React.createRef();
@@ -360,6 +365,7 @@ class Dashboard extends Component {
         stackOrder: newStackOrder,
         minimizedApps: prev.minimizedApps.filter(id => id !== appId),
         windowPositions: newPositions,
+        maximizedApp: appId, // Full screen by default
       };
     });
   };
@@ -474,7 +480,7 @@ class Dashboard extends Component {
   };
 
   handleClaimMission = () => {
-    toast.success('Claimed: +40 P-Coin!', {
+    toast.success(`Claimed: +40 ${this.props.t('common.ecoin')}!`, {
       icon: 'ok',
       theme: 'dark',
     });
@@ -681,18 +687,7 @@ class Dashboard extends Component {
           t={t}
         />
 
-        <div className="desktop-icons">
-          {APPS.filter(app => app.id !== 'profile').map(app => (
-            <div className={`icon ${app.className}`} key={app.id} onClick={() => this.openApp(app.id)}>
-              <div className="icon-img">
-                <IonIcon icon={app.icon} style={{ color: 'white', fontSize: 28 }} />
-              </div>
-              <span>{app.nameKey ? t(app.nameKey) : app.name}</span>
-            </div>
-          ))}
-          
-          <FocusGuard />
-        </div>
+
 
         {openApps.map(appId => {
           const app = APPS.find(a => a.id === appId);
@@ -761,6 +756,53 @@ class Dashboard extends Component {
           );
         })}
 
+        <div className="floating-app-launcher">
+          {APPS.length > this.state.appsPerPage && (
+            <button
+              className="taskbar-nav-btn prev"
+              disabled={this.state.launcherPage === 0}
+              onClick={() => this.setState(prev => ({ launcherPage: Math.max(0, prev.launcherPage - 1) }))}
+            >
+              <IonIcon icon={chevronBackOutline} />
+            </button>
+          )}
+
+          <div className="taskbar-launcher">
+            {APPS.slice(
+              this.state.launcherPage * this.state.appsPerPage,
+              (this.state.launcherPage + 1) * this.state.appsPerPage
+            ).map(app => (
+              <div
+                key={app.id}
+                className={`launcher-icon ${activeApp === app.id ? 'active' : ''} ${openApps.includes(app.id) ? 'opened' : ''} ${minimizedApps.includes(app.id) ? 'minimized' : ''}`}
+                onClick={(e) => {
+                  if (openApps.includes(app.id)) {
+                    this.handleTaskbarClick(e, app.id);
+                  } else {
+                    this.openApp(app.id);
+                  }
+                }}
+                title={t(app.nameKey)}
+              >
+                <div className="icon-img-wrapper">
+                  <IonIcon icon={app.icon} style={{ fontSize: 24 }} />
+                </div>
+                <div className="indicator"></div>
+              </div>
+            ))}
+          </div>
+
+          {APPS.length > this.state.appsPerPage && (
+            <button
+              className="taskbar-nav-btn next"
+              disabled={(this.state.launcherPage + 1) * this.state.appsPerPage >= APPS.length}
+              onClick={() => this.setState(prev => ({ launcherPage: prev.launcherPage + 1 }))}
+            >
+              <IonIcon icon={chevronForwardOutline} />
+            </button>
+          )}
+        </div>
+
         <div className="os-taskbar">
           <div className="taskbar-start">
             <div
@@ -777,25 +819,6 @@ class Dashboard extends Component {
             >
               <IonIcon icon={planetOutline} className={this.state.isVacuuming ? 'spinning' : ''} />
             </div>
-          </div>
-
-          <div className="taskbar-apps">
-            {openApps.map(appId => {
-              const app = APPS.find(a => a.id === appId);
-              if (!app) return null;
-
-              return (
-                <div
-                  key={appId}
-                  className={`taskbar-icon ${activeApp === appId ? 'active' : ''} ${minimizedApps.includes(appId) ? 'minimized' : ''}`}
-                  onClick={(e) => this.handleTaskbarClick(e, appId)}
-                  title={t(app.nameKey)}
-                >
-                  <IonIcon icon={app.icon} style={{ fontSize: 22 }} />
-                  <div className="indicator"></div>
-                </div>
-              );
-            })}
           </div>
 
           <div className="taskbar-sys">

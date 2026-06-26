@@ -1,7 +1,11 @@
 import React, { Component } from 'react';
+import { withTranslation } from 'react-i18next';
+import { connect } from 'react-redux';
+import { setEconomy } from '../../store/actions';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
 import { timeOutline, cubeOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
+import { toast } from 'react-toastify';
 import './GachaApp.scss';
 
 // Import System Managers
@@ -110,6 +114,19 @@ class GachaApp extends Component {
     // Detect if any item is NEW based on processed results
     const hasNewItem = processResult.details.some(res => !res.isDuplicate && res.type !== 'currency');
 
+    // Deduct KnowledgePoints/Sanity in Redux
+    if (this.props.economy) {
+      const cost = count * 10;
+      if (this.props.economy.knowledgePoint < cost) {
+        toast.error('Not enough Knowledge Points!');
+        return;
+      }
+
+      this.props.dispatchSetEconomy({
+        knowledgePoint: this.props.economy.knowledgePoint - cost
+      });
+    }
+
     this.setState({
       isPlaying: true,
       hasNewItem: hasNewItem, // Save to pass to GachaAnimation
@@ -150,7 +167,7 @@ class GachaApp extends Component {
                 ))}
               </div>
             </div>
-            
+
             <div className="rotation-timer">
               <IonIcon icon={timeOutline} /> {this.props.t('gacha.remaining')}: {timeLeftStr}
             </div>
@@ -206,14 +223,14 @@ class GachaApp extends Component {
               </div>
 
               <div className="modal-tabs">
-                <button 
-                  className={this.state.activeDetailTab === 'history' ? 'active' : ''} 
+                <button
+                  className={this.state.activeDetailTab === 'history' ? 'active' : ''}
                   onClick={() => this.setState({ activeDetailTab: 'history', detailPage: 0 })}
                 >
                   {this.props.t('gacha.history')}
                 </button>
-                <button 
-                  className={this.state.activeDetailTab === 'inventory' ? 'active' : ''} 
+                <button
+                  className={this.state.activeDetailTab === 'inventory' ? 'active' : ''}
                   onClick={() => this.setState({ activeDetailTab: 'inventory', detailPage: 0 })}
                 >
                   {this.props.t('gacha.inventory')}
@@ -226,9 +243,9 @@ class GachaApp extends Component {
                   const list = isHistory ? this.state.historyItems : inventoryItems;
                   const start = this.state.detailPage * 5;
                   const pageItems = list.slice(start, start + 5);
-                  
+
                   if (list.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
-                  
+
                   return pageItems.map((item, idx) => {
                     const meta = ITEMS[item.id] || { name: item.id, icon: '📦', rarity: 'R' };
                     return (
@@ -256,7 +273,7 @@ class GachaApp extends Component {
                   });
                 })()}
               </div>
-              
+
               <div className="pagination">
                 <button
                   disabled={this.state.detailPage === 0}
@@ -283,6 +300,10 @@ class GachaApp extends Component {
           rewards={rewards}
           onComplete={() => {
             const { pendingRolls } = this.state;
+            if (!pendingRolls) {
+              this.setState({ isPlaying: false });
+              return;
+            }
             this.setState({
               isPlaying: false,
               pity5: pendingRolls.pity5,
@@ -299,4 +320,12 @@ class GachaApp extends Component {
   }
 }
 
-export default GachaApp;
+const mapStateToProps = (state) => ({
+  economy: state.economy
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  dispatchSetEconomy: (data) => dispatch(setEconomy(data))
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(GachaApp));
