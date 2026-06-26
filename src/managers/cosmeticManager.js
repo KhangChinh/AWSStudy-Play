@@ -27,6 +27,15 @@ const formatName = (sk) => {
   return sk.replace(/^bg_/, '').split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
+const imageBackgroundStyles = (imageUrl) => {
+  const imageLayer = `url("${imageUrl}") center / cover no-repeat`;
+  return {
+    preview: imageLayer,
+    profileBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.38) 0%, rgba(2, 6, 23, 0.84) 100%), ${imageLayer}`,
+    desktopBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.34) 0%, rgba(2, 6, 23, 0.68) 100%), ${imageLayer}`,
+  };
+};
+
 class CosmeticManager {
   constructor() {
     this.data = JSON.parse(JSON.stringify(COSMETICS));
@@ -47,21 +56,30 @@ class CosmeticManager {
       if (!category || !this.data[category]) return;
 
       const autoUrls = resolveAutoAssets(item);
+      const resolvedImageUrl = item.imageUrl
+        ? `${S3_ASSETS_BASE}/${item.imageUrl}`
+        : autoUrls.image;
+      const imageStyles = imageBackgroundStyles(resolvedImageUrl);
+      const idx = this.data[category].findIndex(i => i.id === item.SK);
+      const existing = idx > -1 ? this.data[category][idx] : null;
 
       const mappedItem = {
-        name: formatName(item.SK), // Tự tạo tên đẹp từ ID
+        ...existing,
+        name: item.name || existing?.name || formatName(item.SK),
         ...item,
         id: item.SK,
         assets: {
           css: item.assets?.css ? `${S3_ASSETS_BASE}/${item.assets.css}` : autoUrls.css,
+          ...(existing?.assets || {}),
         },
-        imageUrl: item.imageUrl ? `${S3_ASSETS_BASE}/${item.imageUrl}` : autoUrls.image,
-        preview: `url("${item.imageUrl ? `${S3_ASSETS_BASE}/${item.imageUrl}` : autoUrls.image}") center/cover no-repeat`
+        imageUrl: resolvedImageUrl,
+        preview: existing?.preview || imageStyles.preview,
+        profileBackground: existing?.profileBackground || imageStyles.profileBackground,
+        desktopBackground: existing?.desktopBackground || imageStyles.desktopBackground,
       };
 
-      const idx = this.data[category].findIndex(i => i.id === item.SK);
       if (idx > -1) {
-        this.data[category][idx] = { ...this.data[category][idx], ...mappedItem };
+        this.data[category][idx] = mappedItem;
       } else {
         this.data[category].push(mappedItem);
       }

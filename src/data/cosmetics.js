@@ -1,16 +1,15 @@
 /**
- * Cosmetic Database (Local Fallback)
+ * Cosmetic Database (Local Fallback + Cloud SK registry)
  */
 
 export const S3_ASSETS_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '').replace(/\/$/, '');
 
-// Danh sách các Background ID tìm thấy trong folder AWSServerless
-// Code sẽ tự động dùng danh sách này để tải dữ liệu từ S3
+// Background IDs on S3 / AWSServerless — loaded via cosmeticManager.loadFromMasterData
 export const CLOUD_BACKGROUND_SKS = [
   'bg_crimson_void',
   'bg_dark',
   'bg_light',
-  'bg_purple'
+  'bg_purple',
 ];
 
 export const COSMETICS = {
@@ -19,7 +18,23 @@ export const COSMETICS = {
       id: 'bg_default',
       name: 'Aurora Study',
       assets: {},
-      preview: null
+      preview: 'radial-gradient(circle at 18% 16%, rgba(34, 211, 238, 0.38) 0%, transparent 28%), radial-gradient(circle at 82% 20%, rgba(217, 70, 239, 0.34) 0%, transparent 30%), radial-gradient(circle at 68% 78%, rgba(251, 191, 36, 0.24) 0%, transparent 30%), linear-gradient(135deg, rgba(9, 16, 43, 0.98) 0%, rgba(13, 37, 67, 0.96) 42%, rgba(26, 12, 53, 0.96) 100%)',
+      profileBackground: 'linear-gradient(180deg, rgba(2, 6, 23, 0.32) 0%, rgba(2, 6, 23, 0.76) 100%), radial-gradient(circle at 18% 16%, rgba(34, 211, 238, 0.38) 0%, transparent 28%), radial-gradient(circle at 82% 20%, rgba(217, 70, 239, 0.34) 0%, transparent 30%), radial-gradient(circle at 68% 78%, rgba(251, 191, 36, 0.24) 0%, transparent 30%), linear-gradient(135deg, rgba(9, 16, 43, 0.98) 0%, rgba(13, 37, 67, 0.96) 42%, rgba(26, 12, 53, 0.96) 100%)',
+      desktopBackground: 'radial-gradient(circle at 18% 16%, rgba(34, 211, 238, 0.38) 0%, transparent 28%), radial-gradient(circle at 82% 20%, rgba(217, 70, 239, 0.34) 0%, transparent 30%), radial-gradient(circle at 68% 78%, rgba(251, 191, 36, 0.24) 0%, transparent 30%), linear-gradient(135deg, rgba(9, 16, 43, 0.98) 0%, rgba(13, 37, 67, 0.96) 42%, rgba(26, 12, 53, 0.96) 100%)',
+    },
+    {
+      id: 'bg_black',
+      name: 'Void',
+      preview: 'radial-gradient(circle at 16% 20%, rgba(56, 189, 248, 0.22) 0%, transparent 26%), radial-gradient(circle at 84% 18%, rgba(99, 102, 241, 0.2) 0%, transparent 28%), radial-gradient(circle at 70% 76%, rgba(148, 163, 184, 0.16) 0%, transparent 30%), linear-gradient(135deg, rgba(2, 6, 23, 0.99) 0%, rgba(0, 0, 0, 0.98) 50%, rgba(15, 23, 42, 0.97) 100%)',
+      profileBackground: 'linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, rgba(2, 6, 23, 0.78) 100%), radial-gradient(circle at 16% 20%, rgba(56, 189, 248, 0.22) 0%, transparent 26%), radial-gradient(circle at 84% 18%, rgba(99, 102, 241, 0.2) 0%, transparent 28%), radial-gradient(circle at 70% 76%, rgba(148, 163, 184, 0.16) 0%, transparent 30%), linear-gradient(135deg, rgba(2, 6, 23, 0.99) 0%, rgba(0, 0, 0, 0.98) 50%, rgba(15, 23, 42, 0.97) 100%)',
+      desktopBackground: 'radial-gradient(circle at 16% 20%, rgba(56, 189, 248, 0.22) 0%, transparent 26%), radial-gradient(circle at 84% 18%, rgba(99, 102, 241, 0.2) 0%, transparent 28%), radial-gradient(circle at 70% 76%, rgba(148, 163, 184, 0.16) 0%, transparent 30%), linear-gradient(135deg, rgba(2, 6, 23, 0.99) 0%, rgba(0, 0, 0, 0.98) 50%, rgba(15, 23, 42, 0.97) 100%)',
+    },
+    {
+      id: 'bg_white',
+      name: 'White',
+      preview: 'radial-gradient(circle at 20% 18%, rgba(125, 211, 252, 0.55) 0%, transparent 28%), radial-gradient(circle at 80% 22%, rgba(216, 180, 254, 0.48) 0%, transparent 30%), radial-gradient(circle at 65% 80%, rgba(253, 230, 138, 0.42) 0%, transparent 30%), linear-gradient(135deg, rgba(241, 245, 249, 0.98) 0%, rgba(248, 250, 252, 0.96) 42%, rgba(226, 232, 240, 0.96) 100%)',
+      profileBackground: 'linear-gradient(180deg, rgba(2, 6, 23, 0.28) 0%, rgba(2, 6, 23, 0.62) 100%), radial-gradient(circle at 20% 18%, rgba(125, 211, 252, 0.55) 0%, transparent 28%), radial-gradient(circle at 80% 22%, rgba(216, 180, 254, 0.48) 0%, transparent 30%), radial-gradient(circle at 65% 80%, rgba(253, 230, 138, 0.42) 0%, transparent 30%), linear-gradient(135deg, rgba(241, 245, 249, 0.98) 0%, rgba(248, 250, 252, 0.96) 42%, rgba(226, 232, 240, 0.96) 100%)',
+      desktopBackground: 'radial-gradient(circle at 20% 18%, rgba(125, 211, 252, 0.55) 0%, transparent 28%), radial-gradient(circle at 80% 22%, rgba(216, 180, 254, 0.48) 0%, transparent 30%), radial-gradient(circle at 65% 80%, rgba(253, 230, 138, 0.42) 0%, transparent 30%), linear-gradient(135deg, rgba(241, 245, 249, 0.98) 0%, rgba(248, 250, 252, 0.96) 42%, rgba(226, 232, 240, 0.96) 100%)',
     },
   ],
   frames: [

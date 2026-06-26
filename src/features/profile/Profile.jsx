@@ -58,6 +58,12 @@ class Profile extends Component {
     this.setState({ activeTab: 'backgrounds' });
   };
 
+  handleCoverKeyDown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.handleCoverEdit();
+  };
+
   renderTabContent = () => {
     const { activeTab } = this.state;
     const {
@@ -80,7 +86,10 @@ class Profile extends Component {
       return (
         <div className="backgrounds-grid">
           {backgrounds.map(background => {
-            const isUnlocked = inventoryManager.hasItem(background.id) || background.id === 'bg_default' || background.custom;
+            const isUnlocked = inventoryManager.hasItem(background.id)
+              || background.id === 'bg_default'
+              || background.custom
+              || !background.SK;
             const isActive = activeBackgroundId === background.id;
 
             return (

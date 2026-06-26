@@ -5,7 +5,11 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { CLOUD_BACKGROUND_SKS } from '../data/cosmetics';
 
-const CLOUD_API_URL = (import.meta.env.VITE_CLOUD_API_URL || '').replace(/\/$/, '');
+const CLOUD_API_URL = (
+  import.meta.env.VITE_CLOUD_API_URL
+  || import.meta.env.VITE_API_BASE_URL
+  || ''
+).replace(/\/$/, '');
 
 /**
  * Helper gọi API với Auth Token
@@ -35,19 +39,22 @@ const authFetch = async (endpoint, options = {}) => {
 };
 
 /**
- * Lấy danh sách items cố định (Giả lập hoặc từ Master Data API)
+ * Lấy danh sách master data từ server (background, frame, title...)
  */
 export const handleGetMasterDataApi = async () => {
+  if (!CLOUD_API_URL) {
+    return {
+      items: CLOUD_BACKGROUND_SKS.map(sk => ({ SK: sk, itemType: 'background' })),
+    };
+  }
+
   try {
-    // Nếu bạn có API thực thụ, hãy dùng: return authFetch('/master-data');
-    const items = CLOUD_BACKGROUND_SKS.map(sk => ({
-      SK: sk,
-      itemType: 'background'
-    }));
-    return { items };
+    return await authFetch('/master-data', { method: 'GET' });
   } catch (e) {
     console.warn('[cosmeticServices] FAIL handleGetMasterDataApi:', e.message);
-    return { items: [] };
+    return {
+      items: CLOUD_BACKGROUND_SKS.map(sk => ({ SK: sk, itemType: 'background' })),
+    };
   }
 };
 
@@ -72,7 +79,7 @@ export const handleSyncAllApi = async () => {
  */
 export const handleEquipCosmeticsApi = async (data) => {
   try {
-    return await authFetch('/user/profile/equip', {
+    return await authFetch('/change-cosmetics', {
       method: 'POST',
       body: JSON.stringify(data)
     });
@@ -88,8 +95,8 @@ export const handleEquipCosmeticsApi = async (data) => {
  */
 export const handleUpdateNameApi = async (newName) => {
   try {
-    return await authFetch('/user/profile', {
-      method: 'POST',
+    return await authFetch('/update-profile', {
+      method: 'PUT',
       body: JSON.stringify({ name: newName })
     });
   } catch (e) {

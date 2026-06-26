@@ -7,7 +7,7 @@ import './MinigameHub.scss';
 import { setHighscores } from '../../store/actions';
 import { handleGetLeaderboardApi } from '../../services/socialServices';
 import { toast } from 'react-toastify';
-import SudokuGame from './SudokuGame';
+import SudokuGame from '../../../public/games/sudoku/SudokuGame';
 
 const getMinigames = (t) => [
   { id: 'all', label: t('minigames.total_wins'), icon: '🏅' },
@@ -16,9 +16,9 @@ const getMinigames = (t) => [
 ];
 
 const MINIGAME_SCORES = {
-  all:         [500, 425, 350, 275, 200],
+  all: [500, 425, 350, 275, 200],
   minesweeper: [180, 155, 120, 90, 60],
-  sudoku:      [130, 110, 90, 75, 50],
+  sudoku: [130, 110, 90, 75, 50],
 };
 
 // ═══ Arcade Game List ═══
@@ -37,7 +37,7 @@ const ArcadeList = ({ onPlayGame, t }) => (
             <span className="item-price">
               {typeof game.price === 'number' ? `🪙 ${game.price} ${t('minigames.pcoin_play')}` : t('minigames.free')}
             </span>
-            <button 
+            <button
               onClick={() => !game.disabled && onPlayGame(game.name.toLowerCase())}
               style={game.disabled ? { background: '#475569', cursor: 'not-allowed', opacity: 0.6 } : {}}
               disabled={game.disabled}
@@ -177,10 +177,17 @@ class MinigameHub extends Component {
 
     return (
       <div className="app-container minigame-hub">
+<<<<<<< HEAD
         <h2 className="app-title">🎮 {this.props.t('minigames.title')}</h2>
         <ArcadeList onPlayGame={(game) => this.setState({ activeGame: game })} t={this.props.t} />
         <LeaderboardView 
           tab={tab} 
+=======
+        <h2 className="app-title">🎮 Minigame Hub</h2>
+        <ArcadeList onPlayGame={(game) => this.setState({ activeGame: game })} />
+        <LeaderboardView
+          tab={tab}
+>>>>>>> 5b55491c92ee5d9d73bb1b7be63e9dc8e534ff58
           minigameFilter={minigameFilter}
           setTab={this.setTab}
           setMinigameFilter={this.setMinigameFilter}

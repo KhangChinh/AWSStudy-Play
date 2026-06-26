@@ -204,6 +204,7 @@ class Dashboard extends Component {
             SK: item.SK,
             amount: item.amount || 1
           }));
+          this.props.setInventory({ items: inventory });
         }
 
         // Đẩy dữ liệu vào Redux Store
@@ -591,8 +592,8 @@ class Dashboard extends Component {
     }
   };
 
-  renderDesktopLineBackground = () => (
-    <div className="desktop-line-bg" aria-hidden="true">
+  renderDesktopLineBackground = (bgId = 'bg_default') => (
+    <div className={`desktop-line-bg bg-${bgId}`} aria-hidden="true">
       <div className="aurora-field aurora-cyan"></div>
       <div className="aurora-field aurora-magenta"></div>
       <div className="aurora-field aurora-gold"></div>
@@ -643,9 +644,17 @@ class Dashboard extends Component {
       || cosmeticManager.getAllInCategory('systemIcons')[0]
       || { type: 'outline' };
     const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
+    const activeBgId = backgroundId(currentBackground) || 'bg_default';
+    const presetBgIds = ['bg_default', 'bg_purple', 'bg_black', 'bg_white'];
+    const bgThemeId = selectedBackground?.custom || !presetBgIds.includes(activeBgId)
+      ? 'bg_default'
+      : activeBgId;
     const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
     const desktopStyle = desktopBackground
-      ? { '--desktop-user-background': desktopBackground, background: desktopBackground }
+      ? {
+        '--desktop-user-background': desktopBackground,
+        ...(animationsEnabled ? {} : { background: desktopBackground }),
+      }
       : undefined;
     const desktopClassName = [
       'os-desktop',
@@ -655,7 +664,7 @@ class Dashboard extends Component {
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
-        {backgroundId(currentBackground) === 'bg_default' && this.renderDesktopLineBackground()}
+        {animationsEnabled && this.renderDesktopLineBackground(bgThemeId)}
         <div className="desktop-bg-dim"></div>
         {this.state.isDragging && <div className="drag-overlay"></div>}
 
