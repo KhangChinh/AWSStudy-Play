@@ -51,3 +51,13 @@ export const setFriends = (data) => ({
   type: 'SET_FRIENDS',
   payload: data,
 });
+
+export const appendFriends = (data) => ({
+  type: 'APPEND_FRIENDS',
+  payload: data,
+});
+
+export const setFriendSyncTime = (time) => ({
+  type: 'SET_FRIEND_SYNC_TIME',
+  payload: time,
+});

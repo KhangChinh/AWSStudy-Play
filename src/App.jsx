@@ -10,7 +10,7 @@ import Dashboard from './features/dashboard/Dashboard';
 import AuthPage from './features/auth/AuthPage';
 import TimerWidget from './features/focus/TimerWidget';
 import Spinner from './components/Spinner';
-import { handleLoginSuccessApi } from './services/authServices';
+import { handleLoginSuccessApi, initializeAuth } from './services/authService';
 import { userLogin } from './store/actions';
 import './index.css';
 
@@ -24,6 +24,9 @@ class App extends Component {
 
   async componentDidMount() {
     try {
+      // Khởi tạo Auth (lấy token vào RAM)
+      await initializeAuth();
+      
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
       if (user) {
