@@ -6,9 +6,11 @@ import {
   personCircleOutline, starOutline, cubeOutline,
   cashOutline, imageOutline, addOutline
 } from 'ionicons/icons';
+import RankFrame from '../../components/RankFrame';
 import cosmeticManager from '../../managers/cosmeticManager';
 import inventoryManager from '../../managers/inventoryManager';
-import RankFrame from '../../components/RankFrame';
+import { userLogin } from '../../store/actions';
+import { toast } from 'react-toastify';
 import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
@@ -41,6 +43,9 @@ const resolveBackground = (background) => {
   if (background && typeof background === 'object') return background;
   return cosmeticManager.getCosmeticInfo('backgrounds', background);
 };
+
+const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '').replace(/\/$/, '') + '/avatars/';
+const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
 class Profile extends Component {
   constructor(props) {
@@ -234,13 +239,15 @@ class Profile extends Component {
             <IonIcon icon={imageOutline} />
           </div>
           <div className="user-profile-section">
-            <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
-              {userInfo?.avatar ? (
-                <img src={userInfo.avatar} alt="avatar" className="avatar-img-large" />
-              ) : (
-                <IonIcon icon={personCircleOutline} />
-              )}
-            </RankFrame>
+            <div className="avatar-container-simple">
+              <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
+                {userInfo?.avatar ? (
+                  <img src={userInfo.avatar} alt="avatar" className="avatar-img-large" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                ) : (
+                  <img src={DEFAULT_AVATAR} alt="avatar" className="avatar-img-large" />
+                )}
+              </RankFrame>
+            </div>
             <div className="user-main-info">
               <div className="username-line">
                 <span className="name">{displayName}</span>

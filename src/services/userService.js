@@ -30,6 +30,46 @@ const getUserFromApi = async () => {
   }
 };
 
+export const getAvatarUploadUrl = async (fileName, fileType) => {
+  try {
+    const idToken = await getValidIdToken();
+    if (!idToken) return { success: false, error: 'Unauthorized' };
+    const cleanApiUrl = API_URL.replace(/\/$/, '');
+    const response = await fetch(`${cleanApiUrl}/get-upload-url`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fileName, fileType }),
+    });
+    if (!response.ok) return { success: false, error: `API Error: ${response.status}` };
+    return await response.json();
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateAvatarUrl = async (avatarUrl) => {
+  try {
+    const idToken = await getValidIdToken();
+    if (!idToken) return { success: false, error: 'Unauthorized' };
+    const cleanApiUrl = API_URL.replace(/\/$/, '');
+    const response = await fetch(`${cleanApiUrl}/update-avatar`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ avatarUrl }),
+    });
+    if (!response.ok) return { success: false, error: `API Error: ${response.status}` };
+    return await response.json();
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 export {
   getUserFromApi
 };

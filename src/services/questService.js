@@ -55,3 +55,29 @@ export const claimQuestReward = async (questKey) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * POST /daily/refresh — Làm mới danh sách daily quests (reset nếu qua ngày)
+ */
+export const refreshDailyQuests = async () => {
+  try {
+    const idToken = await getValidIdToken();
+    if (!idToken) return { success: false, error: 'Unauthorized' };
+    const cleanApiUrl = API_URL.replace(/\/$/, '');
+    const response = await fetch(`${cleanApiUrl}/daily/refresh`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) return { success: false, error: `API Error: ${response.status}` };
+    const result = await response.json();
+    if (result.success && result.daily) {
+      return { success: true, daily: result.daily };
+    }
+    return { success: false, error: result.message || 'Unknown error' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};

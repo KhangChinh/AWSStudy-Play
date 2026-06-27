@@ -20,7 +20,6 @@ import {
 
 import FocusGuard from '../focus/FocusGuard';
 import Profile from '../profile/Profile';
-import QuestPanel from '../quest/QuestPanel';
 import Inventory from '../inventory/Inventory';
 import StudyPlanner from '../study-planner/StudyPlanner';
 import cosmeticManager from '../../managers/cosmeticManager';
@@ -33,7 +32,9 @@ import RankFrame from '../../components/RankFrame';
 import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authService';
 import { handleGetMasterDataApi, handleSyncAllApi } from '../../services/cosmeticServices';
-import { userLogout, setEconomy, setInventory, userLogin, setFriendSyncTime } from '../../store/actions';
+import QuestWidget from '../quest/QuestWidget';
+import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
+import { setDailyQuests, setEconomy, userLogout, setInventory, userLogin, setFriendSyncTime } from '../../store/actions';
 import inventoryManager from '../../managers/inventoryManager';
 import './Dashboard.scss';
 
@@ -66,6 +67,9 @@ const backgroundId = (background) => (
   typeof background === 'string' ? background : background?.id
 );
 
+const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '').replace(/\/$/, '') + '/avatars/';
+const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
+
 const UserProfileWidget = ({
   currentTitle,
   currentFrame,
@@ -77,7 +81,7 @@ const UserProfileWidget = ({
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
-  const displayName = userInfo?.username || 'Player_9999';
+  const displayName = userInfo?.username || 'Unde_user';
   const rankLabel = translateRank(currentRank, t);
   const titleName = translateCosmeticName(titleData, t);
 
@@ -85,9 +89,9 @@ const UserProfileWidget = ({
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
       <RankFrame tier={frameTier} size={64} className="widget-rank-frame">
         {userInfo?.avatar ? (
-          <img src={userInfo.avatar} alt="avatar" className="avatar-img" />
+          <img src={userInfo.avatar} alt="avatar" className="avatar-img" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
         ) : (
-          <IonIcon icon={personOutline} />
+          <img src={DEFAULT_AVATAR} alt="avatar" className="avatar-img" />
         )}
       </RankFrame>
       <div className="user-info">
@@ -111,7 +115,6 @@ const APPS = [
   { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
   { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
   { id: 'inventory', nameKey: 'common.inventory', className: 'inventory', icon: cubeOutline, content: <Inventory /> },
-  { id: 'quest', nameKey: 'common.quests', className: 'quest', icon: checkmarkDoneOutline, content: <QuestPanel /> },
   { id: 'focus', nameKey: 'common.focus', className: 'focus', icon: shieldCheckmarkOutline, content: <FocusGuard /> },
   { id: 'study-planner', nameKey: 'common.study_planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> }
 ];
@@ -159,21 +162,15 @@ class Dashboard extends Component {
       currentSystemIcon: 'icon_default',
       animationsEnabled: true,
       isVacuuming: false,
-      isMissionsOpen: false,
-      isMissionsCollapsed: true,
-      missions: [
-        { id: 1, titleKey: 'missions.mission_1.title', descKey: 'missions.mission_1.desc', status: '1/1' },
-        { id: 2, titleKey: 'missions.mission_2.title', descKey: 'missions.mission_2.desc', status: '4/4' },
-        { id: 3, titleKey: 'missions.mission_3.title', descKey: 'missions.mission_3.desc', status: '3/3' },
-        { id: 4, titleKey: 'missions.mission_4.title', descKey: 'missions.mission_4.desc', status: '1/1' },
-      ],
+      isQuestsOpen: true,
+      isQuestsCollapsed: false,
       stackOrder: [], // Order of windows from bottom to top
       launcherPage: 0,
       appsPerPage: 5,
     };
     this.timerInterval = null;
-    this.missionsPanelRef = React.createRef();
-    this.missionsBtnRef = React.createRef();
+    this.questsPanelRef = React.createRef();
+    this.questsBtnRef = React.createRef();
   }
 
   async componentDidMount() {
@@ -248,7 +245,69 @@ class Dashboard extends Component {
     } catch (e) {
       console.warn('[Dashboard] Cloud Sync thất bại:', e);
     }
+
+    // Load Daily Quests
+    this.loadDailyQuests();
   }
+
+  /**
+   * Load Daily Quests
+   * Luồng:
+   *   1. Nếu force=true → bỏ qua cache, gọi API ngay
+   *   2. Kiểm tra electron-store (base64 encoded)
+   *      - Có data + expiresAt chưa qua ngày → đẩy vào Redux, xong
+   *      - Có data + expiresAt đã qua ngày → gọi API lấy mới (refresh)
+   *      - Không có data → gọi API lấy mới
+   *   3. Kết quả API → lưu vào Redux + electron-store (base64)
+   */
+  loadDailyQuests = async () => {
+    const now = Math.floor(Date.now() / 1000);
+
+    try {
+
+      // ──── STEP 1: Ưu tiên đọc từ electron-store (base64 cache) ────
+      if (window.api?.invoke) {
+        const stored = await window.api.invoke('quest:load');
+        if (stored?.success && stored.data?.quests && stored.data.expiresAt) {
+          // Kiểm tra expiredAt xem đã qua ngày chưa
+          if (stored.data.expiresAt > now) {
+            console.log('[Quest] Load từ store thành công (còn hạn). Update Redux...');
+            this.props.dispatch(setDailyQuests(stored.data));
+            return;
+          } else {
+            console.log('[Quest] Store có data nhưng hết hạn. Tiến hành refreshDaily...');
+            // Qua ngày -> gọi refreshDaily lại
+            const refreshResult = await refreshDailyQuests();
+            if (refreshResult.success && refreshResult.daily) {
+              this.props.dispatch(setDailyQuests(refreshResult.daily));
+              await window.api.invoke('quest:save', refreshResult.daily);
+              return;
+            }
+          }
+        }
+      }
+
+      // ──── STEP 2: Nếu không có trong store hoặc refresh thất bại -> Gọi getDailyQuests ────
+      // Đây cũng là logic khi vừa login (nếu store trống)
+      console.log('[Quest] Gọi getDaily lấy dữ liệu từ server...');
+      const result = await getDailyQuests();
+
+      if (result.success && result.daily) {
+        console.log('[Quest] GetDaily thành công. Lưu store & update Redux.');
+        // Lưu vào Redux
+        this.props.dispatch(setDailyQuests(result.daily));
+        // Lưu vào electron-store (mã hóa base64 đã handle ở main process)
+        if (window.api?.invoke) {
+          await window.api.invoke('quest:save', result.daily);
+        }
+      } else {
+        console.warn('[Quest] API getDaily fail:', result.error);
+      }
+    } catch (err) {
+      console.error('[Quest] Load error:', err);
+    }
+  };
+
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.currentBackground !== this.state.currentBackground) {
@@ -329,8 +388,8 @@ class Dashboard extends Component {
     this.setState({ currentSystemIcon: id });
   };
 
-  toggleMissions = () => {
-    this.setState(prev => ({ isMissionsCollapsed: !prev.isMissionsCollapsed }));
+  toggleQuests = () => {
+    this.setState(prev => ({ isQuestsCollapsed: !prev.isQuestsCollapsed }));
   };
 
   openApp = (appId) => {
@@ -472,29 +531,60 @@ class Dashboard extends Component {
     }));
   };
 
-  handleClaimAllMissions = () => {
-    toast.success(this.props.t('missions.rewards_claimed'), {
-      icon: 'gift',
-      theme: 'dark',
-    });
+  handleClaimQuest = async (questKey) => {
+    try {
+      const result = await claimQuestReward(questKey);
+      if (result.success) {
+        toast.success(`✨ ${result.message || this.props.t('missions.rewards_claimed')}`);
+
+        const { dailyQuests } = this.props;
+        const updatedQuests = { ...dailyQuests.quests };
+        if (questKey === 'all_daily') {
+          updatedQuests.all_daily = { ...updatedQuests.all_daily, isClaimed: true };
+        } else {
+          updatedQuests[questKey] = { ...updatedQuests[questKey], isClaimed: true };
+        }
+
+        this.props.dispatch(setDailyQuests({
+          ...dailyQuests,
+          quests: updatedQuests,
+        }));
+
+        if (result.newKnowledgePoint !== undefined) {
+          this.props.dispatch(setEconomy({ knowledgePoint: result.newKnowledgePoint }));
+        }
+      } else {
+        toast.error(result.error || result.message || 'Action failed!');
+      }
+    } catch (err) {
+      toast.error('Connection error!');
+    }
   };
 
-  handleClaimMission = () => {
-    toast.success(`Claimed: +40 ${this.props.t('common.ecoin')}!`, {
-      icon: 'ok',
-      theme: 'dark',
-    });
+  handleClaimAllQuests = () => {
+    const { dailyQuests } = this.props;
+    if (!dailyQuests?.quests) return;
+
+    if (dailyQuests.quests.all_daily?.isCompleted && !dailyQuests.quests.all_daily?.isClaimed) {
+      this.handleClaimQuest('all_daily');
+    } else {
+      const claimable = Object.entries(dailyQuests.quests)
+        .find(([k, q]) => q.isCompleted && !q.isClaimed);
+      if (claimable) {
+        this.handleClaimQuest(claimable[0]);
+      }
+    }
   };
 
   handleClickOutside = (event) => {
     if (
-      this.state.isMissionsOpen
-      && this.missionsPanelRef.current
-      && !this.missionsPanelRef.current.contains(event.target)
-      && this.missionsBtnRef.current
-      && !this.missionsBtnRef.current.contains(event.target)
+      this.state.isQuestsOpen
+      && this.questsPanelRef.current
+      && !this.questsPanelRef.current.contains(event.target)
+      && this.questsBtnRef.current
+      && !this.questsBtnRef.current.contains(event.target)
     ) {
-      this.setState({ isMissionsOpen: false });
+      this.setState({ isQuestsOpen: false });
     }
   };
 
@@ -592,6 +682,10 @@ class Dashboard extends Component {
       try {
         await signOut();
         handleLogoutApi();
+        // Xóa quest cache khỏi electron-store khi logout
+        if (window.api?.invoke) {
+          await window.api.invoke('quest:clear').catch(() => { });
+        }
         this.props.userLogout();
         toast.success(this.props.t('dashboard.logout_success'));
         this.props.navigate('/login');
@@ -687,6 +781,38 @@ class Dashboard extends Component {
           t={t}
         />
 
+        <QuestWidget
+          quests={this.props.dailyQuests?.quests ?
+            Object.entries(this.props.dailyQuests.quests)
+              .filter(([key]) => key !== 'all_daily')
+              .map(([key, q]) => ({
+                id: key,
+                title: q.name,
+                description: q.description || '',
+                type: q.type,
+                reward: q.knowledgePoint || 0,
+                status: `${q.progress || 0}/${q.target || 1}`,
+                isCompleted: q.isCompleted,
+                isClaimed: q.isClaimed,
+                target: q.target || 1
+              })) : []
+          }
+          allDaily={this.props.dailyQuests?.quests?.all_daily ? {
+            name: this.props.dailyQuests.quests.all_daily.name,
+            reward: this.props.dailyQuests.quests.all_daily.knowledgePoint || 100,
+            progress: this.props.dailyQuests.quests.all_daily.progress || 0,
+            target: this.props.dailyQuests.quests.all_daily.target || 4,
+            isCompleted: this.props.dailyQuests.quests.all_daily.isCompleted,
+            isClaimed: this.props.dailyQuests.quests.all_daily.isClaimed
+          } : null}
+          expiresAt={this.props.dailyQuests?.expiresAt || 0}
+          isCollapsed={this.state.isQuestsCollapsed}
+          onToggle={this.toggleQuests}
+          onClaimAll={this.handleClaimAllQuests}
+          onClaimQuest={this.handleClaimQuest}
+          t={t}
+        />
+
 
 
         {openApps.map(appId => {
@@ -756,52 +882,7 @@ class Dashboard extends Component {
           );
         })}
 
-        <div className="floating-app-launcher">
-          {APPS.length > this.state.appsPerPage && (
-            <button
-              className="taskbar-nav-btn prev"
-              disabled={this.state.launcherPage === 0}
-              onClick={() => this.setState(prev => ({ launcherPage: Math.max(0, prev.launcherPage - 1) }))}
-            >
-              <IonIcon icon={chevronBackOutline} />
-            </button>
-          )}
 
-          <div className="taskbar-launcher">
-            {APPS.slice(
-              this.state.launcherPage * this.state.appsPerPage,
-              (this.state.launcherPage + 1) * this.state.appsPerPage
-            ).map(app => (
-              <div
-                key={app.id}
-                className={`launcher-icon ${activeApp === app.id ? 'active' : ''} ${openApps.includes(app.id) ? 'opened' : ''} ${minimizedApps.includes(app.id) ? 'minimized' : ''}`}
-                onClick={(e) => {
-                  if (openApps.includes(app.id)) {
-                    this.handleTaskbarClick(e, app.id);
-                  } else {
-                    this.openApp(app.id);
-                  }
-                }}
-                title={t(app.nameKey)}
-              >
-                <div className="icon-img-wrapper">
-                  <IonIcon icon={app.icon} style={{ fontSize: 24 }} />
-                </div>
-                <div className="indicator"></div>
-              </div>
-            ))}
-          </div>
-
-          {APPS.length > this.state.appsPerPage && (
-            <button
-              className="taskbar-nav-btn next"
-              disabled={(this.state.launcherPage + 1) * this.state.appsPerPage >= APPS.length}
-              onClick={() => this.setState(prev => ({ launcherPage: prev.launcherPage + 1 }))}
-            >
-              <IonIcon icon={chevronForwardOutline} />
-            </button>
-          )}
-        </div>
 
         <div className="os-taskbar">
           <div className="taskbar-start">
@@ -821,6 +902,53 @@ class Dashboard extends Component {
             </div>
           </div>
 
+          <div className="floating-app-launcher">
+            {APPS.length > this.state.appsPerPage && (
+              <button
+                className="taskbar-nav-btn prev"
+                disabled={this.state.launcherPage === 0}
+                onClick={() => this.setState(prev => ({ launcherPage: Math.max(0, prev.launcherPage - 1) }))}
+              >
+                <IonIcon icon={chevronBackOutline} />
+              </button>
+            )}
+
+            <div className="taskbar-launcher">
+              {APPS.slice(
+                this.state.launcherPage * this.state.appsPerPage,
+                (this.state.launcherPage + 1) * this.state.appsPerPage
+              ).map(app => (
+                <div
+                  key={app.id}
+                  className={`launcher-icon ${activeApp === app.id ? 'active' : ''} ${openApps.includes(app.id) ? 'opened' : ''} ${minimizedApps.includes(app.id) ? 'minimized' : ''}`}
+                  onClick={(e) => {
+                    if (openApps.includes(app.id)) {
+                      this.handleTaskbarClick(e, app.id);
+                    } else {
+                      this.openApp(app.id);
+                    }
+                  }}
+                  title={t(app.nameKey)}
+                >
+                  <div className="icon-img-wrapper">
+                    <IonIcon icon={app.icon} style={{ fontSize: 24 }} />
+                  </div>
+                  <div className="indicator"></div>
+                </div>
+              ))}
+            </div>
+
+            {APPS.length > this.state.appsPerPage && (
+              <button
+                className="taskbar-nav-btn next"
+                disabled={(this.state.launcherPage + 1) * this.state.appsPerPage >= APPS.length}
+                onClick={() => this.setState(prev => ({ launcherPage: prev.launcherPage + 1 }))}
+              >
+                <IonIcon icon={chevronForwardOutline} />
+              </button>
+            )}
+          </div>
+
           <div className="taskbar-sys">
             <span className="os-time">{time}</span>
             <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout} title={t('common.logout')}>
@@ -835,6 +963,8 @@ class Dashboard extends Component {
 
 const mapStateToProps = (state) => ({
   userInfo: state.userInfo,
+  dailyQuests: state.dailyQuests,
+  economy: state.economy,
 });
 
 const mapDispatchToProps = (dispatch) => ({

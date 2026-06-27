@@ -4,13 +4,21 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 body {
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f7f9fc;
+  background-color: #0b1028;
+  color: #fff;
+  overflow: hidden;
+}
+
+img {
+  -webkit-user-drag: none;
 }
 
 a {

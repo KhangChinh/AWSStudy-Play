@@ -3,10 +3,14 @@ import { IonIcon } from '@ionic/react';
 import {
   settingsOutline, imageOutline, personOutline, globeOutline, checkmarkOutline, closeOutline
 } from 'ionicons/icons';
+import RankFrame from '../../components/RankFrame';
+import ImageCropper from '../../components/ImageCropper';
 import cosmeticManager from '../../managers/cosmeticManager';
 import { handleUpdateNameApi } from '../../services/cosmeticServices';
+import { getAvatarUploadUrl, updateAvatarUrl } from '../../services/userService';
 import { connect } from 'react-redux';
 import { userLogin } from '../../store/actions';
+import { toast } from 'react-toastify';
 import './SettingsApp.scss';
 
 const SettingsApp = ({
@@ -21,11 +25,18 @@ const SettingsApp = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(userInfo?.username || '');
   const [loading, setLoading] = useState(false);
+  const [pendingImage, setPendingImage] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fileInputRef = React.useRef(null);
 
   const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
   const displayName = userInfo?.username || 'Player_9999';
   const currentLanguage = (i18n?.resolvedLanguage || i18n?.language || 'vi').split('-')[0];
+
+  const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '').replace(/\/$/, '') + '/avatars/';
+  const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
   const handleSaveName = async () => {
     if (!newName.trim() || newName === displayName) {
@@ -45,9 +56,65 @@ const SettingsApp = ({
         setIsEditingName(false);
       }
     } catch (e) {
-      alert(t('settings.rename_error') || 'Lỗi khi đổi tên');
+      toast.error(t('settings.rename_error') || 'Lỗi khi đổi tên');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('profile.invalid_image_type') || 'Invalid file type');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('profile.image_too_large') || 'Image size must be less than 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setPendingImage(reader.result);
+    reader.readAsDataURL(file);
+    if (event.target) event.target.value = '';
+  };
+
+  const handleCropComplete = async (blob) => {
+    setPendingImage(null);
+    setIsUploading(true);
+    try {
+      const fileName = `avatar_${userInfo.userId || 'user'}_${Date.now()}.jpg`;
+      const res = await getAvatarUploadUrl(fileName, 'image/jpeg');
+
+      if (res.success && res.uploadUrl) {
+        const uploadRes = await fetch(res.uploadUrl, {
+          method: 'PUT',
+          body: blob,
+          headers: { 'Content-Type': 'image/jpeg' }
+        });
+
+        if (uploadRes.ok) {
+          const finalUrl = res.finalUrl || `${S3_AVATAR_BASE}${fileName}`;
+          const updateRes = await updateAvatarUrl(finalUrl);
+
+          if (updateRes.success) {
+            toast.success(t('profile.avatar_updated') || 'Avatar updated!');
+            dispatchUserLogin({ ...userInfo, avatar: finalUrl });
+          } else {
+            toast.error(updateRes.error || 'Failed to update database');
+          }
+        } else {
+          toast.error('S3 Upload failed');
+        }
+      } else {
+        toast.error(res.error || 'Failed to get upload URL');
+      }
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      toast.error('Avatar upload failed');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -57,14 +124,34 @@ const SettingsApp = ({
 
       <div className="section">
         <h3><IonIcon icon={imageOutline} /> {t('settings.profile_avatar')}</h3>
-        <div className="avatar-upload">
-          <div className="avatar-circle">
-            <IonIcon icon={personOutline} style={{ fontSize: 32 }} />
+        <div className="avatar-upload-area">
+          <div 
+            className={`settings-avatar-preview ${isUploading ? 'uploading' : ''}`}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {userInfo?.avatar ? (
+              <img src={userInfo.avatar} alt="avatar" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+            ) : (
+              <img src={DEFAULT_AVATAR} alt="avatar" />
+            )}
+            <div className="upload-overlay">
+              <IonIcon icon={imageOutline} />
+            </div>
           </div>
-          <div>
-            <p style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 6 }}>{t('settings.upload_avatar')}</p>
-            <p style={{ fontSize: 12, color: '#94a3b8' }}>{t('settings.upload_note')}</p>
+          <div className="upload-info">
+            <p className="upload-label">{t('settings.upload_avatar')}</p>
+            <p className="upload-note">{t('settings.upload_note')}</p>
+            <button className="btn-upload-trigger" onClick={() => fileInputRef.current?.click()}>
+              {t('settings.change_image') || 'Change Image'}
+            </button>
           </div>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            accept="image/*" 
+            style={{ display: 'none' }} 
+          />
         </div>
       </div>
 
@@ -137,6 +224,15 @@ const SettingsApp = ({
           </div>
         </div>
       </div>
+
+      {pendingImage && (
+        <ImageCropper
+          image={pendingImage}
+          onCrop={handleCropComplete}
+          onCancel={() => setPendingImage(null)}
+          t={t}
+        />
+      )}
     </div>
   );
 };

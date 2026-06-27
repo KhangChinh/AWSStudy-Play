@@ -130,14 +130,16 @@ class App extends Component {
         value: String(Date.now()),
       }).catch(() => { });
 
-      // 4e. Load cached quest data từ electron-store
+      // 4e. Load cached quest data từ electron-store (base64 encoded)
       try {
         const questResult = await window.api.invoke('quest:load');
         if (questResult?.data?.quests && questResult.data.expiresAt) {
           const now = Math.floor(Date.now() / 1000);
           if (questResult.data.expiresAt > now) {
             this.props.setDailyQuests(questResult.data);
-            console.log('[App] Loaded cached quests from store');
+            console.log('[App] Quest cache hợp lệ → loaded vào Redux');
+          } else {
+            console.log('[App] Quest cache hết hạn → Dashboard sẽ gọi API refresh');
           }
         }
       } catch (e) {

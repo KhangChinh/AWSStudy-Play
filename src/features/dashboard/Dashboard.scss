@@ -2281,33 +2281,22 @@
 }
 
 .floating-app-launcher {
-  position: absolute;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  box-shadow: 
-    0 10px 25px -5px rgba(0, 0, 0, 0.4),
-    0 8px 10px -6px rgba(0, 0, 0, 0.4),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  animation: launcher-slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 8px;
+  height: 100%;
+  flex: 1;
+  justify-content: center;
+  padding: 0 12px;
+  animation: launcher-fade-in 0.4s ease-out;
 
   .taskbar-nav-btn {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     color: white;
-    width: 28px;
-    height: 38px;
-    border-radius: 10px;
+    width: 24px;
+    height: 32px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2316,25 +2305,25 @@
     flex-shrink: 0;
 
     &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.1);
+      background: rgba(255, 255, 255, 0.12);
+      transform: scale(1.05);
     }
 
     &:disabled {
-      opacity: 0.2;
+      opacity: 0.15;
       cursor: not-allowed;
     }
   }
 
   .taskbar-launcher {
     display: flex;
-    gap: 12px;
-    padding: 2px;
+    gap: 8px;
+    padding: 0;
 
     .launcher-icon {
-      width: 46px;
-      height: 46px;
-      border-radius: 14px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
@@ -2365,11 +2354,11 @@
 
       &:hover {
         background: rgba(255, 255, 255, 0.12);
-        transform: translateY(-5px);
+        transform: translateY(-2px);
         border-color: rgba(192, 132, 252, 0.4);
 
         .icon-img-wrapper {
-          transform: scale(1.1);
+          transform: scale(1.05);
           color: white;
         }
       }
@@ -2409,14 +2398,14 @@
   }
 }
 
-@keyframes launcher-slide-up {
+@keyframes launcher-fade-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 20px);
+    transform: translateY(5px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0);
   }
 }
 
@@ -2426,25 +2415,44 @@
   border-top-color: rgba(255, 255, 255, 0.14);
 
   .taskbar-start {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 12px;
 
     .minimize-all-btn,
     .start-btn {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       color: rgba(255, 255, 255, 0.86);
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      ion-icon {
+        font-size: 18px;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.14);
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.25);
+        color: #fff;
+      }
     }
 
     .start-btn {
-      font-size: 24px;
-      box-shadow:
-        inset 0 1px 1px rgba(255, 255, 255, 0.18),
-        0 14px 32px rgba(0, 0, 0, 0.35);
-
+      background: linear-gradient(135deg, rgba(192, 132, 252, 0.15) 0%, rgba(217, 70, 239, 0.15) 100%);
+      border-color: rgba(192, 132, 252, 0.3);
+      
       &:hover {
-        transform: translateY(-2px) scale(1.04);
-        box-shadow:
-          inset 0 1px 1px rgba(255, 255, 255, 0.22),
-          0 18px 40px rgba(0, 0, 0, 0.42);
+        background: linear-gradient(135deg, rgba(192, 132, 252, 0.25) 0%, rgba(217, 70, 239, 0.25) 100%);
+        border-color: rgba(192, 132, 252, 0.45);
       }
     }
   }
