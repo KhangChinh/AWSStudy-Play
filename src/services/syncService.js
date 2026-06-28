@@ -95,139 +95,214 @@ const handleSyncAllApi = async () => {
 };
 
 const handleSyncProfileApi = async () => {
-  const token = await getValidAccessToken();
-  if (!token) throw new Error('No auth token');
-  const url = `${API_URL}/sync-profile`;
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+  try {
+    const reduxProfile = store.getState().profile?.userProfile;
+    if (reduxProfile) {
+      return { success: true, profile: reduxProfile };
     }
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API Error: ${response.status}`);
+    const localProfile = await window.api?.invoke('store:loadProfile');
+    if (localProfile) {
+      store.dispatch(setProfile(localProfile));
+      return { success: true, profile: localProfile };
+    }
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const url = `${API_URL}/sync-profile`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    const syncResult = await response.json();
+    if (syncResult && syncResult.success && syncResult.profile) {
+      store.dispatch(setProfile(syncResult.profile));
+      await window.api?.invoke('store:saveProfile', syncResult.profile).catch(() => { });
+    }
+    return syncResult.profile;
+  } catch (error) {
+    console.warn('[syncService] FAIL handleSyncProfileApi:', error.message);
+    return null;
   }
-  const syncResult = await response.json();
-  if (syncResult && syncResult.success && syncResult.profile) {
-    store.dispatch(setProfile(syncResult.profile));
-    await window.api?.invoke('store:saveProfile', syncResult.profile).catch(() => { });
-  }
-  return syncResult;
-}
+};
 
 const handleSyncInventoryApi = async () => {
-  const { lastKey, hasMore } = store.getState().inventory;
-  if (!hasMore) return null;
-
-  const token = await getValidAccessToken();
-  if (!token) throw new Error('No auth token');
-
-  let url = `${API_URL}/sync-inventory`;
-  if (lastKey) {
-    url += `?lastKey=${encodeURIComponent(JSON.stringify(lastKey))}`;
-  }
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+  try {
+    const { items, lastKey, hasMore } = store.getState().inventory;
+    if (!hasMore) return null;
+    if (items.length === 0) {
+      const localData = await window.api?.invoke('store:loadInventory');
+      if (localData && localData.inventory && localData.inventory.length > 0) {
+        store.dispatch({
+          type: 'SET_INVENTORY',
+          payload: {
+            items: localData.inventory,
+            lastKey: localData.lastEvaluatedKey
+          }
+        });
+        return {
+          success: true,
+          inventory: localData.inventory,
+          lastEvaluatedKey: localData.lastEvaluatedKey,
+        };
+      }
     }
-  });
-
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  const syncResult = await response.json();
-
-  if (syncResult && syncResult.success && syncResult.inventory) {
-    const payload = { items: syncResult.inventory, lastKey: syncResult.lastEvaluatedKey };
-
-    if (lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
-    else store.dispatch({ type: 'SET_INVENTORY', payload });
-
-    await window.api?.invoke('store:saveInventory', {
-      inventory: syncResult.inventory,
-      lastEvaluatedKey: syncResult.lastEvaluatedKey,
-      isAppend: !!lastKey
-    }).catch(() => { });
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    let url = `${API_URL}/sync-inventory`;
+    if (lastKey) {
+      url += `?lastKey=${encodeURIComponent(JSON.stringify(lastKey))}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    const syncResult = await response.json();
+    if (syncResult && syncResult.success && syncResult.inventory) {
+      const payload = { items: syncResult.inventory, lastKey: syncResult.lastEvaluatedKey };
+      if (lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
+      else store.dispatch({ type: 'SET_INVENTORY', payload });
+      await window.api?.invoke('store:saveInventory', {
+        inventory: syncResult.inventory,
+        lastEvaluatedKey: syncResult.lastEvaluatedKey,
+        isAppend: !!lastKey
+      }).catch(() => { });
+    }
+    return syncResult.inventory;
+  } catch (e) {
+    console.warn('[syncService] FAIL handleSyncInventoryApi:', e.message);
+    return null;
   }
-  return syncResult;
 };
 
 const handleSyncGachaHistoryApi = async () => {
-  const { lastKey, hasMore } = store.getState().gachaHistory;
-  if (!hasMore) return null;
+  try {
+    const { items, lastKey, hasMore } = store.getState().gachaHistory;
+    if (!hasMore) return null;
 
-  const token = await getValidAccessToken();
-  if (!token) throw new Error('No auth token');
-
-  let url = `${API_URL}/sync-gacha-history`;
-  if (lastKey) {
-    url += `?lastKey=${encodeURIComponent(JSON.stringify(lastKey))}`;
-  }
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+    if (!items || items.length === 0) {
+      const localData = await window.api?.invoke('store:loadGachaHistory');
+      if (localData && localData.gachaHistory && localData.gachaHistory.length > 0) {
+        store.dispatch({
+          type: 'SET_GACHA_HISTORY',
+          payload: {
+            items: localData.gachaHistory,
+            lastKey: localData.lastEvaluatedKey
+          }
+        });
+        return {
+          success: true,
+          gachaHistory: localData.gachaHistory,
+          lastEvaluatedKey: localData.lastEvaluatedKey,
+        };
+      }
     }
-  });
 
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  const syncResult = await response.json();
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
 
-  if (syncResult && syncResult.success && syncResult.gachaHistory) {
-    const payload = { items: syncResult.gachaHistory, lastKey: syncResult.lastEvaluatedKey };
+    let url = `${API_URL}/sync-gacha-history`;
+    if (lastKey) {
+      url += `?lastKey=${encodeURIComponent(JSON.stringify(lastKey))}`;
+    }
 
-    if (lastKey) store.dispatch({ type: 'APPEND_GACHA_HISTORY', payload });
-    else store.dispatch({ type: 'SET_GACHA_HISTORY', payload });
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      }
+    });
 
-    await window.api?.invoke('store:saveGachaHistory', {
-      gachaHistory: syncResult.gachaHistory,
-      lastEvaluatedKey: syncResult.lastEvaluatedKey,
-      isAppend: !!lastKey
-    }).catch(() => { });
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    const syncResult = await response.json();
+
+    if (syncResult && syncResult.success && syncResult.gachaHistory) {
+      const payload = { items: syncResult.gachaHistory, lastKey: syncResult.lastEvaluatedKey };
+
+      if (lastKey) store.dispatch({ type: 'APPEND_GACHA_HISTORY', payload });
+      else store.dispatch({ type: 'SET_GACHA_HISTORY', payload });
+
+      await window.api?.invoke('store:saveGachaHistory', {
+        gachaHistory: syncResult.gachaHistory,
+        lastEvaluatedKey: syncResult.lastEvaluatedKey,
+        isAppend: !!lastKey
+      }).catch(() => { });
+    }
+
+    return syncResult.gachaHistory;
+  } catch (e) {
+    console.warn('[syncService] FAIL handleSyncGachaHistoryApi:', e.message);
+    return null;
   }
-  return syncResult;
 };
 
 const handleSyncSocialApi = async () => {
-  const { lastKey, hasMore } = store.getState().social;
-  if (!hasMore) return null;
+  try {
+    const { items, lastKey, hasMore } = store.getState().social;
+    if (!hasMore) return null;
 
-  const token = await getValidAccessToken();
-  if (!token) throw new Error('No auth token');
-
-  let url = `${API_URL}/sync-social`;
-  if (lastKey) {
-    url += `?lastKey=${encodeURIComponent(JSON.stringify(lastKey))}`;
-  }
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+    if (!items || items.length === 0) {
+      const localData = await window.api?.invoke('store:loadSocial');
+      if (localData && localData.social && localData.social.length > 0) {
+        store.dispatch({
+          type: 'SET_SOCIAL',
+          payload: {
+            items: localData.social,
+            lastKey: localData.lastEvaluatedKey
+          }
+        });
+        return {
+          success: true,
+          social: localData.social,
+          lastEvaluatedKey: localData.lastEvaluatedKey,
+        };
+      }
     }
-  });
 
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  const syncResult = await response.json();
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
 
-  if (syncResult && syncResult.success && syncResult.social) {
-    const payload = { items: syncResult.social, lastKey: syncResult.lastEvaluatedKey };
+    let url = `${API_URL}/sync-social`;
+    if (lastKey) {
+      url += `?lastKey=${encodeURIComponent(JSON.stringify(lastKey))}`;
+    }
 
-    if (lastKey) store.dispatch({ type: 'APPEND_SOCIAL', payload });
-    else store.dispatch({ type: 'SET_SOCIAL', payload });
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      }
+    });
 
-    await window.api?.invoke('store:saveSocial', {
-      social: syncResult.social,
-      lastEvaluatedKey: syncResult.lastEvaluatedKey,
-      isAppend: !!lastKey
-    }).catch(() => { });
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    const syncResult = await response.json();
+
+    if (syncResult && syncResult.success && syncResult.social) {
+      const payload = { items: syncResult.social, lastKey: syncResult.lastEvaluatedKey };
+
+      if (lastKey) store.dispatch({ type: 'APPEND_SOCIAL', payload });
+      else store.dispatch({ type: 'SET_SOCIAL', payload });
+
+      await window.api?.invoke('store:saveSocial', {
+        social: syncResult.social,
+        lastEvaluatedKey: syncResult.lastEvaluatedKey,
+        isAppend: !!lastKey
+      }).catch(() => { });
+    }
+
+    return syncResult.social;
+  } catch (e) {
+    console.warn('[syncService] FAIL handleSyncSocialApi:', e.message);
+    return null;
   }
-  return syncResult;
 };
 
 export {
