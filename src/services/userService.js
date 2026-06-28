@@ -1,7 +1,5 @@
 import { getValidIdToken } from './authHelper';
-import { initializeAuth, getValidToken } from './tokenService';
-
-
+// CHUYỂN QUA PROFILE SERVICE, GIỮ ĐỂ BIẾT CÒN CẦN CHỨC NĂNG NÀY
 const API_URL = import.meta.env.VITE_API_URL;
 
 const getAvatarUploadUrl = async (fileName, fileType) => {

@@ -5,6 +5,67 @@ const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;
 const SYNC_COOLDOWN = 5 * 60 * 1000; // 5 phút
 
+const ingestServerData = async (payload) => {
+  if (!payload) return;
+  const {
+    profile,
+    inventory, inventoryLastKey,
+    gachaHistory, gachaHistoryLastKey,
+    social, friendsLastKey,
+    daily
+  } = payload;
+  const promises = [];
+  // 1. Xử lý Profile
+  if (profile) {
+    store.dispatch(setProfile(profile));
+    promises.push(window.api?.invoke('store:saveProfile', profile).catch(() => { }));
+  }
+  // 2. Xử lý Daily Quests
+  if (daily) {
+    store.dispatch(setDailyQuests(daily));
+    promises.push(window.api?.invoke('store:saveDaily', daily).catch(() => { }));
+  }
+  // 3. Xử lý Inventory (Ghi đè trang 1)
+  if (inventory) {
+    store.dispatch({
+      type: 'SET_INVENTORY',
+      payload: { items: inventory, lastKey: inventoryLastKey || null }
+    });
+    promises.push(window.api?.invoke('store:saveInventory', {
+      inventory,
+      lastEvaluatedKey: inventoryLastKey || null,
+      isAppend: false
+    }).catch(() => { }));
+  }
+  // 4. Xử lý Gacha History (Ghi đè trang 1)
+  if (gachaHistory) {
+    store.dispatch({
+      type: 'SET_GACHA_HISTORY',
+      payload: { items: gachaHistory, lastKey: gachaHistoryLastKey || null }
+    });
+    promises.push(window.api?.invoke('store:saveGachaHistory', {
+      gachaHistory,
+      lastEvaluatedKey: gachaHistoryLastKey || null,
+      isAppend: false
+    }).catch(() => { }));
+  }
+  // 5. Xử lý Social (Ghi đè trang 1)
+  if (social) {
+    store.dispatch({
+      type: 'SET_SOCIAL',
+      payload: { items: social, lastKey: friendsLastKey || null }
+    });
+    promises.push(window.api?.invoke('store:saveSocial', {
+      social,
+      lastEvaluatedKey: friendsLastKey || null,
+      isAppend: false
+    }).catch(() => { }));
+  }
+  if (promises.length > 0) {
+    await Promise.all(promises);
+  }
+};
+
 const handleSyncAllApi = async () => {
   if (syncAllPromise) {
     console.log('[syncService] SyncAll đang chạy, dùng chung kết quả...');
@@ -54,7 +115,7 @@ const handleSyncAllApi = async () => {
           profile,
           inventory, inventoryLastKey,
           gachaHistory, gachaHistoryLastKey,
-          friends, friendsLastKey,
+          social, socialLastKey,
           daily
         } = syncResult;
         // Xử lý lưu trữ (Server trả về cái nào thì dispatch & save Store cái đó)
@@ -78,10 +139,10 @@ const handleSyncAllApi = async () => {
             gachaHistory, lastEvaluatedKey: gachaHistoryLastKey
           }).catch(() => { });
         }
-        if (friends) {
-          store.dispatch(setSocial({ items: friends, lastKey: friendsLastKey }));
+        if (social) {
+          store.dispatch(setSocial({ items: social, lastKey: socialLastKey }));
           await window.api?.invoke('store:saveSocial', {
-            social: friends, lastEvaluatedKey: friendsLastKey
+            social, lastEvaluatedKey: socialLastKey
           }).catch(() => { });
         }
       }
@@ -312,8 +373,9 @@ const handleSyncSocialApi = async () => {
 };
 
 export {
-  handleSyncProfileApi,
+  ingestServerData,
   handleSyncAllApi,
+  handleSyncProfileApi,
   handleSyncInventoryApi,
   handleSyncGachaHistoryApi,
   handleSyncSocialApi
