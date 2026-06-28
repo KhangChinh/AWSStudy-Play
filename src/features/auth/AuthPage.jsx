@@ -1,16 +1,11 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import { Component } from 'react';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
-import { signIn, signUp, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, signOut } from 'aws-amplify/auth';
-
+import { signIn, signUp, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
 import './AuthPage.scss';
 import Spinner from '../../components/Spinner';
-import { withRouter } from '../../utils/withRouter';
-import { notifyLoginSuccess } from '../../services/ipcWindowService';
-import { getUserFromApi } from '../../services/userService';
-import { userLogin, userLogout } from '../../store/actions';
+import { handleLoginApi, handleLogoutApi } from '../../services/authService';
 
 class AuthPage extends Component {
   constructor(props) {
@@ -20,7 +15,6 @@ class AuthPage extends Component {
       showPassword: false,
       showConfirmPassword: false,
       isLoading: false,
-      // Form fields
       username: '',
       email: '',
       password: '',
@@ -50,43 +44,11 @@ class AuthPage extends Component {
       });
     }, 1000);
   };
+
   handleInputChange = (field, value) => {
     this.setState({ [field]: value });
   };
-  /**
-   * Load thông tin user khi đăng nhập (Zero-Trust)
-   * Luồng: API Gateway (JWT) → Lambda → DynamoDB → Redux (chỉ memory, KHÔNG lưu disk)
-   */
-  loadUserOnLogin = async () => {
-    try {
-      const apiResult = await getUserFromApi();
-      if (!apiResult.success || !apiResult.data) {
-        console.error('Không lấy được thông tin user từ API:', apiResult.error);
-        await signOut().catch(err => console.error('Signout error:', err));
-        if (window.api) {
-          await window.api.invoke('secureStore:clear').catch(() => { });
-        }
-        this.props.userLogout();
-        throw new Error(apiResult.error || 'Failed to retrieve user data from API');
-      }
-      const userData = apiResult.data;
-      this.props.userLogin({
-        userId: userData.PK,
-        email: userData.information?.email,
-        name: userData.information?.name,
-        createdAt: userData.createdAt,
-      });
-      if (window.api) {
-        await window.api.invoke('secureStore:setItem', {
-          key: 'lastActiveTimestamp',
-          value: String(Date.now()),
-        }).catch(() => { });
-      }
-    } catch (error) {
-      console.error('❌ Lỗi khi load thông tin user:', error);
-      throw error;
-    }
-  };
+
   handleToggleAuthMode = (mode) => {
     const keepEmail = ['confirm', 'forgot', 'resetPassword'].includes(mode);
     this.setState({
@@ -102,6 +64,7 @@ class AuthPage extends Component {
       showConfirmPassword: false,
     });
   };
+
   handleResendCode = async () => {
     const { email, resendCooldown, authMode } = this.state;
     if (resendCooldown > 0) return;
@@ -124,11 +87,10 @@ class AuthPage extends Component {
     }
     this.setState({ isLoading: false });
   };
+
   handleSubmit = async (e) => {
     e.preventDefault();
     const { authMode, email, password, username, confirmPassword, verificationCode, newPassword, confirmNewPassword } = this.state;
-
-    // Validation
     if ((authMode === 'login' || authMode === 'register') && (!email || !password)) {
       toast.error('Vui lòng nhập đầy đủ thông tin!');
       return;
@@ -165,20 +127,17 @@ class AuthPage extends Component {
         return;
       }
     }
-
     this.setState({ isLoading: true });
     try {
       if (authMode === 'login') {
         const { isSignedIn, nextStep } = await signIn({ username: email, password });
         if (isSignedIn) {
-          notifyLoginSuccess();
           toast.success('Đăng nhập thành công!');
-          await this.loadUserOnLogin();
+          await handleLoginApi();
           setTimeout(() => {
-            this.props.navigate('/desktop');
+            this.props.navigate('/dashboard');
           }, 100);
         } else {
-          console.log('Next step:', nextStep);
           if (nextStep && nextStep.signInStep === 'CONFIRM_SIGN_UP') {
             toast.info('Tài khoản chưa được kích hoạt. Hãy nhập mã xác thực!');
             this.setState({ authMode: 'confirm' });
@@ -221,21 +180,8 @@ class AuthPage extends Component {
           confirmationCode: verificationCode
         });
         if (isSignUpComplete) {
-          // Verify thành công → Cognito trigger tự tạo DB record
-          // → Auto đăng nhập + load user từ API
-          toast.success('Xác thực thành công! Đang đăng nhập...');
-          const { isSignedIn } = await signIn({ username: email, password });
-          if (isSignedIn) {
-            notifyLoginSuccess();
-            await this.loadUserOnLogin();
-            setTimeout(() => {
-              this.props.navigate('/desktop');
-            }, 100);
-          } else {
-            // Trường hợp hiếm: verify OK nhưng auto-login thất bại
-            toast.info('Xác thực thành công! Vui lòng đăng nhập.');
-            this.setState({ authMode: 'login', password: '', confirmPassword: '', verificationCode: '' });
-          }
+          toast.info('Xác thực thành công! Vui lòng đăng nhập.');
+          this.setState({ authMode: 'login', password: '', confirmPassword: '', verificationCode: '' });
         } else {
           toast.info('Xác thực chưa hoàn tất. Vui lòng kiểm tra lại.');
         }
@@ -264,11 +210,7 @@ class AuthPage extends Component {
       if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
         toast.info('Phát hiện phiên đăng nhập cũ chưa dọn dẹp. Đang làm sạch, vui lòng bấm đăng nhập lại...');
         try {
-          await signOut().catch(() => { });
-          if (window.api) {
-            await window.api.invoke('secureStore:clear').catch(() => { });
-          }
-          this.props.userLogout();
+          await handleLogoutApi();
         } catch (logoutError) {
           console.error('Error during cleanup:', logoutError);
         }
@@ -278,6 +220,7 @@ class AuthPage extends Component {
     }
     this.setState({ isLoading: false });
   };
+
   render() {
     const { authMode, showPassword, showConfirmPassword, isLoading, email, password, username, confirmPassword, verificationCode } = this.state;
     return (
@@ -457,14 +400,4 @@ class AuthPage extends Component {
   }
 }
 
-const mapStateToProps = (state) => ({
-  userInfo: state.userInfo,
-  isLoggedIn: state.isLoggedIn,
-});
-
-const mapDispatchToProps = (dispatch) => ({
-  userLogin: (info) => dispatch(userLogin(info)),
-  userLogout: () => dispatch(userLogout()),
-});
-
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(AuthPage));
+export default (AuthPage);

@@ -36,7 +36,7 @@ class SocialApp extends Component {
       isSearching: false,
       isLoading: false,
       isActionLoading: null, // targetUserId
-      apiNotConfigured: false, // true khi VITE_API_BASE_URL chưa được cấu hình
+      apiNotConfigured: false, // true khi VITE_API_URL chưa được cấu hình
       lastSearchTime: 0, // Cooldown tìm kiếm
     };
     this.searchTimeout = null;
@@ -135,7 +135,7 @@ class SocialApp extends Component {
 
     if (res && res.users) {
       const filtered = res.users.filter(u =>
-        u.userId !== this.props.userInfo?.UserId &&
+        u.userId !== this.props.userProfile?.UserId &&
         !this.props.friends.some(f => f.SK === u.userId)
       );
       this.setState({ searchResults: filtered });
@@ -436,10 +436,10 @@ class SocialApp extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  friends: state.friends || [],
-  friendLastEvaluatedKey: state.friendLastEvaluatedKey,
-  friendUpdatedAt: state.friendUpdatedAt,
-  userInfo: state.userInfo,
+  friends: state.social.friends || [],
+  friendLastEvaluatedKey: state.social.friendLastEvaluatedKey,
+  friendUpdatedAt: state.social.friendUpdatedAt,
+  userProfile: state.auth.userProfile,
 });
 
 const mapDispatchToProps = (dispatch) => ({

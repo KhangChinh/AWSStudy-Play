@@ -1,6 +1,8 @@
 import { getValidIdToken } from './authHelper';
+import { initializeAuth, getValidToken } from './tokenService';
 
-const API_URL = import.meta.env.VITE_USER_API_URL;
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const getUserFromApi = async () => {
   try {
@@ -8,8 +10,7 @@ const getUserFromApi = async () => {
     if (!idToken) {
       return { success: false, error: 'Unauthorized: No token available' };
     }
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/get-profile`, {
+    const response = await fetch(`${API_URL}/get-profile`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${idToken}`,
@@ -30,12 +31,11 @@ const getUserFromApi = async () => {
   }
 };
 
-export const getAvatarUploadUrl = async (fileName, fileType) => {
+const getAvatarUploadUrl = async (fileName, fileType) => {
   try {
     const idToken = await getValidIdToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/get-upload-url`, {
+    const response = await fetch(`${API_URL}/get-upload-url`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${idToken}`,
@@ -50,12 +50,11 @@ export const getAvatarUploadUrl = async (fileName, fileType) => {
   }
 };
 
-export const updateAvatarUrl = async (avatarUrl) => {
+const updateAvatarUrl = async (avatarUrl) => {
   try {
     const idToken = await getValidIdToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/update-avatar`, {
+    const response = await fetch(`${API_URL}/update-avatar`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${idToken}`,
@@ -70,6 +69,40 @@ export const updateAvatarUrl = async (avatarUrl) => {
   }
 };
 
+
+/**
+ * Kiểm tra trạng thái đăng nhập của người dùng để quyết định hiển thị giao diện UI
+ * @returns {Promise<Object>} - Đối tượng chứa trạng thái { status, userProfile }
+ */
+async function checkLoginStatus() {
+  try {
+    let token = getValidToken();
+    if (!token) {
+      await initializeAuth();
+      token = getValidToken();
+    }
+
+    if (token) {
+      return {
+        status: true,
+        userProfile: {
+          UserId: 'usr_local',
+          Username: 'Player',
+          token: token,
+        },
+      };
+    }
+
+    return { status: false, userProfile: null };
+  } catch (e) {
+    console.error('[UserService] Loi khi kiem tra dang nhap:', e);
+    return { status: false, userProfile: null };
+  }
+}
+
 export {
-  getUserFromApi
+  getUserFromApi,
+  getAvatarUploadUrl,
+  updateAvatarUrl,
+  checkLoginStatus,
 };

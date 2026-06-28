@@ -85,8 +85,8 @@ class FocusWidget extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  blacklist: state.focusSettings.blacklist,
-  activeSession: state.activeSession,
+  blacklist: state.focus.focusSettings?.blacklist || [],
+  activeSession: state.focus.activeSession,
 });
 
 const mapDispatchToProps = (dispatch) => ({

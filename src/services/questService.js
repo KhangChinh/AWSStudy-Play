@@ -1,6 +1,6 @@
 import { getValidIdToken } from './authHelper';
 
-const API_URL = import.meta.env.VITE_USER_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 /**
  * GET /daily — Lấy daily quests hiện tại (hoặc refresh nếu hết hạn)
@@ -9,8 +9,7 @@ export const getDailyQuests = async () => {
   try {
     const idToken = await getValidIdToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/daily`, {
+    const response = await fetch(`${API_URL}/daily`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${idToken}`,
@@ -36,8 +35,7 @@ export const claimQuestReward = async (questKey) => {
   try {
     const idToken = await getValidIdToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/daily/claim`, {
+    const response = await fetch(`${API_URL}/daily/claim`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${idToken}`,
@@ -63,8 +61,7 @@ export const refreshDailyQuests = async () => {
   try {
     const idToken = await getValidIdToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/daily/refresh`, {
+    const response = await fetch(`${API_URL}/daily/refresh`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${idToken}`,

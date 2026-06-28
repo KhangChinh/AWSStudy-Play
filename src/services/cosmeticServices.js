@@ -2,25 +2,20 @@
  * Cosmetic & Sync Services — Gọi AWS để lấy danh sách vật phẩm và đồng bộ Profile
  */
 
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { getValidAccessToken } from './tokenService';
 import { CLOUD_BACKGROUND_SKS } from '../data/cosmetics';
 
-const CLOUD_API_URL = (
-  import.meta.env.VITE_CLOUD_API_URL
-  || import.meta.env.VITE_API_BASE_URL
-  || ''
-).replace(/\/$/, '');
+const API_URL = import.meta.env.VITE_API_URL;
 
 /**
  * Helper gọi API với Auth Token
  */
 const authFetch = async (endpoint, options = {}) => {
-  const session = await fetchAuthSession();
-  const token = session.tokens?.accessToken?.toString() || session.tokens?.idToken?.toString();
+  const token = await getValidAccessToken();
 
   if (!token) throw new Error('No auth token');
 
-  const url = `${CLOUD_API_URL}${endpoint}`;
+  const url = `${API_URL}${endpoint}`;
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -41,8 +36,8 @@ const authFetch = async (endpoint, options = {}) => {
 /**
  * Lấy danh sách master data từ server (background, frame, title...)
  */
-export const handleGetMasterDataApi = async () => {
-  if (!CLOUD_API_URL) {
+const handleGetMasterDataApi = async () => {
+  if (!API_URL) {
     return {
       items: CLOUD_BACKGROUND_SKS.map(sk => ({ SK: sk, itemType: 'background' })),
     };
@@ -59,25 +54,10 @@ export const handleGetMasterDataApi = async () => {
 };
 
 /**
- * Đồng bộ toàn bộ dữ liệu User (Profile, Inventory, Quests)
- */
-export const handleSyncAllApi = async () => {
-  try {
-    return await authFetch('/sync-all', {
-      method: 'POST',
-      body: JSON.stringify({ getDaily: true })
-    });
-  } catch (e) {
-    console.warn('[cosmeticServices] FAIL handleSyncAllApi:', e.message);
-    return null;
-  }
-};
-
-/**
  * Lưu trang bị mới lên DynamoDB
  * @param {Object} data - { backgroundId, frameId, titles: [] }
  */
-export const handleEquipCosmeticsApi = async (data) => {
+const handleEquipCosmeticsApi = async (data) => {
   try {
     return await authFetch('/change-cosmetics', {
       method: 'POST',
@@ -93,7 +73,7 @@ export const handleEquipCosmeticsApi = async (data) => {
  * Thay đổi tên hiển thị của User
  * @param {string} newName 
  */
-export const handleUpdateNameApi = async (newName) => {
+const handleUpdateNameApi = async (newName) => {
   try {
     return await authFetch('/update-profile', {
       method: 'PUT',
@@ -103,4 +83,11 @@ export const handleUpdateNameApi = async (newName) => {
     console.warn('[cosmeticServices] FAIL handleUpdateNameApi:', e.message);
     throw e;
   }
+};
+
+
+export {
+  handleGetMasterDataApi,
+  handleEquipCosmeticsApi,
+  handleUpdateNameApi,
 };

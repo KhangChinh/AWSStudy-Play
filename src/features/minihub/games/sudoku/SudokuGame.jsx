@@ -7,7 +7,7 @@ import {
   trophyOutline, heartOutline, timeOutline, alertCircleOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
-import { setEconomy, setHighscores } from '../../../../store/actions';
+import { updateBudget, setHighscores } from '../../../../store/actions';
 import { handleSyncGameResultApi } from '../../../../services/economyServices';
 import './SudokuGame.scss';
 
@@ -111,8 +111,8 @@ const calculateRankPoints = (difficulty, time) => {
 
 const SudokuGame = ({ onClose }) => {
   const dispatch = useDispatch();
-  const economy = useSelector(state => state.economy || { pCoins: 0 });
-  const minigameHighscores = useSelector(state => state.minigameHighscores || {});
+  const budget = useSelector(state => state.auth.userProfile?.budget || {});
+  const minigameHighscores = useSelector(state => state.minigame.minigameHighscores || {});
 
   // Game configuration & status
   const [difficulty, setDifficulty] = useState('easy');

@@ -1,10 +1,18 @@
-/**
- * Redux Store — Khởi tạo store toàn cục
- */
-
 import { createStore } from 'redux';
-import appReducer from './reducers';
+import { persistStore, persistReducer } from 'redux-persist';
+import storage from 'redux-persist/lib/storage';
+import rootReducer from './reducers';
 
-const store = createStore(appReducer);
+const persistConfig = {
+    key: 'root',
+    storage,
+    blacklist: ['quest'],
+};
 
-export default store;
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+const store = createStore(persistedReducer);
+
+const persistor = persistStore(store);
+
+export { store, persistor };

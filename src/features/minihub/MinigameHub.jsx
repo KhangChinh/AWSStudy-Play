@@ -192,7 +192,7 @@ class MinigameHub extends Component {
 
 
 const mapStateToProps = (state) => ({
-  minigameHighscores: state.minigameHighscores,
+  minigameHighscores: state.minigame.minigameHighscores,
 });
 
 const mapDispatchToProps = (dispatch) => ({

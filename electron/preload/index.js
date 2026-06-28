@@ -15,20 +15,29 @@ contextBridge.exposeInMainWorld('api', {
       'ai:getGroqKey',
       'ai:getAllowedCategories',
       'ai:saveAllowedCategories',
-      'secureStore:setItem',
-      'secureStore:getItem',
-      'secureStore:removeItem',
-      'secureStore:clear',
       'setup:openExtensionFolder',
       'setup:openBrowserExtPage',
-      // Auth
-      'auth:saveToken',
-      'auth:loadToken',
-      'auth:clearToken',
       // Quest
       'quest:save',
       'quest:load',
       'quest:clear',
+      // Store
+      'store:saveProfile',
+      'store:loadProfile',
+      'store:clearProfile',
+      'store:saveInventory',
+      'store:loadInventory',
+      'store:clearInventory',
+      'store:saveGachaHistory',
+      'store:loadGachaHistory',
+      'store:clearGachaHistory',
+      'store:saveFriends',
+      'store:loadFriends',
+      'store:clearFriends',
+      'store:saveDaily',
+      'store:loadDaily',
+      'store:clearDaily',
+      'store:clearLoginData',
       // Study Planner
       'study:chat',
       'study:generatePlan',
@@ -54,12 +63,11 @@ contextBridge.exposeInMainWorld('api', {
   // ═══ Gửi tín hiệu 1 chiều (fire-and-forget) ═══
   send: (channel, data) => {
     const validChannels = [
-      'login',
-      'login-success',
-      'logout',
       'focus:widget-state',
       'focus:widget-timer',
-      'focus:widget-cam'
+      'focus:widget-cam',
+      'logout',
+      'login-success'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);

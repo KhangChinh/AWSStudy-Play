@@ -45,6 +45,7 @@
     "react-router-dom": "^7.15.1",
     "react-toastify": "^11.1.0",
     "redux": "^5.0.1",
+    "redux-persist": "^6.0.0",
     "sass": "^1.99.0",
     "ws": "^8.21.0",
     "i18next": "^26.3.1",

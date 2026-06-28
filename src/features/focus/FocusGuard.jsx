@@ -69,7 +69,7 @@ const FocusGuard = () => {
         if (token && window.api?.invoke) {
           await window.api.invoke('focus:setConfig', {
             token,
-            apiUrl: import.meta.env.VITE_USER_API_URL,
+            apiUrl: import.meta.env.VITE_API_URL,
           });
           configSentRef.current = true;
         }
@@ -413,7 +413,7 @@ const FocusGuard = () => {
                       {camStatus === 'warning' && ` ⚠️ Không thấy mặt! (${Math.floor(afkElapsed / 1000)}s)`}
                       {camStatus === 'afk' && ' 🚨 AFK — Session Failed!'}
                       {camStatus === 'spoof' && ' 🚨 Phát hiện ảnh tĩnh!'}
-                      {camStatus === 'error' && ' ❌ Không bật được cam'}
+                      {camStatus === 'error' && ' Không bật được cam'}
                       {camStatus === 'idle' && ' Đang khởi động...'}
                     </div>
                   </div>

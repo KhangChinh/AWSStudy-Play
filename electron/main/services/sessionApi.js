@@ -13,7 +13,7 @@ export function setApiUrl(url) {
 
 export async function startSession(token, { mode, durationMinutes }) {
   if (!API_BASE) { console.error('[SessionAPI] API_BASE not set'); return { success: false }; }
-  
+
   const cleanBase = API_BASE.replace(/\/$/, ''); // Xóa dấu / ở cuối nếu có
   const url = `${cleanBase}/start-study-session`;
   console.log(`\n[SessionAPI] 🟢 Đang gọi API Bắt đầu Session:`, url);
@@ -29,19 +29,19 @@ export async function startSession(token, { mode, durationMinutes }) {
       },
       body: JSON.stringify({ mode, durationMinutes })
     });
-    
+
     const data = await res.json();
     console.log(`[SessionAPI] 🔴 Kết quả từ Server trả về (start-session):`, res.status, data);
     return data;
   } catch (error) {
-    console.error(`[SessionAPI] ❌ Lỗi mạng khi gọi start-session:`, error);
+    console.error(`[SessionAPI] Lỗi mạng khi gọi start-session:`, error);
     return { success: false, error: error.message };
   }
 }
 
 export async function recordStrike(token, { sessionId }) {
   if (!API_BASE) { console.error('[SessionAPI] API_BASE not set'); return { success: false }; }
-  
+
   const cleanBase = API_BASE.replace(/\/$/, '');
   const url = `${cleanBase}/strike`;
   console.log(`\n[SessionAPI] 🟢 Đang gọi API Đánh dấu Strike:`, url, { sessionId });
@@ -55,19 +55,19 @@ export async function recordStrike(token, { sessionId }) {
       },
       body: JSON.stringify({ sessionId })
     });
-    
+
     const data = await res.json();
     console.log(`[SessionAPI] 🔴 Kết quả từ Server trả về (strike):`, res.status, data);
     return data;
   } catch (error) {
-    console.error(`[SessionAPI] ❌ Lỗi mạng khi gọi strike:`, error);
+    console.error(`[SessionAPI] Lỗi mạng khi gọi strike:`, error);
     return { success: false, error: error.message };
   }
 }
 
 export async function endSession(token, { sessionId }) {
   if (!API_BASE) { console.error('[SessionAPI] API_BASE not set'); return { success: false }; }
-  
+
   const cleanBase = API_BASE.replace(/\/$/, '');
   const url = `${cleanBase}/end-study-session`;
   console.log(`\n[SessionAPI] 🟢 Đang gọi API Kết thúc Session:`, url, { sessionId });
@@ -81,12 +81,12 @@ export async function endSession(token, { sessionId }) {
       },
       body: JSON.stringify({ sessionId })
     });
-    
+
     const data = await res.json();
     console.log(`[SessionAPI] 🔴 Kết quả từ Server trả về (end-session):`, res.status, data);
     return data;
   } catch (error) {
-    console.error(`[SessionAPI] ❌ Lỗi mạng khi gọi end-session:`, error);
+    console.error(`[SessionAPI] Lỗi mạng khi gọi end-session:`, error);
     return { success: false, error: error.message };
   }
 }

@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { withTranslation } from 'react-i18next';
-import { signOut } from 'aws-amplify/auth';
 import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
@@ -29,12 +28,12 @@ import Store from '../store/Store';
 import SettingsApp from '../settings/SettingsApp';
 import SocialApp from '../social/SocialApp';
 import RankFrame from '../../components/RankFrame';
-import { withRouter } from '../../utils/withRouter';
 import { handleLogoutApi } from '../../services/authService';
-import { handleGetMasterDataApi, handleSyncAllApi } from '../../services/cosmeticServices';
+import { handleGetMasterDataApi } from '../../services/cosmeticServices';
+import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
-import { setDailyQuests, setEconomy, userLogout, setInventory, userLogin, setFriendSyncTime } from '../../store/actions';
+import { userLogin, userLogout, updateBudget, setInventory, setDailyQuests } from '../../store/actions';
 import inventoryManager from '../../managers/inventoryManager';
 import './Dashboard.scss';
 
@@ -67,29 +66,29 @@ const backgroundId = (background) => (
   typeof background === 'string' ? background : background?.id
 );
 
-const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '').replace(/\/$/, '') + '/avatars/';
+const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
 const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
 const UserProfileWidget = ({
   currentTitle,
   currentFrame,
   currentRank = 'diamond',
-  userInfo,
+  userProfile,
   onClick,
   t,
 }) => {
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
-  const displayName = userInfo?.username || 'Unde_user';
+  const displayName = userProfile?.username || 'Unde_user';
   const rankLabel = translateRank(currentRank, t);
   const titleName = translateCosmeticName(titleData, t);
 
   return (
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
       <RankFrame tier={frameTier} size={64} className="widget-rank-frame">
-        {userInfo?.avatar ? (
-          <img src={userInfo.avatar} alt="avatar" className="avatar-img" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+        {userProfile?.avatar ? (
+          <img src={userProfile.avatar} alt="avatar" className="avatar-img" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
         ) : (
           <img src={DEFAULT_AVATAR} alt="avatar" className="avatar-img" />
         )}
@@ -213,25 +212,7 @@ class Dashboard extends Component {
           this.props.setInventory({ items: inventory });
         }
 
-        // Đẩy dữ liệu vào Redux Store
-        this.props.userLogin({
-          ...this.props.userInfo,
-          username: profile.information?.name || 'Player',
-          avatar: profile.information?.avatarUrl,
-          streak: profile.studyStats?.streak || 0,
-        });
-
-        if (profile.metadata?.friendUpdatedAt) {
-          this.props.setFriendSyncTime(profile.metadata.friendUpdatedAt);
-        }
-
-        if (profile.budget) {
-          this.props.setEconomy({
-            pCoins: profile.budget.eCoin || 0,
-            knowledgePoint: profile.budget.knowledgePoint || 0,
-            sanity: profile.budget.sanity || 0, // Sanity mới từ Cloud
-          });
-        }
+        this.props.userLogin(profile);
 
         // Cập nhật State Dashboard theo Cloud
         this.setState({
@@ -551,7 +532,7 @@ class Dashboard extends Component {
         }));
 
         if (result.newKnowledgePoint !== undefined) {
-          this.props.dispatch(setEconomy({ knowledgePoint: result.newKnowledgePoint }));
+          this.props.dispatch(updateBudget({ knowledgePoint: result.newKnowledgePoint }));
         }
       } else {
         toast.error(result.error || result.message || 'Action failed!');
@@ -680,13 +661,7 @@ class Dashboard extends Component {
     const isConfirmed = await confirmAction();
     if (isConfirmed) {
       try {
-        await signOut();
-        handleLogoutApi();
-        // Xóa quest cache khỏi electron-store khi logout
-        if (window.api?.invoke) {
-          await window.api.invoke('quest:clear').catch(() => { });
-        }
-        this.props.userLogout();
+        await handleLogoutApi();
         toast.success(this.props.t('dashboard.logout_success'));
         this.props.navigate('/login');
       } catch (e) {
@@ -776,7 +751,7 @@ class Dashboard extends Component {
           currentTitle={this.state.currentTitle}
           currentFrame={this.state.currentFrame}
           currentRank={currentRank}
-          userInfo={this.props.userInfo}
+          userProfile={this.props.userProfile}
           onClick={() => this.openApp('profile')}
           t={t}
         />
@@ -868,7 +843,7 @@ class Dashboard extends Component {
                   currentRank: this.state.currentRank,
                   currentSystemIcon: this.state.currentSystemIcon,
                   animationsEnabled: this.state.animationsEnabled,
-                  userInfo: this.props.userInfo,
+                  userProfile: this.props.userProfile,
                   onToggleAnimations: this.handleToggleAnimations,
                   onTitleChange: this.handleTitleChange,
                   onFrameChange: this.handleFrameChange,
@@ -962,17 +937,16 @@ class Dashboard extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  userInfo: state.userInfo,
-  dailyQuests: state.dailyQuests,
-  economy: state.economy,
+  userProfile: state.auth.userProfile,
+  dailyQuests: state.quest.dailyQuests,
 });
 
 const mapDispatchToProps = (dispatch) => ({
+  dispatch,
   userLogout: () => dispatch(userLogout()),
   userLogin: (info) => dispatch(userLogin(info)),
-  setEconomy: (data) => dispatch(setEconomy(data)),
-  setInventory: (data) => dispatch(setInventory(data)),
-  setFriendSyncTime: (time) => dispatch(setFriendSyncTime(time)),
+  updateBudget: (data) => dispatch(updateBudget(data)),
+  setInventory: (data) => dispatch({ type: 'SET_INVENTORY', payload: data }),
 });
 
-export default withTranslation()(withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard)));
+export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Dashboard));

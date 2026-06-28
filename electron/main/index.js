@@ -3,7 +3,8 @@ import { app, BrowserWindow, ipcMain, Menu, screen, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerIpcHandlers } from './ipcHandlers.js';
-import { clearToken } from './services/authHelper.js';
+import { registerStoreIPC } from './ipc/storeIpc.js';
+import { registerWindowIPC } from './ipc/windowIpc.js';
 
 // Load .env cho Main Process (Vite chỉ handle VITE_* cho renderer)
 const __filename = fileURLToPath(import.meta.url);
@@ -53,6 +54,8 @@ function createWindow() {
     }
   });
 
+  registerStoreIPC(ipcMain);
+  registerWindowIPC(ipcMain, win);
   registerIpcHandlers(ipcMain, win);
 
   // ═══ Mini Widget: show when minimized during focus ═══
@@ -220,35 +223,6 @@ ipcMain.on('widget:restore', () => {
     win.focus();
   }
   closeMiniWidget();
-});
-
-// LẮNG NGHE TRỰC TIẾP TẠI INDEX (Giống logic mainold.js)
-ipcMain.on('login-success', () => {
-  if (!win || win.isDestroyed()) return;
-
-  win.setMinimumSize(800, 600);
-  win.setResizable(true);
-  win.setSize(1280, 720);
-  win.center();
-  // Đảm bảo sau khi đổi size vẫn không có menu
-  win.removeMenu();
-});
-
-ipcMain.on('logout', () => {
-  if (!win || win.isDestroyed()) return;
-
-  // Đảm bảo thoát chế độ phóng to/toàn màn hình trước khi chỉnh size
-  if (win.isMaximized()) win.unmaximize();
-  if (win.isFullScreen()) win.setFullScreen(false);
-
-  win.setMinimumSize(450, 600);
-  win.setSize(450, 600);
-  win.setResizable(false);
-  win.center();
-  win.removeMenu();
-
-  // Xóa token xác thực khỏi ổ đĩa khi đăng xuất
-  clearToken();
 });
 
 app.whenReady().then(() => {

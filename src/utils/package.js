@@ -1,20 +1,21 @@
 /**
  * package.js - Tiện ích gọi API và quản lý login dùng chung
  */
-import { getValidToken, checkLoginStatus as checkLogin } from '../services/authService';
+import { getValidAccessToken } from '../services/tokenService';
+import { checkLoginStatus as checkLogin } from '../services/userService';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-export const apiCall = async (endpoint, options = {}) => {
+const apiCall = async (endpoint, options = {}) => {
   // Guard: Kiểm tra cấu hình URL
   if (!API_BASE_URL) {
     throw new Error('API_NOT_CONFIGURED');
   }
 
   const url = `${API_BASE_URL}${endpoint}`;
-  
-  // Lấy token trực tiếp từ RAM (đã được lấy sẵn lúc mở app)
-  let token = getValidToken();
+
+  // Lấy token hợp lệ (kiểm tra hạn dưới 5 phút, tự động refresh hoặc forced logout nếu hết hạn)
+  let token = await getValidAccessToken();
 
   // Danh sách các endpoint không cần xác thực
   const publicEndpoints = ['/login', '/register', '/public'];
@@ -24,7 +25,7 @@ export const apiCall = async (endpoint, options = {}) => {
   if (!token && !isPublicEndpoint) {
     const loginResult = await checkLogin();
     if (loginResult.status) {
-      token = loginResult.userInfo?.token;
+      token = loginResult.userProfile?.token;
     }
   }
 
@@ -70,4 +71,10 @@ export const apiCall = async (endpoint, options = {}) => {
   return response.json();
 };
 
-export const checkLoginStatus = checkLogin;
+const checkLoginStatus = checkLogin;
+
+
+export {
+  apiCall,
+  checkLoginStatus,
+};

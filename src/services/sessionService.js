@@ -1,13 +1,12 @@
 import { getValidIdToken } from './authHelper';
 
-const API_URL = import.meta.env.VITE_USER_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const startSessionApi = async (mode, durationMinutes) => {
   try {
     const idToken = await getValidIdToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/start-study-session`, {
+    const response = await fetch(`${API_URL}/start-study-session`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode, durationMinutes }),
@@ -24,8 +23,7 @@ export const recordStrikeApi = async (sessionId) => {
   try {
     const idToken = await getValidIdToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/strike`, {
+    const response = await fetch(`${API_URL}/strike`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId }),
@@ -42,8 +40,7 @@ export const endSessionApi = async (sessionId) => {
   try {
     const idToken = await getValidIdToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
-    const cleanApiUrl = API_URL.replace(/\/$/, '');
-    const response = await fetch(`${cleanApiUrl}/end-study-session`, {
+    const response = await fetch(`${API_URL}/end-study-session`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId }),

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
-import { setEconomy } from '../../store/actions';
+import { updateBudget } from '../../store/actions';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
 import { timeOutline, cubeOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
@@ -115,15 +115,15 @@ class GachaApp extends Component {
     const hasNewItem = processResult.details.some(res => !res.isDuplicate && res.type !== 'currency');
 
     // Deduct KnowledgePoints/Sanity in Redux
-    if (this.props.economy) {
+    if (this.props.budget) {
       const cost = count * 10;
-      if (this.props.economy.knowledgePoint < cost) {
+      if (this.props.budget.knowledgePoint < cost) {
         toast.error('Not enough Knowledge Points!');
         return;
       }
 
-      this.props.dispatchSetEconomy({
-        knowledgePoint: this.props.economy.knowledgePoint - cost
+      this.props.dispatchUpdateBudget({
+        knowledgePoint: this.props.budget.knowledgePoint - cost
       });
     }
 
@@ -321,11 +321,11 @@ class GachaApp extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  economy: state.economy
+  budget: state.auth.userProfile?.budget || {}
 });
 
 const mapDispatchToProps = (dispatch) => ({
-  dispatchSetEconomy: (data) => dispatch(setEconomy(data))
+  dispatchUpdateBudget: (data) => dispatch(updateBudget(data))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(GachaApp));

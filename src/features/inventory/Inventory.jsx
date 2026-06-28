@@ -7,9 +7,9 @@ import './Inventory.scss';
 
 class Inventory extends Component {
   render() {
-    const { economy, inventory } = this.props;
-    const pCoins = economy?.pCoins || 0;
-    
+    const { inventory } = this.props;
+    const budget = this.props.userProfile?.budget || {};
+
     // Giả lập item từ inventory (hiện tại schema là {})
     //placeholder
     const dummyItems = [...Array(10)].map((_, i) => ({
@@ -26,15 +26,15 @@ class Inventory extends Component {
           <span style={{ fontSize: 32 }}>🪙</span>
           <div>
             <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>Virtual Balance</div>
-            <div>{pCoins.toLocaleString()} P-Coins</div>
+            <div>{(budget.eCoin || 0).toLocaleString()} P-Coins</div>
           </div>
         </div>
 
         <h3 style={{ fontSize: 18, marginBottom: 16, color: '#e2e8f0' }}>
-          <IonIcon icon={cubeOutline} style={{ marginRight: 8, verticalAlign: 'middle' }}/>
+          <IonIcon icon={cubeOutline} style={{ marginRight: 8, verticalAlign: 'middle' }} />
           Gacha Rewards & Items
         </h3>
-        
+
         <div className="inventory-grid">
           {dummyItems.map((item) => (
             <div className="item-card" key={item.id}>
@@ -50,7 +50,7 @@ class Inventory extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  economy: state.economy,
+  userProfile: state.auth.userProfile,
   inventory: state.inventory,
 });
 

@@ -1,16 +1,13 @@
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { getValidAccessToken } from './tokenService';
 
-export const getValidIdToken = async () => {
-    try {
-        const session = await fetchAuthSession();
-        const idToken = session.tokens?.idToken?.toString();
-        if (!idToken) {
-            console.warn('[AuthHelper] Không tìm thấy Token hợp lệ.');
-            return null;
-        }
-        return idToken;
-    } catch (error) {
-        console.error('[AuthHelper] Lỗi khi lấy session xác thực:', error);
-        return null;
-    }
+/**
+ * Lấy Token hợp lệ (ủy quyền qua getValidAccessToken để kiểm tra thời hạn dưới 5 phút)
+ */
+async function getValidIdToken() {
+  return getValidAccessToken();
+}
+
+
+export {
+  getValidIdToken,
 };

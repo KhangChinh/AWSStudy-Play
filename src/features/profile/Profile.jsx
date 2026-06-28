@@ -44,7 +44,7 @@ const resolveBackground = (background) => {
   return cosmeticManager.getCosmeticInfo('backgrounds', background);
 };
 
-const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '').replace(/\/$/, '') + '/avatars/';
+const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
 const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
 class Profile extends Component {
@@ -204,8 +204,7 @@ class Profile extends Component {
 
   render() {
     const {
-      economy,
-      userInfo,
+      userProfile,
       currentBackground,
       currentTitle,
       currentFrame,
@@ -213,7 +212,7 @@ class Profile extends Component {
       t,
     } = this.props;
     const { activeTab } = this.state;
-    const pCoins = economy?.pCoins || 0;
+    const budget = userProfile?.budget || {};
     const rankLabel = translateRank(currentRank, t);
     const equippedTitle = cosmeticManager.getCosmeticInfo('titles', currentTitle)
       || cosmeticManager.getAllInCategory('titles')[0];
@@ -221,7 +220,7 @@ class Profile extends Component {
     const profileHeaderStyle = selectedBackground?.profileBackground
       ? { background: selectedBackground.profileBackground }
       : undefined;
-    const displayName = userInfo?.username || 'Player_9999';
+    const displayName = userProfile?.username || 'Player_9999';
     const titleName = translateCosmeticName(equippedTitle, t);
 
     return (
@@ -241,8 +240,8 @@ class Profile extends Component {
           <div className="user-profile-section">
             <div className="avatar-container-simple">
               <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
-                {userInfo?.avatar ? (
-                  <img src={userInfo.avatar} alt="avatar" className="avatar-img-large" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                {userProfile?.avatar ? (
+                  <img src={userProfile.avatar} alt="avatar" className="avatar-img-large" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
                 ) : (
                   <img src={DEFAULT_AVATAR} alt="avatar" className="avatar-img-large" />
                 )}
@@ -261,18 +260,18 @@ class Profile extends Component {
               <div className="wallet-info">
                 <div className="coin-pill pink" title={t('common.sanity')}>
                   <IonIcon icon={starOutline} className="coin-icon" />
-                  <span className="coin-val">{economy?.sanity || 0}</span>
+                  <span className="coin-val">{budget.sanity || 0}</span>
                 </div>
                 <div className="coin-pill" title={t('common.ecoin')}>
                   <IonIcon icon={cashOutline} className="coin-icon" />
-                  <span className="coin-val">{pCoins.toLocaleString()}</span>
+                  <span className="coin-val">{(budget.eCoin || 0).toLocaleString()}</span>
                 </div>
                 <div className="coin-pill blue" title={t('common.knowledge_points')}>
                   <IonIcon icon={cubeOutline} className="coin-icon" />
-                  <span className="coin-val">{economy?.knowledgePoint?.toLocaleString() || 0}</span>
+                  <span className="coin-val">{(budget.knowledgePoint || 0).toLocaleString()}</span>
                 </div>
                 <div className="streak-badge" title={t('common.streak')}>
-                  🔥 <span>{userInfo?.streak || 0}</span>
+                  🔥 <span>{userProfile?.streak || 0}</span>
                 </div>
               </div>
             </div>
@@ -303,8 +302,7 @@ class Profile extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  userInfo: state.userInfo,
-  economy: state.economy,
+  userProfile: state.auth.userProfile,
 });
 
 export default withTranslation()(connect(mapStateToProps)(Profile));

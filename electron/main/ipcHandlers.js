@@ -12,10 +12,7 @@ import { app } from 'electron';
 
 import { startFocus, stopFocus, getSessionStatus, setFocusWin, setUserId, setAuthToken } from './services/focusEngine.js';
 import { classifyContent, clearCache, getAiStatus, getAllowedCategories, saveAllowedCategories, getGroqKey, saveGroqKey } from './services/aiGuard.js';
-import { secureSetItem, secureGetItem, secureRemoveItem, secureClear } from './services/secureStore.js';
-import { saveToken, loadToken, clearToken } from './services/authHelper.js';
 import { setApiUrl } from './services/sessionApi.js';
-import { saveQuestsToStore, loadQuestsFromStore, clearQuestsStore } from './services/questStore.js';
 import { chatWithAI, generateStudyPlan, generateQuiz } from './services/aiStudyService.js';
 import {
   loadChatHistory, saveChatSession, deleteChatSession,
@@ -27,17 +24,6 @@ import {
 export function registerIpcHandlers(ipcMain, win) {
   // Set BrowserWindow reference for focusEngine renderer communication
   setFocusWin(win);
-
-  // ═══ Auth Token (An's logic) ═══
-  ipcMain.handle('auth:saveToken', async (_event, token) => {
-    return saveToken(token);
-  });
-  ipcMain.handle('auth:loadToken', async () => {
-    return loadToken();
-  });
-  ipcMain.handle('auth:clearToken', async () => {
-    return clearToken();
-  });
 
   // ═══════════════════════════════════════════
   //  FOCUS ENGINE — Giám sát & chặn ứng dụng
@@ -66,47 +52,12 @@ export function registerIpcHandlers(ipcMain, win) {
   });
 
   // ═══════════════════════════════════════════
-  //  SECURE STORE — Tokens + Timestamp (safeStorage)
-  //  Zero-Trust: KHÔNG lưu userData, chỉ lưu tokens
-  // ═══════════════════════════════════════════
-  ipcMain.handle('secureStore:setItem', async (_event, { key, value }) => {
-    return secureSetItem(key, value);
-  });
-
-  ipcMain.handle('secureStore:getItem', async (_event, key) => {
-    return secureGetItem(key);
-  });
-
-  ipcMain.handle('secureStore:removeItem', async (_event, key) => {
-    return secureRemoveItem(key);
-  });
-
-  ipcMain.handle('secureStore:clear', async () => {
-    return secureClear();
-  });
-
-  // ═══════════════════════════════════════════
   //  FOCUS CONFIG — Token + API URL (gọi 1 lần sau login)
   // ═══════════════════════════════════════════
   ipcMain.handle('focus:setConfig', async (_event, { token, apiUrl }) => {
     if (token) setAuthToken(token);
     if (apiUrl) setApiUrl(apiUrl);
     return { success: true };
-  });
-
-  // ═══════════════════════════════════════════
-  //  QUEST STORE — Lưu/đọc daily quests (base64)
-  // ═══════════════════════════════════════════
-  ipcMain.handle('quest:save', async (_event, data) => {
-    return saveQuestsToStore(data);
-  });
-
-  ipcMain.handle('quest:load', async () => {
-    return loadQuestsFromStore();
-  });
-
-  ipcMain.handle('quest:clear', async () => {
-    return clearQuestsStore();
   });
 
   // ═══════════════════════════════════════════

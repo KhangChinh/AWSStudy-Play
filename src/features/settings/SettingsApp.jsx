@@ -16,14 +16,14 @@ import './SettingsApp.scss';
 const SettingsApp = ({
   currentTitle,
   animationsEnabled,
-  userInfo,
+  userProfile,
   onToggleAnimations,
   t,
   i18n,
   dispatchUserLogin
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
-  const [newName, setNewName] = useState(userInfo?.username || '');
+  const [newName, setNewName] = useState(userProfile?.username || '');
   const [loading, setLoading] = useState(false);
   const [pendingImage, setPendingImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -32,10 +32,10 @@ const SettingsApp = ({
 
   const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
-  const displayName = userInfo?.username || 'Player_9999';
+  const displayName = userProfile?.username || 'Player_9999';
   const currentLanguage = (i18n?.resolvedLanguage || i18n?.language || 'vi').split('-')[0];
 
-  const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '').replace(/\/$/, '') + '/avatars/';
+  const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
   const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
   const handleSaveName = async () => {
@@ -50,7 +50,7 @@ const SettingsApp = ({
       if (response && response.profile) {
         // Cập nhật Redux để Dashboard/Profile thấy tên mới ngay lập tức
         dispatchUserLogin({
-          ...userInfo,
+          ...userProfile,
           username: response.profile.information?.name || newName.trim()
         });
         setIsEditingName(false);
@@ -84,7 +84,7 @@ const SettingsApp = ({
     setPendingImage(null);
     setIsUploading(true);
     try {
-      const fileName = `avatar_${userInfo.userId || 'user'}_${Date.now()}.jpg`;
+      const fileName = `avatar_${userProfile.userId || 'user'}_${Date.now()}.jpg`;
       const res = await getAvatarUploadUrl(fileName, 'image/jpeg');
 
       if (res.success && res.uploadUrl) {
@@ -100,7 +100,7 @@ const SettingsApp = ({
 
           if (updateRes.success) {
             toast.success(t('profile.avatar_updated') || 'Avatar updated!');
-            dispatchUserLogin({ ...userInfo, avatar: finalUrl });
+            dispatchUserLogin({ ...userProfile, avatar: finalUrl });
           } else {
             toast.error(updateRes.error || 'Failed to update database');
           }
@@ -125,12 +125,12 @@ const SettingsApp = ({
       <div className="section">
         <h3><IonIcon icon={imageOutline} /> {t('settings.profile_avatar')}</h3>
         <div className="avatar-upload-area">
-          <div 
+          <div
             className={`settings-avatar-preview ${isUploading ? 'uploading' : ''}`}
             onClick={() => fileInputRef.current?.click()}
           >
-            {userInfo?.avatar ? (
-              <img src={userInfo.avatar} alt="avatar" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+            {userProfile?.avatar ? (
+              <img src={userProfile.avatar} alt="avatar" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
             ) : (
               <img src={DEFAULT_AVATAR} alt="avatar" />
             )}
@@ -145,12 +145,12 @@ const SettingsApp = ({
               {t('settings.change_image') || 'Change Image'}
             </button>
           </div>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            accept="image/*" 
-            style={{ display: 'none' }} 
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            style={{ display: 'none' }}
           />
         </div>
       </div>
@@ -172,9 +172,9 @@ const SettingsApp = ({
                     maxLength={20}
                     disabled={loading}
                   />
-                  <button 
-                    className="btn-save-name" 
-                    onClick={handleSaveName} 
+                  <button
+                    className="btn-save-name"
+                    onClick={handleSaveName}
                     disabled={loading}
                     title={loading ? '...' : t('common.save')}
                   >
