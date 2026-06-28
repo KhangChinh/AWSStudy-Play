@@ -7,13 +7,13 @@ const SYNC_COOLDOWN = 5 * 60 * 1000; // 5 phút
 const handleSyncAllApi = async () => {
   // Chỉ dùng để sync những cái cần thiết (hiện tại: profile, inventory, gacha history, social, daily quest) 
   try {
-    const lastSyncAll = store.getState().sync?.lastSyncAll;
+    const currentState = store.getState();
+    const lastSyncAll = currentState.sync?.lastSyncAll;
     const now = Date.now();
     if (lastSyncAll && (now - lastSyncAll) < SYNC_COOLDOWN) {
       console.log('[syncService] SyncAll cooldown, bỏ qua. Còn', Math.round((SYNC_COOLDOWN - (now - lastSyncAll)) / 1000), 'giây');
       return null;
     }
-
     const token = await getValidAccessToken();
     if (!token) throw new Error('No auth token');
     const url = `${API_URL}/sync-all`;
@@ -25,12 +25,10 @@ const handleSyncAllApi = async () => {
       },
       body: JSON.stringify({ getDaily: true }),
     });
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `API Error: ${response.status}`);
     }
-
     const syncResult = await response.json();
     if (syncResult && syncResult.success) {
       const {
@@ -40,52 +38,52 @@ const handleSyncAllApi = async () => {
         friends, friendsLastKey,
         daily
       } = syncResult;
-      if (profile) store.dispatch(setProfile(profile));
-      if (inventory) {
+      // 1. Cập nhật các state KHÔNG phân trang (Luôn luôn ghi đè để lấy data mới nhất)
+      if (profile) {
+        store.dispatch(setProfile(profile));
+        await window.api?.invoke('store:saveProfile', profile).catch(() => { });
+      }
+      if (daily) {
+        store.dispatch(setDailyQuests(daily));
+        await window.api?.invoke('quest:save', daily).catch(() => { });
+      }
+      // 2. Cập nhật các state CÓ phân trang (Chỉ ghi đè nếu Redux đang rỗng để tránh mất data khi user đang cuộn)
+      const currentInventory = currentState.inventory?.items || [];
+      if (inventory && currentInventory.length === 0) {
         store.dispatch(setInventory({
           items: inventory,
           lastKey: inventoryLastKey
         }));
-      }
-      if (gachaHistory) {
-        store.dispatch(setGachaHistory({
-          items: gachaHistory,
-          lastKey: gachaHistoryLastKey
-        }));
-      }
-      if (friends) {
-        store.dispatch(setSocial({
-          items: friends,
-          lastKey: friendsLastKey
-        }));
-      }
-      if (daily) {
-        store.dispatch(setDailyQuests(daily));
-      }
-      await window.api?.invoke('store:saveProfile', profile).catch(() => { });
-      if (inventory) {
         await window.api?.invoke('store:saveInventory', {
           inventory,
           lastEvaluatedKey: inventoryLastKey,
           isAppend: false
         }).catch(() => { });
       }
-      if (gachaHistory) {
+      const currentGacha = currentState.gachaHistory?.items || [];
+      if (gachaHistory && currentGacha.length === 0) {
+        store.dispatch(setGachaHistory({
+          items: gachaHistory,
+          lastKey: gachaHistoryLastKey
+        }));
         await window.api?.invoke('store:saveGachaHistory', {
           gachaHistory,
           lastEvaluatedKey: gachaHistoryLastKey
         }).catch(() => { });
       }
-      if (friends) {
+      const currentSocial = currentState.social?.items || [];
+      if (friends && currentSocial.length === 0) {
+        store.dispatch(setSocial({
+          items: friends,
+          lastKey: friendsLastKey
+        }));
         await window.api?.invoke('store:saveSocial', {
-          friends,
+          social: friends,
           lastEvaluatedKey: friendsLastKey
         }).catch(() => { });
       }
-      if (daily) {
-        await window.api?.invoke('quest:save', daily).catch(() => { });
-      }
     }
+
     store.dispatch(setLastSyncAll(Date.now()));
     return syncResult;
   } catch (e) {
@@ -121,7 +119,7 @@ const handleSyncProfileApi = async () => {
       store.dispatch(setProfile(syncResult.profile));
       await window.api?.invoke('store:saveProfile', syncResult.profile).catch(() => { });
     }
-    return syncResult.profile;
+    return syncResult;
   } catch (error) {
     console.warn('[syncService] FAIL handleSyncProfileApi:', error.message);
     return null;
@@ -174,7 +172,7 @@ const handleSyncInventoryApi = async () => {
         isAppend: !!lastKey
       }).catch(() => { });
     }
-    return syncResult.inventory;
+    return syncResult;
   } catch (e) {
     console.warn('[syncService] FAIL handleSyncInventoryApi:', e.message);
     return null;
@@ -236,7 +234,7 @@ const handleSyncGachaHistoryApi = async () => {
       }).catch(() => { });
     }
 
-    return syncResult.gachaHistory;
+    return syncResult;
   } catch (e) {
     console.warn('[syncService] FAIL handleSyncGachaHistoryApi:', e.message);
     return null;
@@ -298,7 +296,7 @@ const handleSyncSocialApi = async () => {
       }).catch(() => { });
     }
 
-    return syncResult.social;
+    return syncResult;
   } catch (e) {
     console.warn('[syncService] FAIL handleSyncSocialApi:', e.message);
     return null;
