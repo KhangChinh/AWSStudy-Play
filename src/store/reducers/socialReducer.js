@@ -1,45 +1,32 @@
-import { SET_FRIENDS, SET_GACHA_HISTORY } from '../actions/socialActions';
+import { SET_SOCIAL, APPEND_SOCIAL, CLEAR_SOCIAL } from '../actions/socialActions';
 
 const initialState = {
-  friends: {
-    items: [],
-    lastKey: null,
-    hasMore: true,
-    isLoading: false,
-  },
-  gachaHistory: {
-    items: [],
-    lastKey: null,
-    hasMore: true,
-    isLoading: false,
-  },
+  items: [],
+  lastKey: null,
+  hasMore: true,
+  isLoading: false,
 };
 
 const socialReducer = (state = initialState, action) => {
   switch (action.type) {
-    case SET_FRIENDS:
+    case SET_SOCIAL:
       return {
         ...state,
-        friends: {
-          ...state.friends,
-          items: action.payload.items || [],
-          lastKey: action.payload.lastKey || null,
-          hasMore: action.payload.lastKey !== null,
-          isLoading: false,
-        },
+        items: action.payload.items || [],
+        lastKey: action.payload.lastKey || null,
+        hasMore: action.payload.lastKey !== null,
+        isLoading: false,
       };
-
-    case SET_GACHA_HISTORY:
+    case APPEND_SOCIAL:
       return {
         ...state,
-        gachaHistory: {
-          ...state.gachaHistory,
-          items: action.payload.items || [],
-          lastKey: action.payload.lastKey || null,
-          hasMore: action.payload.lastKey !== null,
-          isLoading: false,
-        },
+        items: [...state.items, ...(action.payload.items || [])],
+        lastKey: action.payload.lastKey || null,
+        hasMore: action.payload.lastKey !== null,
+        isLoading: false,
       };
+    case CLEAR_SOCIAL:
+      return initialState;
 
     default:
       return state;

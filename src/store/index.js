@@ -4,9 +4,9 @@ import storage from 'redux-persist/lib/storage';
 import rootReducer from './reducers';
 
 const persistConfig = {
-    key: 'root',
-    storage,
-    blacklist: ['quest'],
+  key: 'root',
+  storage,
+  blacklist: [],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

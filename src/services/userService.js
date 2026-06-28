@@ -4,33 +4,6 @@ import { initializeAuth, getValidToken } from './tokenService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const getUserFromApi = async () => {
-  try {
-    const idToken = await getValidIdToken();
-    if (!idToken) {
-      return { success: false, error: 'Unauthorized: No token available' };
-    }
-    const response = await fetch(`${API_URL}/get-profile`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${idToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      return { success: false, error: `API Error: ${response.status}` };
-    }
-    const result = await response.json();
-    if (result.success && result.data) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.message || 'Unknown error from server' };
-    }
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
 const getAvatarUploadUrl = async (fileName, fileType) => {
   try {
     const idToken = await getValidIdToken();
@@ -101,7 +74,6 @@ async function checkLoginStatus() {
 }
 
 export {
-  getUserFromApi,
   getAvatarUploadUrl,
   updateAvatarUrl,
   checkLoginStatus,

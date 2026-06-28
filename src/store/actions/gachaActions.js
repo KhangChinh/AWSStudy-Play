@@ -1,12 +1,17 @@
-/**
- * gachaActions.js - Action creators cho lich su Gacha
- */
+export const SET_GACHA_HISTORY = 'SET_GACHA_HISTORY';
+export const APPEND_GACHA_HISTORY = 'APPEND_GACHA_HISTORY';
+export const CLEAR_GACHA_HISTORY = 'CLEAR_GACHA_HISTORY';
 
-const setGachaHistory = (data) => ({
-  type: 'SET_GACHA_HISTORY',
-  payload: data,
+export const setGachaHistory = (payload) => ({
+  type: SET_GACHA_HISTORY,
+  payload, // payload = { gachaHistory: [], lastEvaluatedKey: ... }
 });
 
-export {
-  setGachaHistory,
-};
+export const appendGachaHistory = (payload) => ({
+  type: APPEND_GACHA_HISTORY,
+  payload,
+});
+
+export const clearGachaHistory = () => ({
+  type: CLEAR_GACHA_HISTORY,
+});

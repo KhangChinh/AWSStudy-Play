@@ -229,7 +229,6 @@ class AuthPage extends Component {
         <div className="stars"></div>
         <div className="twinkling"></div>
         <div className="purple-nebula"></div>
-
         <div className="auth-container">
           <div className="auth-nav">
             <button

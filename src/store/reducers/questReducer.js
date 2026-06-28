@@ -1,4 +1,4 @@
-import { SET_DAILY_QUESTS } from '../actions/questActions';
+import { SET_DAILY_QUESTS, CLEAR_DAILY_QUESTS } from '../actions/questActions';
 
 const initialState = {
   daily: null,
@@ -11,6 +11,8 @@ const questReducer = (state = initialState, action) => {
         ...state,
         daily: action.payload,
       };
+    case CLEAR_DAILY_QUESTS:
+      return initialState;
 
     default:
       return state;

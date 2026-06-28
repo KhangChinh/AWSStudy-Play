@@ -1,12 +1,17 @@
-export const SET_FRIENDS = 'SET_FRIENDS';
-export const SET_GACHA_HISTORY = 'SET_GACHA_HISTORY';
+export const SET_SOCIAL = 'SET_SOCIAL';
+export const APPEND_SOCIAL = 'APPEND_SOCIAL';
+export const CLEAR_SOCIAL = 'CLEAR_SOCIAL';
 
-export const setFriends = (payload) => ({
-  type: SET_FRIENDS,
+export const setSocial = (payload) => ({
+  type: SET_SOCIAL,
   payload, // payload = { items: [], lastKey: ... }
 });
 
-export const setGachaHistory = (payload) => ({
-  type: SET_GACHA_HISTORY,
-  payload, // payload = { items: [], lastKey: ... }
+export const appendSocial = (payload) => ({
+  type: APPEND_SOCIAL,
+  payload,
+});
+
+export const clearSocial = () => ({
+  type: CLEAR_SOCIAL,
 });

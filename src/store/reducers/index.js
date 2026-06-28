@@ -3,13 +3,15 @@ import { combineReducers } from 'redux';
 import profileReducer from './profileReducer';
 import inventoryReducer from './inventoryReducer';
 import socialReducer from './socialReducer';
+import gachaReducer from './gachaReducer';
 import questReducer from './questReducer';
 
 const rootReducer = combineReducers({
-    profile: profileReducer,
-    inventory: inventoryReducer,
-    social: socialReducer,
-    quest: questReducer,
+  profile: profileReducer,
+  inventory: inventoryReducer,
+  social: socialReducer,
+  gacha: gachaReducer,
+  quest: questReducer,
 });
 
 export default rootReducer;

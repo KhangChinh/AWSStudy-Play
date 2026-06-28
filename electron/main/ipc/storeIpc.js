@@ -1,15 +1,11 @@
 import Store from 'electron-store';
 import { safeStorage, app } from 'electron';
-
 const storeOptions = {};
 const locate = process.env.VITE_STORAGE_LOCATE;
-
 if (locate && locate !== 'DEFAULT') {
   storeOptions.cwd = locate;
 }
-
 const store = new Store(storeOptions);
-
 function encryptSafeStorage(data) {
   const text = typeof data === 'string' ? data : JSON.stringify(data);
   try {
@@ -22,7 +18,6 @@ function encryptSafeStorage(data) {
   }
   return Buffer.from(text, 'utf-8').toString('base64');
 }
-
 function decryptSafeStorage(encryptedStr) {
   if (!encryptedStr) return null;
   try {
@@ -50,12 +45,10 @@ function decryptSafeStorage(encryptedStr) {
     return encryptedStr;
   }
 }
-
 function encodeBase64(data) {
   const json = typeof data === 'string' ? data : JSON.stringify(data);
   return Buffer.from(json, 'utf-8').toString('base64');
 }
-
 function decodeBase64(base64String) {
   if (!base64String) return null;
   try {
@@ -70,7 +63,6 @@ function decodeBase64(base64String) {
     return null;
   }
 }
-
 export function registerStoreIPC(ipcMain) {
   // ═══ Profile ═══
   ipcMain.handle('store:saveProfile', async (_event, profile) => {

@@ -1,4 +1,4 @@
-import { SET_INVENTORY, CLEAR_INVENTORY } from '../actions/inventoryActions';
+import { SET_INVENTORY, APPEND_INVENTORY, CLEAR_INVENTORY } from '../actions/inventoryActions';
 
 const initialState = {
   items: [],
@@ -14,11 +14,17 @@ const inventoryReducer = (state = initialState, action) => {
         ...state,
         items: action.payload.items || [],
         lastKey: action.payload.lastKey || null,
-        // Tự động tính toán hasMore dựa trên lastKey
         hasMore: action.payload.lastKey !== null,
         isLoading: false,
       };
-
+    case APPEND_INVENTORY:
+      return {
+        ...state,
+        items: [...state.items, ...(action.payload.items || [])],
+        lastKey: action.payload.lastKey || null,
+        hasMore: action.payload.lastKey !== null,
+        isLoading: false,
+      };
     case CLEAR_INVENTORY:
       return initialState;
 
