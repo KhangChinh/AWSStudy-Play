@@ -2,93 +2,101 @@ import { getValidAccessToken } from './tokenService';
 import { store, setProfile, setInventory, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll } from '../store/actions';
 
 const API_URL = import.meta.env.VITE_API_URL;
+let syncAllPromise = null;
 const SYNC_COOLDOWN = 5 * 60 * 1000; // 5 phút
 
 const handleSyncAllApi = async () => {
-  // Chỉ dùng để sync những cái cần thiết (hiện tại: profile, inventory, gacha history, social, daily quest) 
-  try {
-    const currentState = store.getState();
-    const lastSyncAll = currentState.sync?.lastSyncAll;
-    const now = Date.now();
-    if (lastSyncAll && (now - lastSyncAll) < SYNC_COOLDOWN) {
-      console.log('[syncService] SyncAll cooldown, bỏ qua. Còn', Math.round((SYNC_COOLDOWN - (now - lastSyncAll)) / 1000), 'giây');
+  if (syncAllPromise) {
+    console.log('[syncService] SyncAll đang chạy, dùng chung kết quả...');
+    return syncAllPromise;
+  }
+  syncAllPromise = (async () => {
+    try {
+      const currentState = store.getState();
+      const lastSyncAll = currentState.sync?.lastSyncAll;
+      const now = Date.now();
+      if (lastSyncAll && (now - lastSyncAll) < SYNC_COOLDOWN) {
+        console.log('[syncService] SyncAll cooldown, bỏ qua. Còn', Math.round((SYNC_COOLDOWN - (now - lastSyncAll)) / 1000), 'giây');
+        return null;
+      }
+      // Xác định rõ cái nào cần lấy (ép kiểu strict boolean true/false)
+      // Profile và Daily thường luôn cần update mới nhất sau 5 phút
+      const getProfile = true;
+      const getDaily = true;
+      // Phân trang: Lấy nếu mảng đang rỗng hoặc chưa tồn tại (true), bỏ qua nếu đã có data (false)
+      const getInventory = Boolean(!currentState.inventory?.items?.length);
+      const getGachaHistory = Boolean(!currentState.gachaHistory?.items?.length);
+      const getSocial = Boolean(!currentState.social?.items?.length);
+      const token = await getValidAccessToken();
+      if (!token) throw new Error('No auth token');
+      const url = `${API_URL}/sync-all`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          getProfile,
+          getDaily,
+          getInventory,
+          getGachaHistory,
+          getSocial
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `API Error: ${response.status}`);
+      }
+      const syncResult = await response.json();
+      if (syncResult && syncResult.success) {
+        const {
+          profile,
+          inventory, inventoryLastKey,
+          gachaHistory, gachaHistoryLastKey,
+          friends, friendsLastKey,
+          daily
+        } = syncResult;
+        // Xử lý lưu trữ (Server trả về cái nào thì dispatch & save Store cái đó)
+        if (profile) {
+          store.dispatch(setProfile(profile));
+          await window.api?.invoke('store:saveProfile', profile).catch(() => { });
+        }
+        if (daily) {
+          store.dispatch(setDailyQuests(daily));
+          await window.api?.invoke('quest:save', daily).catch(() => { });
+        }
+        if (inventory) {
+          store.dispatch(setInventory({ items: inventory, lastKey: inventoryLastKey }));
+          await window.api?.invoke('store:saveInventory', {
+            inventory, lastEvaluatedKey: inventoryLastKey, isAppend: false
+          }).catch(() => { });
+        }
+        if (gachaHistory) {
+          store.dispatch(setGachaHistory({ items: gachaHistory, lastKey: gachaHistoryLastKey }));
+          await window.api?.invoke('store:saveGachaHistory', {
+            gachaHistory, lastEvaluatedKey: gachaHistoryLastKey
+          }).catch(() => { });
+        }
+        if (friends) {
+          store.dispatch(setSocial({ items: friends, lastKey: friendsLastKey }));
+          await window.api?.invoke('store:saveSocial', {
+            social: friends, lastEvaluatedKey: friendsLastKey
+          }).catch(() => { });
+        }
+      }
+      store.dispatch(setLastSyncAll(Date.now()));
+      return syncResult;
+    } catch (e) {
+      console.warn('[syncService] FAIL handleSyncAllApi:', e.message);
       return null;
     }
-    const token = await getValidAccessToken();
-    if (!token) throw new Error('No auth token');
-    const url = `${API_URL}/sync-all`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ getDaily: true }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `API Error: ${response.status}`);
-    }
-    const syncResult = await response.json();
-    if (syncResult && syncResult.success) {
-      const {
-        profile,
-        inventory, inventoryLastKey,
-        gachaHistory, gachaHistoryLastKey,
-        friends, friendsLastKey,
-        daily
-      } = syncResult;
-      // 1. Cập nhật các state KHÔNG phân trang (Luôn luôn ghi đè để lấy data mới nhất)
-      if (profile) {
-        store.dispatch(setProfile(profile));
-        await window.api?.invoke('store:saveProfile', profile).catch(() => { });
-      }
-      if (daily) {
-        store.dispatch(setDailyQuests(daily));
-        await window.api?.invoke('quest:save', daily).catch(() => { });
-      }
-      // 2. Cập nhật các state CÓ phân trang (Chỉ ghi đè nếu Redux đang rỗng để tránh mất data khi user đang cuộn)
-      const currentInventory = currentState.inventory?.items || [];
-      if (inventory && currentInventory.length === 0) {
-        store.dispatch(setInventory({
-          items: inventory,
-          lastKey: inventoryLastKey
-        }));
-        await window.api?.invoke('store:saveInventory', {
-          inventory,
-          lastEvaluatedKey: inventoryLastKey,
-          isAppend: false
-        }).catch(() => { });
-      }
-      const currentGacha = currentState.gachaHistory?.items || [];
-      if (gachaHistory && currentGacha.length === 0) {
-        store.dispatch(setGachaHistory({
-          items: gachaHistory,
-          lastKey: gachaHistoryLastKey
-        }));
-        await window.api?.invoke('store:saveGachaHistory', {
-          gachaHistory,
-          lastEvaluatedKey: gachaHistoryLastKey
-        }).catch(() => { });
-      }
-      const currentSocial = currentState.social?.items || [];
-      if (friends && currentSocial.length === 0) {
-        store.dispatch(setSocial({
-          items: friends,
-          lastKey: friendsLastKey
-        }));
-        await window.api?.invoke('store:saveSocial', {
-          social: friends,
-          lastEvaluatedKey: friendsLastKey
-        }).catch(() => { });
-      }
-    }
+  })();
 
-    store.dispatch(setLastSyncAll(Date.now()));
-    return syncResult;
-  } catch (e) {
-    console.warn('[syncService] FAIL handleSyncAllApi:', e.message);
-    return null;
+  try {
+    return await syncAllPromise;
+  } finally {
+    syncAllPromise = null;
   }
 };
 
