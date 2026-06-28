@@ -168,6 +168,7 @@ class Dashboard extends Component {
       appsPerPage: 5,
     };
     this.timerInterval = null;
+    this.syncTimeout = null;
     this.questsPanelRef = React.createRef();
     this.questsBtnRef = React.createRef();
   }
@@ -179,6 +180,7 @@ class Dashboard extends Component {
       });
     }, 60000);
     document.addEventListener('mousedown', this.handleClickOutside);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
     // Apply background ban đầu (dùng data local từ cosmetics.js)
     cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
@@ -195,7 +197,29 @@ class Dashboard extends Component {
       console.warn('Không thể tải master data:', e);
     }
 
-    // ĐỒNG BỘ CLOUD: Lấy Profile, Inventory, Coin từ Serverless
+    // ĐỒNG BỘ CLOUD: Lấy Profile, Inventory, Coin từ Serverless (sau 5 giây)
+    this.syncTimeout = setTimeout(() => this.performSyncAll(), 5000);
+
+    // Load Daily Quests
+    this.loadDailyQuests();
+  }
+
+  componentWillUnmount() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.syncTimeout) clearTimeout(this.syncTimeout);
+    document.removeEventListener('mousedown', this.handleClickOutside);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+  }
+
+  // Khi user Alt+Tab/Ctrl+Tab quay lại app → gọi sync (cooldown check trong syncService)
+  handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      this.performSyncAll();
+    }
+  };
+
+  // Gọi handleSyncAllApi (cooldown 5 phút được check trong syncService)
+  performSyncAll = async () => {
     try {
       const syncResponse = await handleSyncAllApi();
       if (syncResponse && syncResponse.profile) {
@@ -226,10 +250,7 @@ class Dashboard extends Component {
     } catch (e) {
       console.warn('[Dashboard] Cloud Sync thất bại:', e);
     }
-
-    // Load Daily Quests
-    this.loadDailyQuests();
-  }
+  };
 
   /**
    * Load Daily Quests

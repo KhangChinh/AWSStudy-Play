@@ -43,38 +43,8 @@ const updateAvatarUrl = async (avatarUrl) => {
 };
 
 
-/**
- * Kiểm tra trạng thái đăng nhập của người dùng để quyết định hiển thị giao diện UI
- * @returns {Promise<Object>} - Đối tượng chứa trạng thái { status, userProfile }
- */
-async function checkLoginStatus() {
-  try {
-    let token = getValidToken();
-    if (!token) {
-      await initializeAuth();
-      token = getValidToken();
-    }
-
-    if (token) {
-      return {
-        status: true,
-        userProfile: {
-          UserId: 'usr_local',
-          Username: 'Player',
-          token: token,
-        },
-      };
-    }
-
-    return { status: false, userProfile: null };
-  } catch (e) {
-    console.error('[UserService] Loi khi kiem tra dang nhap:', e);
-    return { status: false, userProfile: null };
-  }
-}
 
 export {
   getAvatarUploadUrl,
   updateAvatarUrl,
-  checkLoginStatus,
 };

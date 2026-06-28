@@ -182,55 +182,54 @@ export function registerStoreIPC(ipcMain) {
       return { success: false, error: err.message };
     }
   });
-  // ═══ Friends ═══
-  ipcMain.handle('store:saveFriends', async (_event, payload) => {
+  // ═══ Social ═══
+  ipcMain.handle('store:saveSocial', async (_event, payload) => {
     try {
-      let finalFriends = payload.friends;
-
+      let finalSocial = payload.social;
       if (payload.isAppend) {
-        const existingEncrypted = store.get('userFriends');
+        const existingEncrypted = store.get('userSocial');
         if (existingEncrypted) {
           const existingData = decodeBase64(existingEncrypted);
-          if (existingData && Array.isArray(existingData.friends)) {
-            finalFriends = [...existingData.friends, ...payload.friends];
+          if (existingData && Array.isArray(existingData.social)) {
+            finalSocial = [...existingData.social, ...payload.social];
           }
         }
       }
       const dataToSave = {
-        friends: finalFriends,
+        social: finalSocial,
         lastEvaluatedKey: payload.lastEvaluatedKey
       };
       const encrypted = encodeBase64(dataToSave);
-      store.set('userFriends', encrypted);
+      store.set('userSocial', encrypted);
       return { success: true };
     } catch (err) {
-      console.error('[storeIpc] store:saveFriends failed:', err);
+      console.error('[storeIpc] store:saveSocial failed:', err);
       return { success: false, error: err.message };
     }
   });
-  ipcMain.handle('store:loadFriends', async () => {
+  ipcMain.handle('store:loadSocial', async () => {
     try {
-      const encrypted = store.get('userFriends');
+      const encrypted = store.get('userSocial');
       if (!encrypted) return null;
       return decodeBase64(encrypted);
     } catch (err) {
-      console.error('[storeIpc] store:loadFriends failed:', err);
+      console.error('[storeIpc] store:loadSocial failed:', err);
       return null;
     }
   });
-  ipcMain.handle('store:clearFriends', async () => {
+  ipcMain.handle('store:clearSocial', async () => {
     try {
-      store.delete('userFriends');
+      store.delete('userSocial');
       return { success: true };
     } catch (err) {
-      console.error('[storeIpc] store:clearFriends failed:', err);
+      console.error('[storeIpc] store:clearSocial failed:', err);
       return { success: false, error: err.message };
     }
   });
   // ═══ Daily Quests ═══
   ipcMain.handle('store:saveDaily', async (_event, daily) => {
     try {
-      const encrypted = encryptSafeStorage(daily);
+      const encrypted = encodeBase64(daily);
       store.set('userDaily', encrypted);
       return { success: true };
     } catch (err) {
@@ -263,7 +262,7 @@ export function registerStoreIPC(ipcMain) {
       store.delete('userProfile');
       store.delete('userInventory');
       store.delete('userGachaHistory');
-      store.delete('userFriends');
+      store.delete('userSocial');
       store.delete('userDaily');
       return { success: true };
     } catch (err) {
