@@ -1,3 +1,12 @@
+import { SET_SUDOKU_LEVELS, APPEND_SUDOKU_LEVELS, CLEAR_SUDOKU_LEVELS } from '../actions/minigameActions';
+
+const initialState = {
+    sudokuLevels: [],
+    sudokuLevelsLastEvaluatedKey: null,
+    sudokuLevelsHasMore: false,
+    isLoading: false,
+};
+
 const minigameReducer = (state = initialState, action) => {
     switch (action.type) {
         case SET_SUDOKU_LEVELS:
