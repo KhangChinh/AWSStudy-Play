@@ -9,7 +9,7 @@ import {
 import RankFrame from '../../components/RankFrame';
 import cosmeticManager from '../../managers/cosmeticManager';
 import inventoryManager from '../../managers/inventoryManager';
-import { userLogin } from '../../store/actions';
+import { setProfile } from '../../store/actions';
 import { toast } from 'react-toastify';
 import './Profile.scss';
 
@@ -302,7 +302,11 @@ class Profile extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  userProfile: state.auth.userProfile,
+  userProfile: state.profile.userProfile,
 });
 
-export default withTranslation()(connect(mapStateToProps)(Profile));
+const mapDispatchToProps = (dispatch) => ({
+  setProfile: (info) => dispatch(setProfile(info)),
+});
+
+export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Profile));

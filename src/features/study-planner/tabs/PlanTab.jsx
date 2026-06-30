@@ -4,6 +4,7 @@ import {
   trashOutline, openOutline, checkmarkCircleOutline, createOutline,
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
+import { loadStudyPlans, saveStudyPlan, deleteStudyPlan } from '../../../services/studyPlannerService';
 
 const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
   const [plans, setPlans] = useState([]);
@@ -23,21 +24,17 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
   }, [highlightPlanId]);
 
   const loadPlans = async () => {
-    if (!window.api?.invoke) { setLoading(false); return; }
-    const result = await window.api.invoke('study:loadPlans');
-    if (result?.success && result.data) {
-      setPlans(result.data);
-      if (!activePlanId && result.data.length > 0) {
-        setActivePlanId(highlightPlanId || result.data[0].id);
-      }
+    const data = await loadStudyPlans();
+    setPlans(data);
+    if (!activePlanId && data.length > 0) {
+      setActivePlanId(highlightPlanId || data[0].id);
     }
     setLoading(false);
   };
 
   const deletePlan = async (e, planId) => {
     e.stopPropagation();
-    if (!window.api?.invoke) return;
-    await window.api.invoke('study:deletePlan', planId);
+    await deleteStudyPlan(planId);
     setPlans(prev => prev.filter(p => p.id !== planId));
     if (activePlanId === planId) {
       setActivePlanId(null);
@@ -54,10 +51,8 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
     );
     const updatedPlan = { ...plan, phases: updatedPhases };
 
+    await saveStudyPlan(updatedPlan);
     setPlans(prev => prev.map(p => p.id === activePlanId ? updatedPlan : p));
-    if (window.api?.invoke) {
-      await window.api.invoke('study:savePlan', updatedPlan);
-    }
   };
 
   const handleQuizClick = (phase) => {

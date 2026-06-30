@@ -33,7 +33,7 @@ import { handleGetMasterDataApi } from '../../services/cosmeticServices';
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
-import { userLogin, userLogout, updateBudget, setInventory, setDailyQuests } from '../../store/actions';
+import { setProfile, setInventory, setDailyQuests } from '../../store/actions';
 import inventoryManager from '../../managers/inventoryManager';
 import './Dashboard.scss';
 
@@ -236,7 +236,7 @@ class Dashboard extends Component {
           this.props.setInventory({ items: inventory });
         }
 
-        this.props.userLogin(profile);
+        this.props.setProfile(profile);
 
         // Cập nhật State Dashboard theo Cloud
         this.setState({
@@ -553,7 +553,8 @@ class Dashboard extends Component {
         }));
 
         if (result.newKnowledgePoint !== undefined) {
-          this.props.dispatch(updateBudget({ knowledgePoint: result.newKnowledgePoint }));
+          const newProfile = { ...this.props.userProfile, knowledgePoint: result.newKnowledgePoint };
+          this.props.setProfile(newProfile);
         }
       } else {
         toast.error(result.error || result.message || 'Action failed!');
@@ -958,16 +959,14 @@ class Dashboard extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  userProfile: state.auth.userProfile,
-  dailyQuests: state.quest.dailyQuests,
+  userProfile: state.profile.userProfile,
+  dailyQuests: state.quest.daily,
 });
 
 const mapDispatchToProps = (dispatch) => ({
   dispatch,
-  userLogout: () => dispatch(userLogout()),
-  userLogin: (info) => dispatch(userLogin(info)),
-  updateBudget: (data) => dispatch(updateBudget(data)),
-  setInventory: (data) => dispatch({ type: 'SET_INVENTORY', payload: data }),
+  setProfile: (info) => dispatch(setProfile(info)),
+  setInventory: (data) => dispatch(setInventory(data)),
 });
 
 export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Dashboard));

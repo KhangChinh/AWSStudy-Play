@@ -9,7 +9,7 @@ import cosmeticManager from '../../managers/cosmeticManager';
 import { handleUpdateNameApi } from '../../services/cosmeticServices';
 import { getAvatarUploadUrl, updateAvatarUrl } from '../../services/userService';
 import { connect } from 'react-redux';
-import { userLogin } from '../../store/actions';
+import { setProfile } from '../../store/actions';
 import { toast } from 'react-toastify';
 import './SettingsApp.scss';
 
@@ -238,7 +238,7 @@ const SettingsApp = ({
 };
 
 const mapDispatchToProps = (dispatch) => ({
-  dispatchUserLogin: (info) => dispatch(userLogin(info))
+  setProfile: (data) => dispatch(setProfile(data)),
 });
 
 export default connect(null, mapDispatchToProps)(SettingsApp);

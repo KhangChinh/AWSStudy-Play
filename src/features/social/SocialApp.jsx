@@ -23,7 +23,7 @@ import {
   handleRemoveFriendApi,
   handleSearchUsersApi
 } from '../../services/socialServices';
-import { setFriends, appendFriends, setFriendSyncTime } from '../../store/actions';
+import { setSocial, appendSocial } from '../../store/actions';
 import './SocialApp.scss';
 
 class SocialApp extends Component {
@@ -58,7 +58,7 @@ class SocialApp extends Component {
   fetchFriends = async (isFirstPage = false) => {
     if (this.state.isLoading) return;
 
-    const { friendLastEvaluatedKey, setFriends, appendFriends } = this.props;
+    const { friendLastEvaluatedKey, setSocial, appendSocial } = this.props;
     const lastKey = isFirstPage ? null : friendLastEvaluatedKey;
 
     if (!isFirstPage && !lastKey) return;
@@ -69,10 +69,10 @@ class SocialApp extends Component {
     if (res && !res.errCode) {
       this.setState({ apiNotConfigured: false });
       if (isFirstPage) {
-        setFriends({ friends: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
+        setSocial({ items: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
         if (window.api) window.api.invoke('secureStore:setItem', { key: 'friends_cache', value: JSON.stringify(res.friends) });
       } else {
-        appendFriends({ friends: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
+        appendSocial({ items: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
         if (window.api) {
           const current = this.props.friends;
           window.api.invoke('secureStore:setItem', { key: 'friends_cache', value: JSON.stringify([...current, ...res.friends]) });
@@ -443,9 +443,8 @@ const mapStateToProps = (state) => ({
 });
 
 const mapDispatchToProps = (dispatch) => ({
-  setFriends: (data) => dispatch(setFriends(data)),
-  appendFriends: (data) => dispatch(appendFriends(data)),
-  setFriendSyncTime: (time) => dispatch(setFriendSyncTime(time)),
+  setSocial: (data) => dispatch(setSocial(data)),
+  appendSocial: (data) => dispatch(appendSocial(data)),
 });
 
 export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(SocialApp));

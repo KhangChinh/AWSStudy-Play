@@ -6,7 +6,6 @@ import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito';
 import './index.css'
 import './i18n'
 import App from './App.jsx'
-import { cognitoSecureStorage } from './services/cognitoSecureStorage';
 
 // Cấu hình Amplify Auth
 Amplify.configure({
@@ -17,10 +16,6 @@ Amplify.configure({
     },
   },
 });
-
-// Override Cognito token storage → secureStore (safeStorage)
-// Thay vì localStorage mặc định, tokens sẽ được mã hóa và lưu qua IPC
-cognitoUserPoolsTokenProvider.setKeyValueStorage(cognitoSecureStorage);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

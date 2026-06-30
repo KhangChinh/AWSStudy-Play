@@ -4,12 +4,23 @@
  * React <-> AWS (Gọi Mây) qua HTTP
  */
 
-import { apiCall } from '../utils/package';
+import { getValidAccessToken } from './tokenService';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const handleGetBalanceApi = async () => {
   try {
-    const response = await apiCall('/economy/balance');
-    return response;
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/economy/balance`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.log('Error getting balance:', e);
     return { errCode: -1, errMessage: e.message };
@@ -18,11 +29,18 @@ export const handleGetBalanceApi = async () => {
 
 export const handleSyncGameResultApi = async (data) => {
   try {
-    const response = await apiCall('/economy/sync', {
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/economy/sync`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(data),
     });
-    return response;
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.log('Error syncing game result:', e);
     return { errCode: -1, errMessage: e.message };

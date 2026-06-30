@@ -6,7 +6,6 @@ import { lockClosedOutline, chevronDownOutline, chevronForwardOutline, rocketOut
 
 import './FocusWidget.scss';
 import { handleStartFocusApi, handleStopFocusApi } from '../../services/focusServices';
-import { setActiveSession } from '../../store/actions';
 
 class FocusWidget extends Component {
   constructor(props) {
@@ -14,6 +13,8 @@ class FocusWidget extends Component {
     this.state = {
       isExpanded: true,
       isLoading: false,
+      blacklist: [],
+      activeSession: null,
     };
   }
   //toggle
@@ -30,7 +31,7 @@ class FocusWidget extends Component {
       });
       if (result && result.success) {
         toast.success('Focus session đã bắt đầu!');
-        this.props.setActiveSession(result);
+        this.setState({ activeSession: result });
       } else {
         toast.error('Không thể bắt đầu focus session!');
       }
@@ -84,13 +85,4 @@ class FocusWidget extends Component {
   }
 }
 
-const mapStateToProps = (state) => ({
-  blacklist: state.focus.focusSettings?.blacklist || [],
-  activeSession: state.focus.activeSession,
-});
-
-const mapDispatchToProps = (dispatch) => ({
-  setActiveSession: (data) => dispatch(setActiveSession(data)),
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(FocusWidget);
+export default FocusWidget;

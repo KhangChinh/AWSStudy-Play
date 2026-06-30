@@ -6,6 +6,7 @@ import {
   helpCircleOutline,
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
+import { loadQuizHistory, saveQuizResult, deleteQuizResult } from '../../../services/studyPlannerService';
 
 const QuizTab = ({ quizRequest, onClearRequest }) => {
   const [quizzes, setQuizzes] = useState([]);
@@ -31,11 +32,8 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
   }, [quizRequest]);
 
   const loadQuizzes = async () => {
-    if (!window.api?.invoke) { setLoading(false); return; }
-    const result = await window.api.invoke('study:loadQuizzes');
-    if (result?.success && result.data) {
-      setQuizzes(result.data);
-    }
+    const data = await loadQuizHistory();
+    setQuizzes(data);
     setLoading(false);
   };
 
@@ -79,8 +77,7 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
 
   const deleteQuiz = async (e, quizId) => {
     e.stopPropagation();
-    if (!window.api?.invoke) return;
-    await window.api.invoke('study:deleteQuiz', quizId);
+    await deleteQuizResult(quizId);
     setQuizzes(prev => prev.filter(q => q.id !== quizId));
     if (activeQuizId === quizId) {
       setActiveQuizId(null);
@@ -120,11 +117,7 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
       createdAt: Date.now(),
     };
 
-    // Save to store
-    if (window.api?.invoke) {
-      await window.api.invoke('study:saveQuiz', quizResult);
-    }
-
+    await saveQuizResult(quizResult);
     setQuizzes(prev => [quizResult, ...prev.filter(q => q.id !== activeQuizId)]);
 
     if (correct === questions.length) {

@@ -1,10 +1,10 @@
-import { getValidIdToken } from './authHelper';
+import { getValidAccessToken } from './tokenService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export const startSessionApi = async (mode, durationMinutes) => {
   try {
-    const idToken = await getValidIdToken();
+    const idToken = await getValidAccessToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
     const response = await fetch(`${API_URL}/start-study-session`, {
       method: 'POST',
@@ -21,7 +21,7 @@ export const startSessionApi = async (mode, durationMinutes) => {
 
 export const recordStrikeApi = async (sessionId) => {
   try {
-    const idToken = await getValidIdToken();
+    const idToken = await getValidAccessToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
     const response = await fetch(`${API_URL}/strike`, {
       method: 'POST',
@@ -38,7 +38,7 @@ export const recordStrikeApi = async (sessionId) => {
 
 export const endSessionApi = async (sessionId) => {
   try {
-    const idToken = await getValidIdToken();
+    const idToken = await getValidAccessToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
     const response = await fetch(`${API_URL}/end-study-session`, {
       method: 'POST',

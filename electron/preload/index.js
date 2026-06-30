@@ -42,17 +42,6 @@ contextBridge.exposeInMainWorld('api', {
       'study:chat',
       'study:generatePlan',
       'study:generateQuiz',
-      'study:loadChats',
-      'study:saveChat',
-      'study:deleteChat',
-      'study:loadPlans',
-      'study:savePlan',
-      'study:deletePlan',
-      'study:loadQuizzes',
-      'study:saveQuiz',
-      'study:deleteQuiz',
-      'study:loadSettings',
-      'study:saveSettings',
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
-import { updateBudget } from '../../store/actions';
+import { setProfile, appendGachaHistory } from '../../store/actions';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
 import { timeOutline, cubeOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
@@ -115,16 +115,16 @@ class GachaApp extends Component {
     const hasNewItem = processResult.details.some(res => !res.isDuplicate && res.type !== 'currency');
 
     // Deduct KnowledgePoints/Sanity in Redux
-    if (this.props.budget) {
+    if (this.props.userProfile) {
       const cost = count * 10;
-      if (this.props.budget.knowledgePoint < cost) {
+      if (this.props.userProfile.knowledgePoint < cost) {
         toast.error('Not enough Knowledge Points!');
         return;
       }
 
-      this.props.dispatchUpdateBudget({
-        knowledgePoint: this.props.budget.knowledgePoint - cost
-      });
+      const newProfile = { ...this.props.userProfile, knowledgePoint: processResult.newKnowledgePoint };
+      this.props.setProfile(newProfile);
+      this.props.appendGachaHistory({ items: processResult.details });
     }
 
     this.setState({
@@ -321,11 +321,15 @@ class GachaApp extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  budget: state.auth.userProfile?.budget || {}
+  userProfile: state.profile.userProfile,
+  inventory: state.inventory.items,
+  gachaHistory: state.gacha.items,
 });
 
 const mapDispatchToProps = (dispatch) => ({
-  dispatchUpdateBudget: (data) => dispatch(updateBudget(data))
+  setProfile: (data) => dispatch(setProfile(data)),
+  appendGachaHistory: (data) => dispatch(appendGachaHistory(data)),
+  dispatch,
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(GachaApp));

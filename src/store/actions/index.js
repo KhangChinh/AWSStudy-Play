@@ -4,3 +4,4 @@ export * from './socialActions';
 export * from './gachaActions';
 export * from './questActions';
 export * from './syncActions';
+export * from './studyPlannerActions';
