@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import ChatTab from './tabs/ChatTab';
 import PlanTab from './tabs/PlanTab';
 import QuizTab from './tabs/QuizTab';
+import { loadStudySettings, saveStudySettings } from '../../services/studyPlannerService';
 import './StudyPlanner.scss';
 
 const StudyPlanner = () => {
@@ -30,23 +31,19 @@ const StudyPlanner = () => {
   }, []);
 
   const loadSettings = async () => {
-    if (window.api?.invoke) {
-      const res = await window.api.invoke('study:loadSettings');
-      if (res?.success && res.data) {
-        setSettings(res.data);
-      }
+    const settings = await loadStudySettings();
+    if (settings) {
+      setSettings(settings);
     }
   };
 
   const handleSaveSettings = async () => {
-    if (window.api?.invoke) {
-      const res = await window.api.invoke('study:saveSettings', settings);
-      if (res?.success) {
-        toast.success(t('study.save_success'));
-        setShowSettings(false);
-      } else {
-        toast.error(t('study.save_error'));
-      }
+    const res = await saveStudySettings(settings);
+    if (res?.success) {
+      toast.success(t('study.save_success'));
+      setShowSettings(false);
+    } else {
+      toast.error(t('study.save_error'));
     }
   };
 

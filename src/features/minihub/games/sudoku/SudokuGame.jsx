@@ -7,7 +7,7 @@ import {
   trophyOutline, heartOutline, timeOutline, alertCircleOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
-import { updateBudget, setHighscores } from '../../../../store/actions';
+import { setProfile } from '../../../../store/actions';
 import { handleSyncGameResultApi } from '../../../../services/economyServices';
 import './SudokuGame.scss';
 

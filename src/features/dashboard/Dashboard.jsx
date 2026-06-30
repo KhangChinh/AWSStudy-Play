@@ -29,7 +29,11 @@ import { handleGetMasterDataApi, handleEquipCosmeticsApi } from '../../services/
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
+<<<<<<< HEAD
 import { userLogin, updateBudget, setInventory, setDailyQuests } from '../../store/actions';
+=======
+import { setProfile, setInventory, setDailyQuests } from '../../store/actions';
+>>>>>>> 72ebd4bc293783fe4dbdfab2f8dd412fb7556921
 import inventoryManager from '../../managers/inventoryManager';
 import './Dashboard.scss';
 
@@ -203,7 +207,11 @@ const Dashboard = () => {
           dispatch(setInventory({ items: inventory }));
         }
 
+<<<<<<< HEAD
         dispatch(userLogin(profile));
+=======
+        this.props.setProfile(profile);
+>>>>>>> 72ebd4bc293783fe4dbdfab2f8dd412fb7556921
 
         setCurrentBackground(cosmetics.equippedBackground || 'bg_default');
         setCurrentFrame(cosmetics.equippedFrame || 'frame_none');
@@ -586,7 +594,12 @@ const Dashboard = () => {
         }));
 
         if (result.newKnowledgePoint !== undefined) {
+<<<<<<< HEAD
           dispatch(updateBudget({ knowledgePoint: result.newKnowledgePoint }));
+=======
+          const newProfile = { ...this.props.userProfile, knowledgePoint: result.newKnowledgePoint };
+          this.props.setProfile(newProfile);
+>>>>>>> 72ebd4bc293783fe4dbdfab2f8dd412fb7556921
         }
       } else {
         toast.error(result.error || result.message || 'Action failed!');
@@ -898,4 +911,19 @@ const Dashboard = () => {
   );
 };
 
+<<<<<<< HEAD
 export default Dashboard;
+=======
+const mapStateToProps = (state) => ({
+  userProfile: state.profile.userProfile,
+  dailyQuests: state.quest.daily,
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  dispatch,
+  setProfile: (info) => dispatch(setProfile(info)),
+  setInventory: (data) => dispatch(setInventory(data)),
+});
+
+export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Dashboard));
+>>>>>>> 72ebd4bc293783fe4dbdfab2f8dd412fb7556921

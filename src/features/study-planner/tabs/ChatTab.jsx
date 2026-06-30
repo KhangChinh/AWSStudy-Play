@@ -4,6 +4,7 @@ import {
   addOutline, sendOutline, trashOutline, rocketOutline, chatbubbleEllipsesOutline,
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
+import { loadChatSessions, saveChatSession, deleteChatSession } from '../../../services/studyPlannerService';
 
 const ChatTab = ({ onPlanCreated }) => {
   const [chatSessions, setChatSessions] = useState([]);
@@ -22,11 +23,8 @@ const ChatTab = ({ onPlanCreated }) => {
   }, []);
 
   const loadChats = async () => {
-    if (!window.api?.invoke) return;
-    const result = await window.api.invoke('study:loadChats');
-    if (result?.success && result.data) {
-      setChatSessions(result.data);
-    }
+    const data = await loadChatSessions();
+    setChatSessions(data);
   };
 
   // Scroll to bottom
@@ -63,8 +61,7 @@ const ChatTab = ({ onPlanCreated }) => {
 
   const deleteChat = async (e, chatId) => {
     e.stopPropagation();
-    if (!window.api?.invoke) return;
-    await window.api.invoke('study:deleteChat', chatId);
+    await deleteChatSession(chatId);
     setChatSessions(prev => prev.filter(c => c.id !== chatId));
     if (activeChatId === chatId) {
       setActiveChatId(null);
@@ -91,7 +88,7 @@ const ChatTab = ({ onPlanCreated }) => {
       readyToGenerate: ready,
       createdAt: session.createdAt || Date.now(),
     };
-    await window.api.invoke('study:saveChat', updated);
+    await saveChatSession(updated);
     setChatSessions(prev => {
       const idx = prev.findIndex(c => c.id === activeChatId);
       if (idx >= 0) {

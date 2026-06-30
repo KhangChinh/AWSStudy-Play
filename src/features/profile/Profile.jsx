@@ -9,6 +9,11 @@ import {
 import RankFrame from '../../components/RankFrame';
 import cosmeticManager from '../../managers/cosmeticManager';
 import inventoryManager from '../../managers/inventoryManager';
+<<<<<<< HEAD
+=======
+import { setProfile } from '../../store/actions';
+import { toast } from 'react-toastify';
+>>>>>>> 72ebd4bc293783fe4dbdfab2f8dd412fb7556921
 import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
@@ -303,4 +308,8 @@ const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
 });
 
-export default withTranslation()(connect(mapStateToProps)(Profile));
+const mapDispatchToProps = (dispatch) => ({
+  setProfile: (info) => dispatch(setProfile(info)),
+});
+
+export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Profile));

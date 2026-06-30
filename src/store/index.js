@@ -6,7 +6,7 @@ import rootReducer from './reducers';
 const persistConfig = {
   key: 'root',
   storage,
-  blacklist: ['sync'],
+  blacklist: ['sync', 'studyPlanner'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

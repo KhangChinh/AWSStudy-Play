@@ -14,12 +14,6 @@ import { startFocus, stopFocus, getSessionStatus, setFocusWin, setUserId, setAut
 import { classifyContent, clearCache, getAiStatus, getAllowedCategories, saveAllowedCategories, getGroqKey, saveGroqKey } from './services/aiGuard.js';
 import { setApiUrl } from './services/sessionApi.js';
 import { chatWithAI, generateStudyPlan, generateQuiz } from './services/aiStudyService.js';
-import {
-  loadChatHistory, saveChatSession, deleteChatSession,
-  loadStudyPlans, saveStudyPlan, deleteStudyPlan,
-  loadQuizHistory, saveQuizResult, deleteQuizResult,
-  loadStudySettings, saveStudySettings
-} from './services/studyPlannerStore.js';
 
 export function registerIpcHandlers(ipcMain, win) {
   // Set BrowserWindow reference for focusEngine renderer communication
@@ -155,17 +149,4 @@ export function registerIpcHandlers(ipcMain, win) {
     return generateQuiz(phase, planTitle);
   });
 
-  // Study Planner Store
-  ipcMain.handle('study:loadChats', async () => loadChatHistory());
-  ipcMain.handle('study:saveChat', async (_event, session) => saveChatSession(session));
-  ipcMain.handle('study:deleteChat', async (_event, chatId) => deleteChatSession(chatId));
-  ipcMain.handle('study:loadPlans', async () => loadStudyPlans());
-  ipcMain.handle('study:savePlan', async (_event, plan) => saveStudyPlan(plan));
-  ipcMain.handle('study:deletePlan', async (_event, planId) => deleteStudyPlan(planId));
-  ipcMain.handle('study:loadQuizzes', async () => loadQuizHistory());
-  ipcMain.handle('study:saveQuiz', async (_event, quiz) => saveQuizResult(quiz));
-  ipcMain.handle('study:deleteQuiz', async (_event, quizId) => deleteQuizResult(quizId));
-
-  ipcMain.handle('study:loadSettings', async () => loadStudySettings());
-  ipcMain.handle('study:saveSettings', async (_event, settings) => saveStudySettings(settings));
 }

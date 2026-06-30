@@ -3,7 +3,13 @@
  * React <-> AWS (Gọi Mây) qua HTTP
  */
 
+<<<<<<< HEAD
 import { apiCall } from '../utils/api';
+=======
+import { getValidAccessToken } from './tokenService';
+
+const API_URL = import.meta.env.VITE_API_URL;
+>>>>>>> 72ebd4bc293783fe4dbdfab2f8dd412fb7556921
 
 /**
  * Lấy danh sách bạn bè (phân trang)
@@ -12,8 +18,17 @@ import { apiCall } from '../utils/api';
 export const handleGetFriendsApi = async (lastKey = null) => {
   try {
     const url = lastKey ? `/friends?lastKey=${encodeURIComponent(lastKey)}` : '/friends';
-    const response = await apiCall(url);
-    return response;
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}${url}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error getting friends:', e);
     return { errCode: -1, errMessage: e.message };
@@ -26,11 +41,18 @@ export const handleGetFriendsApi = async (lastKey = null) => {
  */
 export const handleSendFriendRequestApi = async (targetUserId) => {
   try {
-    const response = await apiCall('/friends/request', {
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/friends/request`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ targetUserId }),
     });
-    return response;
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error sending friend request:', e);
     return { errCode: -1, errMessage: e.message };
@@ -43,11 +65,18 @@ export const handleSendFriendRequestApi = async (targetUserId) => {
  */
 export const handleAcceptFriendApi = async (targetUserId) => {
   try {
-    const response = await apiCall('/friends/accept', {
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/friends/accept`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ targetUserId }),
     });
-    return response;
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error accepting friend:', e);
     return { errCode: -1, errMessage: e.message };
@@ -60,11 +89,18 @@ export const handleAcceptFriendApi = async (targetUserId) => {
  */
 export const handleRemoveFriendApi = async (targetUserId) => {
   try {
-    const response = await apiCall('/friends/remove', {
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/friends/remove`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ targetUserId }),
     });
-    return response;
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error removing friend:', e);
     return { errCode: -1, errMessage: e.message };
@@ -78,8 +114,17 @@ export const handleRemoveFriendApi = async (targetUserId) => {
 export const handleSearchUsersApi = async (keyword) => {
   if (!keyword || keyword.length < 2) return { users: [] };
   try {
-    const response = await apiCall(`/friends/search?q=${encodeURIComponent(keyword)}`);
-    return response;
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/friends/search?q=${encodeURIComponent(keyword)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error searching users:', e);
     return { errCode: -1, errMessage: e.message };
@@ -91,8 +136,17 @@ export const handleSearchUsersApi = async (keyword) => {
  */
 export const handleGetLeaderboardApi = async (gameId) => {
   try {
-    const response = await apiCall(`/leaderboard/${gameId}`);
-    return response;
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/leaderboard/${gameId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error getting leaderboard:', e);
     return { errCode: -1, errMessage: e.message };

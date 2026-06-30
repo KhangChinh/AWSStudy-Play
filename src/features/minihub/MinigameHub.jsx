@@ -5,7 +5,6 @@ import { IonIcon } from '@ionic/react';
 import { playOutline, trophyOutline, timeOutline, gameControllerOutline } from 'ionicons/icons';
 
 import './MinigameHub.scss';
-import { setHighscores } from '../../store/actions';
 import { handleGetLeaderboardApi } from '../../services/socialServices';
 import { toast } from 'react-toastify';
 import SudokuGame from './games/sudoku/SudokuGame.jsx';
@@ -195,8 +194,4 @@ const mapStateToProps = (state) => ({
   minigameHighscores: state.minigame.minigameHighscores,
 });
 
-const mapDispatchToProps = (dispatch) => ({
-  setHighscores: (data) => dispatch(setHighscores(data)),
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(MinigameHub));
+export default connect(mapStateToProps, null)(withTranslation()(MinigameHub));
