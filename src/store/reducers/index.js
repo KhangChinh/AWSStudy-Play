@@ -6,6 +6,7 @@ import socialReducer from './socialReducer';
 import gachaReducer from './gachaReducer';
 import questReducer from './questReducer';
 import syncReducer from './syncReducer';
+import minigameReducer from './minigameReducer';
 
 const rootReducer = combineReducers({
   profile: profileReducer,
@@ -14,6 +15,7 @@ const rootReducer = combineReducers({
   gacha: gachaReducer,
   quest: questReducer,
   sync: syncReducer,
+  minigame: minigameReducer,
 });
 
 export default rootReducer;

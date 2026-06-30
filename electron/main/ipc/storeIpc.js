@@ -182,6 +182,50 @@ export function registerStoreIPC(ipcMain) {
       return { success: false, error: err.message };
     }
   });
+  // ═══ Sudoku Levels ═══
+  ipcMain.handle('store:saveSudokuLevels', async (_event, payload) => {
+    try {
+      let finalSudokuLevels = payload.sudokuLevels;
+      if (payload.isAppend) {
+        const existingEncrypted = store.get('userSudokuLevels');
+        if (existingEncrypted) {
+          const existingData = decodeBase64(existingEncrypted);
+          if (existingData && Array.isArray(existingData.sudokuLevels)) {
+            finalSudokuLevels = [...existingData.sudokuLevels, ...payload.sudokuLevels];
+          }
+        }
+      }
+      const dataToSave = {
+        sudokuLevels: finalSudokuLevels,
+        lastEvaluatedKey: payload.lastEvaluatedKey
+      };
+      const encrypted = encodeBase64(dataToSave);
+      store.set('userSudokuLevels', encrypted);
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:saveSudokuLevels failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('store:loadSudokuLevels', async () => {
+    try {
+      const encrypted = store.get('userSudokuLevels');
+      if (!encrypted) return null;
+      return decodeBase64(encrypted);
+    } catch (err) {
+      console.error('[storeIpc] store:loadSudokuLevels failed:', err);
+      return null;
+    }
+  });
+  ipcMain.handle('store:clearSudokuLevels', async () => {
+    try {
+      store.delete('userSudokuLevels');
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:clearSudokuLevels failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
   // ═══ Social ═══
   ipcMain.handle('store:saveSocial', async (_event, payload) => {
     try {
