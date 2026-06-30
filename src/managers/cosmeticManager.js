@@ -18,7 +18,9 @@ const resolveAutoAssets = (item) => {
 
   return {
     css: `${base}/${itemRoot}/assets/${cssName}.css`,
-    image: `${base}/${itemRoot}/${SK}.jpg` // Theo cấu trúc thực tế tôi thấy trong folder của bạn
+    image: SK === 'bg_galactic_nebula'
+      ? `${base}/${itemRoot}/${SK}.jpg`
+      : `${base}/${itemRoot}/assets/${SK}.png`
   };
 };
 

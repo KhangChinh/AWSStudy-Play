@@ -1,5 +1,6 @@
 import { getValidAccessToken } from './tokenService';
-import { store, setProfile, setInventory, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll } from '../store/actions';
+import { store } from '../store';
+import { setProfile, setInventory, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll } from '../store/actions';
 
 const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;

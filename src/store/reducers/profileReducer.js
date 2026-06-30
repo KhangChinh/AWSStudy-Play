@@ -1,4 +1,4 @@
-import { SET_PROFILE, CLEAR_PROFILE, } from '../actions/profileActions';
+import { SET_PROFILE, CLEAR_PROFILE, UPDATE_BUDGET } from '../actions/profileActions';
 
 const initialState = {
   userProfile: null,
@@ -16,6 +16,19 @@ const profileReducer = (state = initialState, action) => {
       return {
         ...state,
         userProfile: null,
+      };
+
+    case UPDATE_BUDGET:
+      if (!state.userProfile) return state;
+      return {
+        ...state,
+        userProfile: {
+          ...state.userProfile,
+          budget: {
+            ...(state.userProfile.budget || {}),
+            ...action.payload,
+          },
+        },
       };
 
     default:

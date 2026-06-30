@@ -1,10 +1,10 @@
-import { getValidIdToken } from './authHelper';
+import { getValidAccessToken } from './tokenService';
 // CHUYỂN QUA PROFILE SERVICE, GIỮ ĐỂ BIẾT CÒN CẦN CHỨC NĂNG NÀY
 const API_URL = import.meta.env.VITE_API_URL;
 
 const getAvatarUploadUrl = async (fileName, fileType) => {
   try {
-    const idToken = await getValidIdToken();
+    const idToken = await getValidAccessToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
     const response = await fetch(`${API_URL}/get-upload-url`, {
       method: 'POST',
@@ -23,7 +23,7 @@ const getAvatarUploadUrl = async (fileName, fileType) => {
 
 const updateAvatarUrl = async (avatarUrl) => {
   try {
-    const idToken = await getValidIdToken();
+    const idToken = await getValidAccessToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
     const response = await fetch(`${API_URL}/update-avatar`, {
       method: 'POST',

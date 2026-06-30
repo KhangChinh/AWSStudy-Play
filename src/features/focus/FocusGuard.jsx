@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { shieldCheckmarkOutline, closeOutline, lockClosedOutline, videocamOutline } from 'ionicons/icons';
 
-import { getValidIdToken } from '../../services/authHelper';
+import { getValidAccessToken } from '../../services/tokenService';
 import { startTracking, stopTracking, reattachVideo, pauseTracking, resumeTracking } from './faceTracker';
 import './FocusGuard.scss';
 
@@ -65,7 +65,7 @@ const FocusGuard = () => {
     const sendConfig = async () => {
       if (configSentRef.current) return;
       try {
-        const token = await getValidIdToken();
+        const token = await getValidAccessToken();
         if (token && window.api?.invoke) {
           await window.api.invoke('focus:setConfig', {
             token,

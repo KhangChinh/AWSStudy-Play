@@ -270,4 +270,26 @@ export function registerStoreIPC(ipcMain) {
       return { success: false, error: err.message };
     }
   });
+
+  // ═══ Language Settings ═══
+  ipcMain.handle('store:saveLanguage', async (_event, language) => {
+    try {
+      store.set('appLanguage', language);
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:saveLanguage failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('store:loadLanguage', async () => {
+    try {
+      const language = store.get('appLanguage');
+      // eslint-disable-next-line no-undef
+      return language || process.env.VITE_DEFAULT_LANGUAGE || process.env.DEFAULT_LANGUAGE || 'en';
+    } catch (err) {
+      console.error('[storeIpc] store:loadLanguage failed:', err);
+      // eslint-disable-next-line no-undef
+      return process.env.VITE_DEFAULT_LANGUAGE || process.env.DEFAULT_LANGUAGE || 'en';
+    }
+  });
 }

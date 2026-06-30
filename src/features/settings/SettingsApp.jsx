@@ -210,7 +210,15 @@ const SettingsApp = ({
             <select
               className="language-select"
               value={currentLanguage}
-              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              onChange={(e) => {
+                const selectedLang = e.target.value;
+                i18n.changeLanguage(selectedLang);
+                if (window.api) {
+                  window.api.invoke('store:saveLanguage', selectedLang).catch((err) => {
+                    console.error('Failed to save language to electron-store:', err);
+                  });
+                }
+              }}
             >
               <option value="en">{t('settings.english')}</option>
               <option value="vi">{t('settings.vietnamese')}</option>

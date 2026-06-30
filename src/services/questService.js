@@ -1,4 +1,4 @@
-import { getValidIdToken } from './authHelper';
+import { getValidAccessToken } from './tokenService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL;
  */
 export const getDailyQuests = async () => {
   try {
-    const idToken = await getValidIdToken();
+    const idToken = await getValidAccessToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
     const response = await fetch(`${API_URL}/daily`, {
       method: 'GET',
@@ -33,7 +33,7 @@ export const getDailyQuests = async () => {
  */
 export const claimQuestReward = async (questKey) => {
   try {
-    const idToken = await getValidIdToken();
+    const idToken = await getValidAccessToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
     const response = await fetch(`${API_URL}/daily/claim`, {
       method: 'POST',
@@ -59,7 +59,7 @@ export const claimQuestReward = async (questKey) => {
  */
 export const refreshDailyQuests = async () => {
   try {
-    const idToken = await getValidIdToken();
+    const idToken = await getValidAccessToken();
     if (!idToken) return { success: false, error: 'Unauthorized' };
     const response = await fetch(`${API_URL}/daily/refresh`, {
       method: 'POST',

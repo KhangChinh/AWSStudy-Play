@@ -10,6 +10,7 @@ export const CLOUD_BACKGROUND_SKS = [
   'bg_dark',
   'bg_light',
   'bg_purple',
+  'bg_study_float',
 ];
 
 export const COSMETICS = {

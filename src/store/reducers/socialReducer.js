@@ -9,21 +9,36 @@ const initialState = {
 
 const socialReducer = (state = initialState, action) => {
   switch (action.type) {
-    case SET_SOCIAL:
+    case SET_SOCIAL: {
+      const items = action.payload.items || [];
+      const lastKey = action.payload.lastKey || null;
       return {
         ...state,
-        items: action.payload.items || [],
-        lastKey: action.payload.lastKey || null,
-        hasMore: action.payload.lastKey !== null,
+        items,
+        lastKey,
+        friends: items,
+        friendLastEvaluatedKey: lastKey,
+        hasMore: lastKey !== null,
         isLoading: false,
       };
-    case APPEND_SOCIAL:
+    }
+    case APPEND_SOCIAL: {
+      const newItems = [...state.items, ...(action.payload.items || [])];
+      const lastKey = action.payload.lastKey || null;
       return {
         ...state,
-        items: [...state.items, ...(action.payload.items || [])],
-        lastKey: action.payload.lastKey || null,
-        hasMore: action.payload.lastKey !== null,
+        items: newItems,
+        lastKey,
+        friends: newItems,
+        friendLastEvaluatedKey: lastKey,
+        hasMore: lastKey !== null,
         isLoading: false,
+      };
+    }
+    case 'SET_FRIEND_SYNC_TIME':
+      return {
+        ...state,
+        friendUpdatedAt: action.payload,
       };
     case CLEAR_SOCIAL:
       return initialState;

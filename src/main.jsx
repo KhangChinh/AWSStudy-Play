@@ -4,10 +4,19 @@ import { Amplify } from 'aws-amplify';
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito';
 
 import './index.css'
-import './i18n'
+import i18n from './i18n'
 import App from './App.jsx'
-import { cognitoSecureStorage } from './services/cognitoSecureStorage';
 
+// Load language preference from Electron-store
+if (window.api) {
+  window.api.invoke('store:loadLanguage').then((savedLang) => {
+    if (savedLang) {
+      i18n.changeLanguage(savedLang);
+    }
+  }).catch(err => {
+    console.error('Failed to load language from electron-store:', err);
+  });
+}
 // Cấu hình Amplify Auth
 Amplify.configure({
   Auth: {
@@ -17,10 +26,6 @@ Amplify.configure({
     },
   },
 });
-
-// Override Cognito token storage → secureStore (safeStorage)
-// Thay vì localStorage mặc định, tokens sẽ được mã hóa và lưu qua IPC
-cognitoUserPoolsTokenProvider.setKeyValueStorage(cognitoSecureStorage);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

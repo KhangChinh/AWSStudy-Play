@@ -15,3 +15,24 @@ export const appendSocial = (payload) => ({
 export const clearSocial = () => ({
   type: CLEAR_SOCIAL,
 });
+
+export const setFriends = (payload) => ({
+  type: SET_SOCIAL,
+  payload: {
+    items: payload.friends || [],
+    lastKey: payload.lastEvaluatedKey || null,
+  },
+});
+
+export const appendFriends = (payload) => ({
+  type: APPEND_SOCIAL,
+  payload: {
+    items: payload.friends || [],
+    lastKey: payload.lastEvaluatedKey || null,
+  },
+});
+
+export const setFriendSyncTime = (payload) => ({
+  type: 'SET_FRIEND_SYNC_TIME',
+  payload,
+});

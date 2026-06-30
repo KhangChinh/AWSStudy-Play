@@ -3,7 +3,7 @@
  * React <-> AWS (Gọi Mây) qua HTTP
  */
 
-import { apiCall } from '../utils/package';
+import { apiCall } from '../utils/api';
 
 /**
  * Lấy danh sách bạn bè (phân trang)
