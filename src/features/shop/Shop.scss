@@ -1,9 +1,9 @@
-.store-grid {
+.shop-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
 
-  .store-item {
+  .shop-item {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;

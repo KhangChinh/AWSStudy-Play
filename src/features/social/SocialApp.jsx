@@ -439,7 +439,7 @@ const mapStateToProps = (state) => ({
   friends: state.social.friends || [],
   friendLastEvaluatedKey: state.social.friendLastEvaluatedKey,
   friendUpdatedAt: state.social.friendUpdatedAt,
-  userProfile: state.auth.userProfile,
+  userProfile: state.profile.userProfile,
 });
 
 const mapDispatchToProps = (dispatch) => ({

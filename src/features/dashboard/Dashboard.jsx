@@ -20,7 +20,7 @@ import StudyPlanner from '../study-planner/StudyPlanner';
 import cosmeticManager from '../../managers/cosmeticManager';
 import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
-import Store from '../store/Store';
+import Shop from '../shop/Shop';
 import SettingsApp from '../settings/SettingsApp';
 import SocialApp from '../social/SocialApp';
 import RankFrame from '../../components/RankFrame';
@@ -52,12 +52,6 @@ const translateCosmeticName = (item, t) => {
   if (item.i18nKey && typeof t === 'function') return t(`${item.i18nKey}.name`);
   return item.name || '';
 };
-
-const resolveBackground = (background) => {
-  if (background && typeof background === 'object') return background;
-  return cosmeticManager.getCosmeticInfo('backgrounds', background);
-};
-
 const backgroundId = (background) => (
   typeof background === 'string' ? background : background?.id
 );
@@ -107,7 +101,7 @@ const APPS = [
   { id: 'profile', nameKey: 'common.profile', className: 'profile', icon: personOutline, content: <Profile /> },
   { id: 'gacha', nameKey: 'common.gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
   { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
-  { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
+  { id: 'shop', nameKey: 'common.shop', className: 'shop', icon: cartOutline, content: <Shop /> },
   { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
   { id: 'focus', nameKey: 'common.focus', className: 'focus', icon: shieldCheckmarkOutline, content: <FocusGuard /> },
   { id: 'study-planner', nameKey: 'common.study_planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> }
@@ -119,7 +113,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   // Redux selection
-  const userProfile = useSelector(state => state.auth.userProfile);
+  const userProfile = useSelector(state => state.profile.userProfile);
   const dailyQuests = useSelector(state => state.quest.dailyQuests);
 
   // Layout & Windows State
@@ -175,8 +169,9 @@ const Dashboard = () => {
   // Fetch floating icons based on background config
   const fetchFloatingIcons = async (bgId) => {
     try {
-      const base = import.meta.env.VITE_S3_ASSETS_URL || '';
-      const url = `${base}/items/background/${bgId}/assets/${bgId}_icons.json`;
+      const rawBase = import.meta.env.VITE_S3_ASSETS_URL || '';
+      const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+      const url = `${base}themes/${bgId}/assets/${bgId}_icons.json`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -675,17 +670,28 @@ const Dashboard = () => {
     }
   };
 
-  const renderDesktopLineBackground = (bgId = 'bg_default') => (
-    <div className={`desktop-line-bg bg-${bgId}`} aria-hidden="true">
-      <div className="aurora-field aurora-cyan"></div>
-      <div className="aurora-field aurora-magenta"></div>
-      <div className="aurora-field aurora-gold"></div>
-      <div className="holo-orbit holo-orbit-one"></div>
-      <div className="holo-orbit holo-orbit-two"></div>
-      <div className="holo-panel holo-panel-one"></div>
-      <div className="holo-panel holo-panel-two"></div>
+  const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon)
+    || cosmeticManager.getAllInCategory('systemIcons')[0]
+    || { type: 'outline' };
+
+  const selectedBackground = cosmeticManager.getCosmeticInfo('backgrounds', currentBackground)
+    || cosmeticManager.getAllInCategory('backgrounds')[0];
+  const desktopBackgroundStyle = selectedBackground?.desktopBackground || selectedBackground?.preview;
+
+  const desktopStyle = desktopBackgroundStyle
+    ? { background: desktopBackgroundStyle }
+    : { backgroundColor: '#0b1028' };
+
+  const desktopClassName = [
+    'os-desktop',
+    !animationsEnabled ? 'no-animations' : '',
+    `icon-style-${iconData.type}`,
+  ].filter(Boolean).join(' ');
+
+  return (
+    <div className={desktopClassName} style={desktopStyle}>
       {floatingIcons && floatingIcons.length > 0 && (
-        <div className="study-float-icons">
+        <div className="study-float-icons" aria-hidden="true">
           {floatingIcons.map((item, index) => (
             <div
               className={`study-float-icon float-${item.direction}`}
@@ -702,39 +708,6 @@ const Dashboard = () => {
           ))}
         </div>
       )}
-      <div className="line-grid line-grid-primary"></div>
-      <div className="line-grid line-grid-secondary"></div>
-      <div className="line-scan"></div>
-    </div>
-  );
-
-  const selectedBackground = resolveBackground(currentBackground)
-    || cosmeticManager.getAllInCategory('backgrounds')[0];
-  const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon)
-    || cosmeticManager.getAllInCategory('systemIcons')[0]
-    || { type: 'outline' };
-
-  const activeBgId = backgroundId(currentBackground) || 'bg_default';
-  const presetBgIds = ['bg_default', 'bg_purple', 'bg_black', 'bg_white'];
-  const bgThemeId = selectedBackground?.custom || !presetBgIds.includes(activeBgId)
-    ? 'bg_default'
-    : activeBgId;
-  const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
-  const desktopStyle = desktopBackground
-    ? {
-      '--desktop-user-background': desktopBackground,
-      ...(animationsEnabled ? {} : { background: desktopBackground }),
-    }
-    : undefined;
-  const desktopClassName = [
-    'os-desktop',
-    !animationsEnabled ? 'no-animations' : '',
-    `icon-style-${iconData.type}`,
-  ].filter(Boolean).join(' ');
-
-  return (
-    <div className={desktopClassName} style={desktopStyle}>
-      {animationsEnabled && renderDesktopLineBackground(bgThemeId)}
       <div className="desktop-bg-dim"></div>
       {isDragging && <div className="drag-overlay"></div>}
 

@@ -1,5 +1,5 @@
 import { signOut } from 'aws-amplify/auth';
-import { store } from '../store';
+import { store } from '';
 import { clearProfile } from '../store/actions';
 import { handleSyncProfileApi } from './syncService';
 let handleLoginApi = async () => {

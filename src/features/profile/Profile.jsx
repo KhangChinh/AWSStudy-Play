@@ -9,8 +9,6 @@ import {
 import RankFrame from '../../components/RankFrame';
 import cosmeticManager from '../../managers/cosmeticManager';
 import inventoryManager from '../../managers/inventoryManager';
-import { userLogin } from '../../store/actions';
-import { toast } from 'react-toastify';
 import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
@@ -302,7 +300,7 @@ class Profile extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  userProfile: state.auth.userProfile,
+  userProfile: state.profile.userProfile,
 });
 
 export default withTranslation()(connect(mapStateToProps)(Profile));

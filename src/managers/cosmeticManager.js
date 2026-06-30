@@ -6,8 +6,16 @@ import { COSMETICS, S3_ASSETS_BASE } from '../data/cosmetics';
  */
 const resolveAutoAssets = (item) => {
   const { SK, itemType } = item;
-  const base = S3_ASSETS_BASE || '';
+  const rawBase = S3_ASSETS_BASE || '';
+  const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
   
+  if (itemType === 'background') {
+    return {
+      css: `${base}themes/${SK}/assets/${SK}.css`,
+      image: `${base}themes/${SK}/${SK}.jpg`
+    };
+  }
+
   // Đường dẫn thư mục gốc của item: items/background/SK/
   const itemRoot = `items/${itemType}/${SK}`;
 
@@ -17,10 +25,10 @@ const resolveAutoAssets = (item) => {
   if (SK === 'bg_galactic_nebula') cssName = 'galactic_nebula'; // Fallback cho folder cũ bạn đang có
 
   return {
-    css: `${base}/${itemRoot}/assets/${cssName}.css`,
+    css: `${base}${itemRoot}/assets/${cssName}.css`,
     image: SK === 'bg_galactic_nebula'
-      ? `${base}/${itemRoot}/${SK}.jpg`
-      : `${base}/${itemRoot}/assets/${SK}.png`
+      ? `${base}${itemRoot}/${SK}.jpg`
+      : `${base}${itemRoot}/assets/${SK}.png`
   };
 };
 

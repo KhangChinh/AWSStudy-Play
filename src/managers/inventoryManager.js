@@ -58,21 +58,26 @@ class InventoryManager {
   async save() {
     console.log('Inventory saving...', this.inventory.length);
     if (window.api?.invoke) {
-      await window.api.invoke('inventory:save', {
-        inventory: this.inventory,
-        history: this.history
-      });
+      await window.api.invoke('store:saveInventory', {
+        inventory: this.inventory
+      }).catch(err => console.error('[InventoryManager] Failed to save inventory:', err));
+      await window.api.invoke('store:saveGachaHistory', {
+        gachaHistory: this.history
+      }).catch(err => console.error('[InventoryManager] Failed to save gacha history:', err));
     }
   }
 
   async load() {
     if (window.api?.invoke) {
-      const res = await window.api.invoke('inventory:load');
-      if (res?.success && res.data) {
-        this.inventory = res.data.inventory || [];
-        this.history = res.data.history || [];
-        console.log('Inventory loaded:', this.inventory.length);
+      const invRes = await window.api.invoke('store:loadInventory').catch(() => null);
+      if (invRes && invRes.inventory) {
+        this.inventory = invRes.inventory;
       }
+      const histRes = await window.api.invoke('store:loadGachaHistory').catch(() => null);
+      if (histRes && histRes.gachaHistory) {
+        this.history = histRes.gachaHistory;
+      }
+      console.log('Inventory loaded:', this.inventory.length);
     }
   }
 }

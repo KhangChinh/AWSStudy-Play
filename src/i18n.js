@@ -14,7 +14,7 @@ i18n
             profile: 'Profile',
             gacha: 'Gacha',
             minigames: 'Mini Games',
-            store: 'Store',
+            shop: 'Shop',
             focus_mode: 'Focus Mode',
             logout: 'Logout',
             confirm: 'Confirm',
@@ -216,8 +216,8 @@ i18n
             api_key_hint: 'Get a free key at Google AI Studio',
             save_settings: 'Save Settings',
           },
-          store: {
-            title: 'Cosmetics Store',
+          shop: {
+            title: 'Cosmetics Shop',
             purchase: 'Purchase',
           },
           focus: {
@@ -307,7 +307,7 @@ i18n
             profile: 'Hồ sơ',
             gacha: 'Gacha',
             minigames: 'Trò chơi',
-            store: 'Cửa hàng',
+            shop: 'Cửa hàng',
             focus_mode: 'Tập trung',
             logout: 'Đăng xuất',
             confirm: 'Xác nhận',
@@ -509,7 +509,7 @@ i18n
             api_key_hint: 'Lấy key miễn phí tại Google AI Studio',
             save_settings: 'Lưu cài đặt',
           },
-          store: {
+          shop: {
             title: 'Cửa hàng vật phẩm',
             purchase: 'Mua ngay',
           },
