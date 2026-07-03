@@ -1,6 +1,6 @@
 import { signOut } from 'aws-amplify/auth';
 import { store } from '../store';
-import { clearProfile } from '../store/actions';
+import { logoutClearData } from '../store/actions';
 import { handleSyncProfileApi } from './syncService';
 let handleLoginApi = async () => {
   try {
@@ -20,7 +20,7 @@ let handleLogoutApi = async () => {
   try {
     await signOut();
     await window.api?.invoke('store:clearLoginData');
-    store.dispatch(clearProfile());
+    store.dispatch(logoutClearData());
     window.api?.send('logout');
   } catch (err) {
     console.error('[AuthService] Lỗi khi logout:', err);

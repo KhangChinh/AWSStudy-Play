@@ -78,3 +78,31 @@ export const refreshDailyQuests = async () => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * POST /study-planner/quiz-submit — Nhận phần thưởng sau khi hoàn thành quiz
+ * @param {number} correctAnswersCount — Số câu trả lời đúng
+ * @param {number} totalQuestions — Tổng số câu
+ */
+export const submitQuizReward = async (correctAnswersCount, totalQuestions) => {
+  try {
+    const idToken = await getValidAccessToken();
+    if (!idToken) return { success: false, error: 'Unauthorized' };
+    const response = await fetch(`${API_URL}/study-planner/quiz-submit`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ correctAnswersCount, totalQuestions }),
+    });
+    if (!response.ok) {
+      const errResult = await response.json().catch(() => ({}));
+      return { success: false, error: errResult.message || `API Error: ${response.status}` };
+    }
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};

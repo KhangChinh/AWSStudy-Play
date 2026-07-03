@@ -7,6 +7,8 @@ import {
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
 import { loadQuizHistory, saveQuizResult, deleteQuizResult } from '../../../services/studyPlannerService';
+import { submitQuizReward } from '../../../services/questService';
+import { ingestServerData } from '../../../services/syncService';
 
 const QuizTab = ({ quizRequest, onClearRequest }) => {
   const [quizzes, setQuizzes] = useState([]);
@@ -120,8 +122,22 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
     await saveQuizResult(quizResult);
     setQuizzes(prev => [quizResult, ...prev.filter(q => q.id !== activeQuizId)]);
 
+    // Call API for rewards
+    const rewardResult = await submitQuizReward(correct, questions.length);
+    if (rewardResult && rewardResult.success) {
+      if (rewardResult.profile || rewardResult.daily) {
+        ingestServerData({
+          profile: rewardResult.profile,
+          daily: rewardResult.daily
+        });
+      }
+      if (rewardResult.earnedKP > 0) {
+        toast.success(`Bạn nhận được ${rewardResult.earnedKP} KP từ việc trả lời đúng!`);
+      }
+    }
+
     if (correct === questions.length) {
-      toast.success(`🏆 Xuất sắc! ${correct}/${questions.length} câu đúng!`);
+      toast.success(`🎉 Xuất sắc! ${correct}/${questions.length} câu đúng!`);
     } else if (correct >= questions.length * 0.7) {
       toast.success(`✅ Tốt lắm! ${correct}/${questions.length} câu đúng`);
     } else {
