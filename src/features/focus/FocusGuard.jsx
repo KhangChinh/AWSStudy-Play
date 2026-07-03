@@ -8,7 +8,7 @@ import { ingestServerData } from '../../services/syncService';
 import { startTracking, stopTracking, reattachVideo, pauseTracking, resumeTracking } from './faceTracker';
 import './FocusGuard.scss';
 
-const DURATIONS = [15, 25, 45, 60];
+const DURATIONS = [1, 15, 25, 45, 60];
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
