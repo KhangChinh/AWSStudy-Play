@@ -11,6 +11,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 config({ path: path.join(__dirname, '../../.env') });
 
+// Ignore EPIPE errors on stdout/stderr to prevent crashes when piped logs break (e.g., Windows with concurrently)
+process.stdout.on('error', (err) => {
+  if (err.code === 'EPIPE') return;
+  throw err;
+});
+process.stderr.on('error', (err) => {
+  if (err.code === 'EPIPE') return;
+  throw err;
+});
+
 let win;
 let miniWidget = null;
 let focusActiveForWidget = false; // track if focus is running

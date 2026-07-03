@@ -171,9 +171,14 @@ export function loadStudySettings() {
 
 export function saveStudySettings(settings) {
   try {
+    console.log('[StudyPlannerStore] Lưu cấu hình AI:', { 
+      provider: settings?.aiProvider,
+      hasGeminiKey: !!settings?.geminiKey
+    });
     store.set('study_settings', encode(settings));
     return { success: true };
   } catch (err) {
+    console.error('[StudyPlannerStore] Lỗi khi lưu cấu hình AI:', err);
     return { success: false, error: err.message };
   }
 }

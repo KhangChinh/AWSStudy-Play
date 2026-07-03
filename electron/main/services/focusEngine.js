@@ -29,6 +29,7 @@ let currentSessionId = null;
 const WS_PORT = 8765;
 const clients = new Set();
 const connectedBrowsers = new Map(); // ws -> browser name
+const disconnectedGrace = new Map(); // browser -> { timeout, timestamp }
 let isAppBlocked = false; // Only true when browsers running WITHOUT extension
 let isAiReady = false;
 let noBrowserRunning = true; // true = no browsers open, focus allowed
@@ -161,15 +162,7 @@ function getRunningBrowsers() {
   return new Promise(resolve => {
     exec('tasklist /NH /FO CSV', (err, stdout) => {
       if (err) return resolve(new Set());
-      const running = new Set();
       const out = stdout.toLowerCase();
-
-      if (out.includes('chrome.exe')) running.add('chrome');
-      if (out.includes('msedge.exe')) running.add('edge');
-      if (out.includes('opera.exe')) running.add('opera');
-      if (out.includes('brave.exe')) running.add('brave');
-      if (out.includes('firefox.exe')) running.add('firefox');
-      if (out.includes('browser.exe')) running.add('coccoc');
 
       // Native App Killer — kill blacklisted apps during active timer
       if (timerState.active) {
@@ -205,7 +198,32 @@ function getRunningBrowsers() {
         }
       }
 
-      resolve(running);
+      const hasBrowser = out.includes('chrome.exe') || out.includes('msedge.exe') || 
+                         out.includes('opera.exe') || out.includes('brave.exe') || 
+                         out.includes('firefox.exe') || out.includes('browser.exe');
+      
+      if (!hasBrowser) {
+        return resolve(new Set());
+      }
+
+      // If a browser is running, check if it has a visible window (MainWindowHandle != 0)
+      // This ignores background "ghost" processes like Edge Startup Boost
+      const psCommand = `Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.ProcessName -match '^(chrome|msedge|opera|brave|firefox|browser)$' } | Select-Object -ExpandProperty ProcessName`;
+      
+      exec(`powershell -NoProfile -Command "${psCommand}"`, (errPs, stdoutPs) => {
+        const running = new Set();
+        if (!stdoutPs) return resolve(running); // Empty output means no visible browsers
+        
+        const outPs = stdoutPs.toLowerCase();
+        if (outPs.includes('chrome')) running.add('chrome');
+        if (outPs.includes('msedge')) running.add('edge');
+        if (outPs.includes('opera')) running.add('opera');
+        if (outPs.includes('brave')) running.add('brave');
+        if (outPs.includes('firefox')) running.add('firefox');
+        if (outPs.includes('browser')) running.add('coccoc');
+        
+        resolve(running);
+      });
     });
   });
 }
@@ -228,6 +246,10 @@ function endSessionFail() {
 async function checkGateStatus() {
   const running = await getRunningBrowsers();
   const connected = new Set(Array.from(connectedBrowsers.values()));
+
+  for (const browserName of disconnectedGrace.keys()) {
+    connected.add(browserName);
+  }
 
   const currentlyMissing = [];
   for (const b of running) {
@@ -305,19 +327,30 @@ setInterval(async () => {
 }, 5000);
 
 // ===== WebSocket Server =====
-const wss = new WebSocketServer({ port: WS_PORT }, () => {
-  console.log(`[FocusGuard] WebSocket server on ws://localhost:${WS_PORT}`);
-});
-
-// Ping interval to keep Chrome MV3 Service Worker alive
-setInterval(() => {
-  wss.clients.forEach((ws) => {
-    if (ws.readyState === 1) { // WebSocket.OPEN
-      ws.send(JSON.stringify({ type: 'PING' }));
+let wss;
+try {
+  wss = new WebSocketServer({ port: WS_PORT }, () => {
+    console.log(`[FocusGuard] WebSocket server on ws://localhost:${WS_PORT}`);
+  });
+  wss.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[FocusGuard] Port ${WS_PORT} already in use.`);
+    } else {
+      console.error('[FocusGuard] WS Error:', err.message);
     }
   });
-}, 20000);
+} catch (e) {
+  console.error('[FocusGuard] WS Failed:', e.message);
+}
 
+setInterval(() => {
+  if (!wss) return;
+  wss.clients.forEach((ws) => {
+    if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'PING' }));
+  });
+}, 10000);
+
+if (wss) {
 wss.on('connection', (ws) => {
   console.log('[FocusGuard] Extension connected');
   clients.add(ws);
@@ -328,11 +361,20 @@ wss.on('connection', (ws) => {
     try {
       const data = JSON.parse(raw.toString());
 
+      if (data.type === 'PONG') return;
+
       // Extension identification
       if (data.type === 'EXTENSION_CONNECTED') {
-        if (data.browser) connectedBrowsers.set(ws, data.browser);
+        const browserName = data.browser || 'unknown';
+        connectedBrowsers.set(ws, browserName);
+        console.log(`[FocusGuard] Extension identified as: ${browserName}`);
+        
+        if (disconnectedGrace.has(browserName)) {
+          clearTimeout(disconnectedGrace.get(browserName).timeout);
+          disconnectedGrace.delete(browserName);
+        }
+        
         checkGateStatus();
-        // Send current configs
         ws.send(JSON.stringify({
           type: 'SETTINGS_UPDATED',
           allowedCategories: getAllowedCategories()
@@ -446,11 +488,21 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     clients.delete(ws);
+    const browserName = connectedBrowsers.get(ws);
     connectedBrowsers.delete(ws);
-    checkGateStatus();
-    console.log('[FocusGuard] Extension disconnected');
+    console.log(`[FocusGuard] Extension disconnected (${browserName || 'unknown'})`);
+
+    if (browserName) {
+      const graceTimeout = setTimeout(() => {
+        disconnectedGrace.delete(browserName);
+        const stillConnected = Array.from(connectedBrowsers.values()).includes(browserName);
+        if (!stillConnected) checkGateStatus();
+      }, 15000);
+      disconnectedGrace.set(browserName, { timeout: graceTimeout, timestamp: Date.now() });
+    }
   });
 });
+}
 
 // ===== Broadcast helpers =====
 function broadcastToClients(exclude) {

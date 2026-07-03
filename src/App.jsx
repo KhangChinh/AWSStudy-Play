@@ -12,7 +12,7 @@ import Spinner from './components/Spinner';
 
 import { handleSyncProfileApi } from './services/syncService';
 import { handleLogoutApi } from './services/authService';
-import { initializeAuth } from './services/tokenService';
+import { initializeAuth, getValidAccessToken } from './services/tokenService';
 
 import './index.css';
 
@@ -31,6 +31,23 @@ class App extends Component {
       console.log('[App] Bootstrap failed:', error.message);
     } finally {
       this.setState({ isCheckingAuth: false });
+    }
+
+    // Auto-refresh token every 5 minutes to keep backend in sync
+    this.tokenRefreshInterval = setInterval(async () => {
+      if (this.props.isLoggedIn) {
+         try {
+            await getValidAccessToken();
+         } catch(e) {
+            console.warn('[App] Auto token refresh failed', e);
+         }
+      }
+    }, 5 * 60 * 1000);
+  }
+
+  componentWillUnmount() {
+    if (this.tokenRefreshInterval) {
+      clearInterval(this.tokenRefreshInterval);
     }
   }
 

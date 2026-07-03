@@ -43,6 +43,13 @@ function connectToDesktopApp() {
     wsConnection.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data.type === 'PING') {
+          if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+            wsConnection.send(JSON.stringify({ type: 'PONG' }));
+          }
+          return;
+        }
+        
         if (data.type === 'FOCUS_MODE_CHANGED') {
           focusMode = data.enabled;
           chrome.storage.local.set({ focusMode });

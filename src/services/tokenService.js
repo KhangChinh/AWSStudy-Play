@@ -41,6 +41,7 @@ async function initializeAuth() {
       session.tokens?.accessToken?.toString();
     if (newToken) {
       currentAccessToken = newToken;
+      window.api?.invoke('auth:save-token', newToken).catch(() => {});
       console.log('[TokenService] Khởi tạo auth: Lấy session thành công từ Cognito.');
       return true;
     }
@@ -67,6 +68,7 @@ async function getValidAccessToken() {
       if (newToken) {
         currentAccessToken = newToken;
         token = newToken;
+        window.api?.invoke('auth:save-token', newToken).catch(() => {});
         console.log('[TokenService] Lấy session mới thành công.');
       } else {
         await triggerLogout();
