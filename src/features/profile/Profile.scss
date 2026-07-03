@@ -238,16 +238,26 @@
           display: flex;
           align-items: center;
           gap: 10px;
+            flex-wrap: wrap;
 
-          .title-badge {
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 1px;
-          }
+            .title-badge {
+              font-size: 16px;
+              font-weight: 700;
+              letter-spacing: 1px;
+            }
 
-          .rank-chip {
-            color: var(--profile-rank-accent);
-            background: color-mix(in srgb, var(--profile-rank-core) 18%, rgba(2, 6, 23, 0.7));
+            .streak-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              background: rgba(239, 68, 68, 0.1);
+              border: 1px solid rgba(239, 68, 68, 0.2);
+              padding: 6px 12px;
+              border-radius: 20px;
+              font-size: 13px;
+              font-weight: 700;
+              color: #f87171;
+              box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
             border: 1px solid color-mix(in srgb, var(--profile-rank-core) 42%, rgba(255, 255, 255, 0.08));
             border-radius: 999px;
             padding: 3px 9px;

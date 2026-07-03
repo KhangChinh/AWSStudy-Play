@@ -4,9 +4,11 @@ import {
   trashOutline, openOutline, checkmarkCircleOutline, createOutline,
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { loadStudyPlans, saveStudyPlan, deleteStudyPlan } from '../../../services/studyPlannerService';
 
 const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
+  const { t, i18n } = useTranslation();
   const [plans, setPlans] = useState([]);
   const [activePlanId, setActivePlanId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,7 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
     if (activePlanId === planId) {
       setActivePlanId(null);
     }
-    toast.info('Đã xóa kế hoạch');
+    toast.info(t('study.plan_deleted'));
   };
 
   const togglePhaseComplete = async (phaseId) => {
@@ -71,7 +73,7 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
   if (loading) {
     return (
       <div className="sp-plans">
-        <div className="sp-loading"><div className="sp-spinner" /><p>Đang tải...</p></div>
+        <div className="sp-loading"><div className="sp-spinner" /><p>{t('study.loading')}</p></div>
       </div>
     );
   }
@@ -80,10 +82,10 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
     <div className="sp-plans">
       {/* Sidebar */}
       <div className="sp-plans-sidebar">
-        <div className="sp-sidebar-title">Kế hoạch của bạn</div>
+        <div className="sp-sidebar-title">{t('study.your_plans')}</div>
         <div className="sp-plans-list">
           {plans.length === 0 && (
-            <div className="sp-sidebar-empty">Chưa có kế hoạch nào. Hãy trò chuyện với AI để tạo!</div>
+            <div className="sp-sidebar-empty">{t('study.no_plans_sidebar')}</div>
           )}
           {plans.map(plan => (
             <div
@@ -93,7 +95,7 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
             >
               <div className="sp-plan-item-title">{plan.title}</div>
               <div className="sp-plan-item-date">
-                {new Date(plan.createdAt).toLocaleDateString('vi-VN')}
+                {new Date(plan.createdAt).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
               </div>
               <button className="sp-delete-btn" onClick={(e) => deletePlan(e, plan.id)}>
                 <IonIcon icon={trashOutline} />
@@ -108,8 +110,8 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
         {!activePlan ? (
           <div className="sp-empty">
             <IonIcon icon={createOutline} className="sp-empty-icon" />
-            <h3>Chưa có kế hoạch</h3>
-            <p>Trò chuyện với AI ở tab Chat để tạo kế hoạch học tập đầu tiên.</p>
+            <h3>{t('study.no_plan_title')}</h3>
+            <p>{t('study.no_plan_desc')}</p>
           </div>
         ) : (
           <div className="sp-plan-detail">
@@ -117,7 +119,7 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
               <h2>{activePlan.title}</h2>
               {activePlan.description && <p className="sp-plan-desc">{activePlan.description}</p>}
               <div className="sp-plan-progress">
-                {activePlan.phases.filter(p => p.completed).length}/{activePlan.phases.length} giai đoạn hoàn thành
+                {t('study.phase_progress', { completed: activePlan.phases.filter(p => p.completed).length, total: activePlan.phases.length })}
               </div>
             </div>
 
@@ -126,12 +128,12 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Giai đoạn</th>
-                    <th>Thời gian</th>
-                    <th>Mô tả</th>
-                    <th>Chủ đề</th>
-                    <th>Tài nguyên</th>
-                    <th>Trạng thái</th>
+                    <th>{t('study.phase')}</th>
+                    <th>{t('study.duration')}</th>
+                    <th>{t('study.description')}</th>
+                    <th>{t('study.topics')}</th>
+                    <th>{t('study.resources')}</th>
+                    <th>{t('study.status')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,7 +172,7 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
                           <button
                             className="sp-check-btn"
                             onClick={() => togglePhaseComplete(phase.id)}
-                            title="Đánh dấu hoàn thành"
+                            title={t('study.mark_complete')}
                           >
                             ☐
                           </button>
@@ -178,9 +180,9 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
                           <button
                             className="sp-quiz-trigger"
                             onClick={() => handleQuizClick(phase)}
-                            title="Tạo bài kiểm tra"
+                            title={t('study.create_quiz')}
                           >
-                            <IonIcon icon={checkmarkCircleOutline} /> Kiểm tra
+                            <IonIcon icon={checkmarkCircleOutline} /> {t('study.quiz')}
                           </button>
                         )}
                       </td>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { IonIcon } from '@ionic/react';
 import { shieldCheckmarkOutline, closeOutline, lockClosedOutline, videocamOutline } from 'ionicons/icons';
 
@@ -17,6 +18,7 @@ const formatTime = (seconds) => {
 };
 
 const FocusGuard = () => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [minutes, setMinutes] = useState(25);
@@ -131,7 +133,7 @@ const FocusGuard = () => {
         }
       },
       'timer-expired': () => {
-        toast.success('Focus session hoàn tất! 🎉');
+        toast.success(t('focus_guard.session_complete'));
         stopFaceTracking();
         setTimerStatus((prev) => ({
           ...prev,
@@ -150,7 +152,7 @@ const FocusGuard = () => {
         }
       },
       'session-failed': () => {
-        toast.error('Session thất bại! 3 lần vi phạm.');
+        toast.error(t('focus_guard.session_failed'));
         stopFaceTracking();
         setTimerStatus((prev) => ({
           ...prev,
@@ -177,11 +179,11 @@ const FocusGuard = () => {
           });
           for (const [key, quest] of Object.entries(updatedQuests)) {
             if (key !== 'all_daily' && quest.isCompleted) {
-              toast.success(`🎯 Nhiệm vụ "${quest.name}" đã hoàn thành!`);
+              toast.success(t('focus_guard.quest_completed', { name: quest.name }));
             }
           }
           if (updatedQuests.all_daily?.isCompleted) {
-            toast.success('🏆 Hoàn thành tất cả nhiệm vụ ngày!');
+            toast.success(t('focus_guard.all_daily_completed'));
           }
         }
       },
@@ -196,11 +198,11 @@ const FocusGuard = () => {
           if (data.questUpdate) {
             for (const [key, quest] of Object.entries(data.questUpdate)) {
               if (key !== 'all_daily' && quest.isCompleted) {
-                toast.success(`🎯 Nhiệm vụ "${quest.name}" đã hoàn thành!`);
+                toast.success(t('focus_guard.quest_completed', { name: quest.name }));
               }
             }
             if (data.questUpdate.all_daily?.isCompleted) {
-              toast.success('🏆 Hoàn thành tất cả nhiệm vụ ngày!');
+              toast.success(t('focus_guard.all_daily_completed'));
             }
           }
         }
@@ -231,14 +233,14 @@ const FocusGuard = () => {
       },
       onAfkTimeout: () => {
         setCamStatus('afk');
-        toast.error('AFK 5 phút! Session sẽ bị tính là FAILED.');
+        toast.error(t('focus_guard.afk_failed'));
         if (window.api?.invoke) {
           window.api.invoke('focus:stop');
         }
       },
       onSpoofDetected: () => {
         setCamStatus('spoof');
-        toast.error('🚨 Phát hiện ảnh tĩnh! Hãy ngồi trước camera thật.');
+        toast.error(t('focus_guard.spoof_detected'));
         if (window.api?.invoke) {
           window.api.invoke('focus:status').then((status) => {
             if (status?.active) {
@@ -304,7 +306,7 @@ const FocusGuard = () => {
         await window.api.invoke('focus:start', { minutes, hardMode });
       }
     } catch (err) {
-      toast.error('Không thể bắt đầu session!');
+      toast.error(t('focus_guard.start_failed'));
       console.error('[FocusGuard] Start error:', err);
     } finally {
       setIsStarting(false);
@@ -317,7 +319,7 @@ const FocusGuard = () => {
         await window.api.invoke('focus:stop');
       }
     } catch (err) {
-      toast.error('Không thể dừng session!');
+      toast.error(t('focus_guard.stop_failed'));
     }
   }, []);
 
@@ -328,24 +330,21 @@ const FocusGuard = () => {
           {currentScreen === 'check-ext' && !isActive && (
             <div className="fg-screen-check">
               <div className="fg-check-icon">🔌</div>
-              <h3 className="fg-check-title">Extension Chưa Kết Nối</h3>
-              <p className="fg-check-desc">
-                Trình duyệt đang mở nhưng chưa cài Extension.
-                Hãy cài Extension để Focus Guard hoạt động.
-              </p>
+              <h3 className="fg-check-title">{t('focus_guard.extension_not_connected')}</h3>
+              <p className="fg-check-desc">{t('focus_guard.extension_missing_desc')}</p>
               <div className="fg-missing-browsers">
                 {gateStatus.missing.length > 0 && (
                   <p className="fg-missing-label">
-                    ⚠️ Thiếu extension: <strong>{gateStatus.missing.join(', ')}</strong>
+                    {t('focus_guard.missing_extension')}: <strong>{gateStatus.missing.join(', ')}</strong>
                   </p>
                 )}
               </div>
               <div className="fg-check-steps">
-                <div className="fg-step"><span className="fg-step-num">1</span> Mở Chrome → <strong>chrome://extensions</strong></div>
-                <div className="fg-step"><span className="fg-step-num">2</span> Bật <strong>Developer mode</strong></div>
-                <div className="fg-step"><span className="fg-step-num">3</span> Click <strong>Load unpacked</strong> → chọn thư mục extension</div>
+                <div className="fg-step"><span className="fg-step-num">1</span> {t('focus_guard.open_chrome_extensions')} <strong>chrome://extensions</strong></div>
+                <div className="fg-step"><span className="fg-step-num">2</span> {t('focus_guard.enable_developer_mode')} <strong>Developer mode</strong></div>
+                <div className="fg-step"><span className="fg-step-num">3</span> {t('focus_guard.click_load_unpacked')} <strong>Load unpacked</strong> {t('focus_guard.choose_extension_folder')}</div>
               </div>
-              <p className="fg-check-hint">🔄 Tự động kiểm tra lại mỗi 3 giây...</p>
+              <p className="fg-check-hint">{t('focus_guard.auto_check_hint')}</p>
             </div>
           )}
 
@@ -354,11 +353,11 @@ const FocusGuard = () => {
               <div className="fg-status-row">
                 <div className="fg-status-badge">
                   <span className={`dot ${noBrowser ? 'gray' : (gateStatus.connected ? 'green' : 'red')}`} />
-                  {noBrowser ? 'Không có trình duyệt' : (gateStatus.connected ? 'Extension OK' : 'Đang kiểm tra...')}
+                  {noBrowser ? t('focus_guard.no_browser') : (gateStatus.connected ? t('focus_guard.extension_ok') : t('focus_guard.checking'))}
                 </div>
                 <div className="fg-status-badge">
                   <span className={`dot ${aiReady ? 'green' : 'yellow'}`} />
-                  {aiReady ? 'AI Ready' : 'AI Chưa sẵn sàng'}
+                  {aiReady ? t('focus_guard.ai_ready') : t('focus_guard.ai_not_ready')}
                 </div>
               </div>
 
@@ -366,20 +365,17 @@ const FocusGuard = () => {
                 <div className="fg-ai-hint required">
                   <div className="fg-ai-providers">
                     <div className="fg-ai-item">
-                      <span>🦙 Ollama (Local)</span>
-                      <span className="fg-ai-badge off">✗ Chưa bật</span>
+                      <span>{t('focus_guard.ollama_local')}</span>
+                      <span className="fg-ai-badge off">{t('focus_guard.not_enabled')}</span>
                     </div>
                   </div>
-                  <p className="fg-ai-note">
-                    ⚠️ <strong>Bắt buộc</strong> kết nối ít nhất 1 AI để bật Focus Mode.
-                    Hãy mở Ollama hoặc thiết lập Groq API key.
-                  </p>
+                  <p className="fg-ai-note" dangerouslySetInnerHTML={{ __html: t('focus_guard.ai_required_note') }} />
                 </div>
               )}
 
               {!isActive && !isPaused && (
                 <>
-                  <span className="fg-duration-label">Duration</span>
+                  <span className="fg-duration-label">{t('focus_guard.duration')}</span>
                   <div className="fg-duration-group">
                     {DURATIONS.map((d) => (
                       <button
@@ -397,15 +393,15 @@ const FocusGuard = () => {
                       className={`fg-mode-btn ${!hardMode ? 'active' : ''}`}
                       onClick={() => setHardMode(false)}
                     >
-                      <span className="mode-label">☕ Casual</span>
-                      <span className="mode-desc">Can pause & stop</span>
+                      <span className="mode-label">{t('focus_guard.casual_mode')}</span>
+                      <span className="mode-desc">{t('focus_guard.casual_desc')}</span>
                     </button>
                     <button
                       className={`fg-mode-btn ${hardMode ? 'active' : ''}`}
                       onClick={() => setHardMode(true)}
                     >
-                      <span className="mode-label">⚔️ Rank</span>
-                      <span className="mode-desc">No escape!</span>
+                      <span className="mode-label">{t('focus_guard.rank_mode')}</span>
+                      <span className="mode-desc">{t('focus_guard.rank_desc')}</span>
                     </button>
                   </div>
 
@@ -414,7 +410,7 @@ const FocusGuard = () => {
                     onClick={handleStart}
                     disabled={!canStart}
                   >
-                    {isStarting ? '⏳ Đang khởi tạo...' : '🚀 START FOCUS'}
+                    {isStarting ? t('focus_guard.starting') : t('focus_guard.start_focus')}
                   </button>
                 </>
               )}
@@ -423,41 +419,41 @@ const FocusGuard = () => {
                 <>
                   <div className="fg-timer-display">
                     <span className="fg-countdown">{formatTime(timerStatus.remaining)}</span>
-                    <span className="fg-timer-label">remaining</span>
+                    <span className="fg-timer-label">{t('focus_guard.remaining')}</span>
                   </div>
 
                   <div className={`fg-webcam-container ${camActive ? 'active' : ''}`}>
                     <video ref={videoRef} autoPlay muted playsInline className="fg-webcam-video" />
                     <div className={`fg-webcam-status ${camStatus === 'warning' ? 'warn' : ''} ${camStatus === 'spoof' ? 'spoof' : ''}`}>
                       <IonIcon icon={videocamOutline} />
-                      {camStatus === 'loading' && ' 🤖 Đang tải MediaPipe AI...'}
-                      {camStatus === 'tracking' && ' ✅ Đang theo dõi'}
-                      {camStatus === 'warning' && ` ⚠️ Không thấy mặt! (${Math.floor(afkElapsed / 1000)}s)`}
-                      {camStatus === 'afk' && ' 🚨 AFK — Session Failed!'}
-                      {camStatus === 'spoof' && ' 🚨 Phát hiện ảnh tĩnh!'}
-                      {camStatus === 'error' && ' Không bật được cam'}
-                      {camStatus === 'idle' && ' Đang khởi động...'}
+                      {camStatus === 'loading' && t('focus_guard.cam_loading')}
+                      {camStatus === 'tracking' && t('focus_guard.cam_tracking')}
+                      {camStatus === 'warning' && t('focus_guard.cam_warning', { seconds: Math.floor(afkElapsed / 1000) })}
+                      {camStatus === 'afk' && t('focus_guard.cam_afk')}
+                      {camStatus === 'spoof' && t('focus_guard.cam_spoof')}
+                      {camStatus === 'error' && t('focus_guard.cam_error')}
+                      {camStatus === 'idle' && t('focus_guard.cam_idle')}
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
                     <span className={`fg-mode-badge ${timerStatus.hardMode ? 'rank' : 'casual'}`}>
-                      {timerStatus.hardMode ? '⚔️ Rank Mode' : '☕ Casual'}
+                      {timerStatus.hardMode ? t('focus_guard.rank_mode') : t('focus_guard.casual_mode')}
                     </span>
                   </div>
 
                   <div className={`fg-strikes strikes-${Math.min(strikeCount, 3)}`}>
-                    ⚠️ Strikes: {strikeCount}/3
+                    {t('focus_guard.strikes', { count: strikeCount })}
                   </div>
 
                   {timerStatus.hardMode ? (
                     <div className="fg-hardmode-label">
                       <IonIcon icon={lockClosedOutline} />
-                      Hard Mode — Cannot stop
+                      {t('focus_guard.hard_mode_cannot_stop')}
                     </div>
                   ) : (
                     <button className="fg-stop-btn" onClick={handleStop}>
-                      ■ STOP SESSION
+                      {t('focus_guard.stop_session')}
                     </button>
                   )}
                 </>
@@ -467,11 +463,11 @@ const FocusGuard = () => {
                 <>
                   <div className="fg-timer-display">
                     <span className="fg-countdown">{formatTime(timerStatus.remaining)}</span>
-                    <span className="fg-paused-label">⏸ PAUSED</span>
+                    <span className="fg-paused-label">{t('focus_guard.paused')}</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <span className="fg-mode-badge casual">☕ Casual</span>
+                    <span className="fg-mode-badge casual">{t('focus_guard.casual_mode')}</span>
                   </div>
 
                   <div className={`fg-strikes strikes-${Math.min(strikeCount, 3)}`}>
@@ -479,7 +475,7 @@ const FocusGuard = () => {
                   </div>
 
                   <button className="fg-resume-btn" onClick={handleStart}>
-                    ▶ RESUME
+                    {t('focus_guard.resume')}
                   </button>
                 </>
               )}

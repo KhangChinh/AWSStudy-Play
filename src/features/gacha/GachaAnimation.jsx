@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { withTranslation } from 'react-i18next';
 import './GachaAnimation.scss';
 
 const PARTICLE_COUNT = 40;
@@ -120,7 +121,7 @@ class GachaAnimation extends Component {
   renderIcon = (icon) => {
     if (!icon) return '📦';
     if (typeof icon === 'string' && (icon.startsWith('/') || icon.startsWith('http'))) {
-      return <img src={icon} alt="item-icon" className="img-icon-render" />;
+      return <img src={icon} alt={this.props.t('gacha_animation.item_icon_alt')} className="img-icon-render" />;
     }
     return icon;
   };
@@ -142,7 +143,7 @@ class GachaAnimation extends Component {
 
         {showSkip && (
           <button className="gacha-skip-btn" onClick={this.handleSkip}>
-            SKIP ❯❯
+            {this.props.t('gacha_animation.skip')}
           </button>
         )}
 
@@ -189,7 +190,7 @@ class GachaAnimation extends Component {
                 <div className="item-icon">
                   {this.renderIcon(rewards[0].icon)}
                 </div>
-                <div className="item-name">{rewards[0].name || 'Mystery Item'}</div>
+                <div className="item-name">{rewards[0].name || this.props.t('gacha_animation.mystery_item')}</div>
                 <div className={`item-rarity ${rarityClass}`}>
                   {this.getRarityLabel()}
                 </div>
@@ -227,7 +228,7 @@ class GachaAnimation extends Component {
               ))}
             </div>
             
-            <p className="click-hint">Click anywhere to continue</p>
+            <p className="click-hint">{this.props.t('gacha_animation.click_continue')}</p>
           </>
         )}
 
@@ -237,4 +238,4 @@ class GachaAnimation extends Component {
   }
 }
 
-export default GachaAnimation;
+export default withTranslation()(GachaAnimation);

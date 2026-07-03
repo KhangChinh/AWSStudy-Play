@@ -24,6 +24,75 @@
     box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
   }
 
+  .gacha-balance-panel {
+    position: absolute;
+    top: 18px;
+    right: 24px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gacha-balance-item {
+    min-width: 156px;
+    height: 40px;
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: rgba(3, 7, 18, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(10px);
+
+    ion-icon {
+      font-size: 18px;
+    }
+
+    .balance-label {
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .balance-value {
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    &.core ion-icon {
+      color: #38bdf8;
+    }
+
+    &.points ion-icon,
+    &.points .balance-value {
+      color: #fbbf24;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .gacha-balance-panel {
+      top: 58px;
+      right: 12px;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .gacha-balance-item {
+      min-width: 178px;
+      height: 36px;
+    }
+  }
+
   .app-title {
     position: absolute;
     top: 30px;

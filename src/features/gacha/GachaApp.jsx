@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { setProfile, appendGachaHistory } from '../../store/actions';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
-import { timeOutline, cubeOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
+import { timeOutline, cubeOutline, chevronBackOutline, chevronForwardOutline, schoolOutline } from 'ionicons/icons';
 import { toast } from 'react-toastify';
 import './GachaApp.scss';
 
@@ -37,6 +37,45 @@ class GachaApp extends Component {
     };
     this.timer = null;
   }
+
+  getBudgetValue = (keys, fallback = 0) => {
+    const profile = this.props.userProfile || {};
+    const budget = profile.budget || {};
+
+    for (const key of keys) {
+      const value = budget[key] ?? profile[key];
+      if (value !== undefined && value !== null) return Number(value) || 0;
+    }
+
+    return fallback;
+  };
+
+  buildProfileWithKnowledgePoint = (nextKnowledgePoint) => {
+    const profile = this.props.userProfile || {};
+    const hasBudget = !!profile.budget;
+    const nextProfile = { ...profile };
+
+    if (hasBudget) {
+      nextProfile.budget = {
+        ...profile.budget,
+        knowledgePoint: nextKnowledgePoint,
+      };
+
+      if ('knowledge_points' in profile.budget) {
+        nextProfile.budget.knowledge_points = nextKnowledgePoint;
+      }
+    }
+
+    if (!hasBudget || 'knowledgePoint' in profile) {
+      nextProfile.knowledgePoint = nextKnowledgePoint;
+    }
+
+    if ('knowledge_points' in profile) {
+      nextProfile.knowledge_points = nextKnowledgePoint;
+    }
+
+    return nextProfile;
+  };
 
   componentDidMount() {
     this.updateTimeDisplay();
@@ -117,12 +156,14 @@ class GachaApp extends Component {
     // Deduct KnowledgePoints/Sanity in Redux
     if (this.props.userProfile) {
       const cost = count * 10;
-      if (this.props.userProfile.knowledgePoint < cost) {
-        toast.error('Not enough Knowledge Points!');
+      const currentKnowledgePoint = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
+
+      if (currentKnowledgePoint < cost) {
+        toast.error(this.props.t('gacha.not_enough_knowledge_points'));
         return;
       }
 
-      const newProfile = { ...this.props.userProfile, knowledgePoint: processResult.newKnowledgePoint };
+      const newProfile = this.buildProfileWithKnowledgePoint(currentKnowledgePoint - cost);
       this.props.setProfile(newProfile);
       this.props.appendGachaHistory({ items: processResult.details });
     }
@@ -146,10 +187,24 @@ class GachaApp extends Component {
 
   render() {
     const { isPlaying, currentRarity, rewards, pity5, pity4, activeBanner, timeLeftStr, inventoryItems } = this.state;
+    const knowledgeCore = this.getBudgetValue(['knowledgeCore', 'knowledge_core']);
+    const knowledgePoints = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
 
     return (
       <div className={`app-container gacha-app ${activeBanner.theme}`}>
         <div className="banner-tag upper-left">{activeBanner.type.toUpperCase()} {this.props.t('gacha.event')}</div>
+        <div className="gacha-balance-panel" aria-label="Gacha balances">
+          <div className="gacha-balance-item core" title="knowledge_core">
+            <IonIcon icon={cubeOutline} />
+            <span className="balance-label">{this.props.t('common.knowledge_core')}</span>
+            <span className="balance-value">{knowledgeCore.toLocaleString()}</span>
+          </div>
+          <div className="gacha-balance-item points" title="knowledge_points">
+            <IonIcon icon={schoolOutline} />
+            <span className="balance-label">{this.props.t('common.knowledge_points')}</span>
+            <span className="balance-value">{knowledgePoints.toLocaleString()}</span>
+          </div>
+        </div>
 
         <div className="gacha-main-layout">
           <div className={`banner-backdrop ${activeBanner.background}`} style={{ backgroundImage: `url(${activeBanner.image})` }}>

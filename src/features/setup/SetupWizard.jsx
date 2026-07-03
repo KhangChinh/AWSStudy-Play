@@ -8,6 +8,7 @@ import {
   chevronForwardOutline,
   chevronBackOutline,
 } from 'ionicons/icons';
+import { useTranslation } from 'react-i18next';
 import './SetupWizard.scss';
 
 const BROWSERS = [
@@ -16,6 +17,7 @@ const BROWSERS = [
 ];
 
 const SetupWizard = ({ isConnected, onDismiss }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [selectedBrowser, setSelectedBrowser] = useState(null);
   const [folderOpened, setFolderOpened] = useState(false);
@@ -57,10 +59,10 @@ const SetupWizard = ({ isConnected, onDismiss }) => {
             <IonIcon icon={shieldCheckmarkOutline} />
           </div>
           <h2 className="sw-header-title">
-            {step === 0 && 'Chào mừng đến Focus Guard'}
-            {step === 1 && 'Bước 1 — Mở thư mục Extension'}
-            {step === 2 && 'Bước 2 — Cài vào trình duyệt'}
-            {step === 3 && 'Hoàn tất! 🎉'}
+            {step === 0 && t('setup.welcome_title')}
+            {step === 1 && t('setup.step_open_folder')}
+            {step === 2 && t('setup.step_install_browser')}
+            {step === 3 && t('setup.done_title')}
           </h2>
           <div className="sw-progress">
             {[0, 1, 2, 3].map((i) => (
@@ -78,14 +80,11 @@ const SetupWizard = ({ isConnected, onDismiss }) => {
           {step === 0 && (
             <div className="sw-welcome">
               <div className="sw-welcome-icon">🛡️</div>
-              <h3>Thiết lập ban đầu</h3>
-              <p>
-                Focus Guard cần một <strong>extension trình duyệt</strong> để có thể theo dõi và chặn
-                các trang web giải trí khi bạn đang trong chế độ tập trung.
-              </p>
+              <h3>{t('setup.initial_setup')}</h3>
+              <p dangerouslySetInnerHTML={{ __html: t('setup.welcome_desc') }} />
               <div className="sw-info-card">
                 <span className="sw-info-icon">💡</span>
-                <span>Chỉ cần cài đặt 1 lần duy nhất. Chỉ mất khoảng 1 phút!</span>
+                <span>{t('setup.one_time_note')}</span>
               </div>
             </div>
           )}
@@ -93,19 +92,17 @@ const SetupWizard = ({ isConnected, onDismiss }) => {
           {/* Step 1: Open folder */}
           {step === 1 && (
             <div className="sw-step-content">
-              <p className="sw-step-desc">
-                Nhấn nút bên dưới để mở thư mục chứa extension. Bạn sẽ cần thư mục này ở bước tiếp theo.
-              </p>
+              <p className="sw-step-desc">{t('setup.open_folder_desc')}</p>
               <button
                 className={`sw-action-btn ${folderOpened ? 'done' : ''}`}
                 onClick={handleOpenExtensionFolder}
               >
                 <IonIcon icon={folderOpened ? checkmarkCircleOutline : downloadOutline} />
-                {folderOpened ? 'Đã mở thư mục!' : 'Mở thư mục Extension'}
+                {folderOpened ? t('setup.folder_opened') : t('setup.open_extension_folder')}
               </button>
               {folderOpened && (
                 <div className="sw-hint success">
-                  ✅ Thư mục đã mở trong File Explorer. Giữ cửa sổ đó mở nhé!
+                  {t('setup.folder_opened_hint')}
                 </div>
               )}
             </div>
@@ -114,7 +111,7 @@ const SetupWizard = ({ isConnected, onDismiss }) => {
           {/* Step 2: Install in browser */}
           {step === 2 && (
             <div className="sw-step-content">
-              <p className="sw-step-desc">Chọn trình duyệt bạn đang sử dụng:</p>
+              <p className="sw-step-desc">{t('setup.choose_browser')}</p>
               <div className="sw-browser-list">
                 {BROWSERS.map((b) => (
                   <button
@@ -131,26 +128,26 @@ const SetupWizard = ({ isConnected, onDismiss }) => {
               </div>
               {selectedBrowser && (
                 <div className="sw-instructions">
-                  <h4>📋 Hướng dẫn:</h4>
+                  <h4>{t('setup.instructions')}</h4>
                   <ol>
                     <li>
-                      Bật <strong>"Chế độ nhà phát triển"</strong> (Developer mode)
-                      <span className="sw-toggle-hint"> — công tắc ở góc phải trên</span>
+                      {t('setup.instruction_dev_mode')} <strong>{t('setup.developer_mode')}</strong>
+                      <span className="sw-toggle-hint"> {t('setup.dev_mode_hint')}</span>
                     </li>
                     <li>
-                      Nhấn nút <strong>"Tải tiện ích đã giải nén"</strong>
-                      <span className="sw-toggle-hint"> — (Load unpacked)</span>
+                      {t('setup.instruction_load_unpacked')} <strong>{t('setup.load_unpacked')}</strong>
+                      <span className="sw-toggle-hint"> {t('setup.load_unpacked_hint')}</span>
                     </li>
                     <li>
-                      Chọn thư mục <strong>browser-extension</strong> đã mở ở Bước 1
+                      {t('setup.choose_extension_folder')} <strong>browser-extension</strong>
                     </li>
                     <li>
-                      Xong! Extension sẽ tự kết nối với app
+                      {t('setup.extension_auto_connect')}
                     </li>
                   </ol>
                   <div className="sw-waiting">
                     <div className="sw-waiting-dot"></div>
-                    <span>Đang chờ extension kết nối...</span>
+                    <span>{t('setup.waiting_connection')}</span>
                   </div>
                 </div>
               )}
@@ -161,13 +158,13 @@ const SetupWizard = ({ isConnected, onDismiss }) => {
           {step === 3 && (
             <div className="sw-done">
               <div className="sw-done-icon">✅</div>
-              <h3>Extension đã kết nối thành công!</h3>
-              <p>Focus Guard đã sẵn sàng bảo vệ bạn khỏi các trang giải trí.</p>
+              <h3>{t('setup.connected_title')}</h3>
+              <p>{t('setup.connected_desc')}</p>
               <div className="sw-done-features">
-                <div className="sw-feature"><span>🎬</span> Chặn video giải trí trên YouTube</div>
-                <div className="sw-feature"><span>📱</span> Chặn mạng xã hội (Facebook, TikTok...)</div>
-                <div className="sw-feature"><span>🌐</span> AI phân tích mọi trang web</div>
-                <div className="sw-feature"><span>📸</span> Face tracking chống AFK</div>
+                <div className="sw-feature"><span>🎬</span> {t('setup.feature_youtube')}</div>
+                <div className="sw-feature"><span>📱</span> {t('setup.feature_social')}</div>
+                <div className="sw-feature"><span>🌐</span> {t('setup.feature_ai')}</div>
+                <div className="sw-feature"><span>📸</span> {t('setup.feature_face_tracking')}</div>
               </div>
             </div>
           )}
@@ -178,7 +175,7 @@ const SetupWizard = ({ isConnected, onDismiss }) => {
           {step > 0 && step < 3 && (
             <button className="sw-nav-btn back" onClick={() => setStep(step - 1)}>
               <IonIcon icon={chevronBackOutline} />
-              Quay lại
+              {t('common.back')}
             </button>
           )}
           <div className="sw-footer-spacer" />
@@ -188,13 +185,13 @@ const SetupWizard = ({ isConnected, onDismiss }) => {
               onClick={() => setStep(step + 1)}
               disabled={!canGoNext()}
             >
-              Tiếp theo
+              {t('common.next')}
               <IonIcon icon={chevronForwardOutline} />
             </button>
           )}
           {step === 3 && (
             <button className="sw-nav-btn next done" onClick={onDismiss}>
-              Bắt đầu sử dụng
+              {t('setup.start_using')}
               <IonIcon icon={chevronForwardOutline} />
             </button>
           )}

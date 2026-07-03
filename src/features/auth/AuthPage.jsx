@@ -70,7 +70,7 @@ class AuthPage extends Component {
     const { email, resendCooldown, authMode } = this.state;
     if (resendCooldown > 0) return;
     if (!email) {
-      toast.error('Vui lòng nhập email để gửi lại mã!');
+      toast.error(t('auth.enter_email_to_resend'));
       return;
     }
     this.setState({ isLoading: true });
@@ -80,11 +80,11 @@ class AuthPage extends Component {
       } else {
         await resendSignUpCode({ username: email });
       }
-      toast.success('Đã gửi lại mã xác nhận thành công! Hãy kiểm tra hòm thư.');
+      toast.success(t('auth.resend_success'));
       this.startResendCooldown();
     } catch (error) {
       console.log('Error resending code:', error);
-      toast.error(error.message || 'Gửi lại mã thất bại, vui lòng thử lại!');
+      toast.error(error.message || t('auth.resend_failed'));
     }
     this.setState({ isLoading: false });
   };
@@ -93,38 +93,38 @@ class AuthPage extends Component {
     e.preventDefault();
     const { authMode, email, password, username, confirmPassword, verificationCode, newPassword, confirmNewPassword } = this.state;
     if ((authMode === 'login' || authMode === 'register') && (!email || !password)) {
-      toast.error('Vui lòng nhập đầy đủ thông tin!');
+      toast.error(t('auth.fill_required'));
       return;
     }
     if (authMode === 'register') {
       if (!username) {
-        toast.error('Vui lòng nhập username!');
+        toast.error(t('auth.enter_username'));
         return;
       }
       if (password !== confirmPassword) {
-        toast.error('Mật khẩu xác nhận không khớp!');
+        toast.error(t('auth.password_mismatch'));
         return;
       }
     }
     if (authMode === 'confirm') {
       if (!verificationCode) {
-        toast.error('Vui lòng nhập mã xác nhận!');
+        toast.error(t('auth.enter_verification_code'));
         return;
       }
     }
     if (authMode === 'forgot') {
       if (!email) {
-        toast.error('Vui lòng nhập email!');
+        toast.error(t('auth.enter_email'));
         return;
       }
     }
     if (authMode === 'resetPassword') {
       if (!verificationCode || !newPassword) {
-        toast.error('Vui lòng nhập đầy đủ thông tin!');
+        toast.error(t('auth.fill_required'));
         return;
       }
       if (newPassword !== confirmNewPassword) {
-        toast.error('Mật khẩu xác nhận không khớp!');
+        toast.error(t('auth.password_mismatch'));
         return;
       }
     }
@@ -133,7 +133,7 @@ class AuthPage extends Component {
       if (authMode === 'login') {
         const { isSignedIn, nextStep } = await signIn({ username: email, password });
         if (isSignedIn) {
-          toast.success('Đăng nhập thành công!');
+          toast.success(t('auth.login_success'));
           await handleLoginApi();
           if (window.api?.send) window.api.send('login-success');
           setTimeout(() => {
@@ -141,10 +141,10 @@ class AuthPage extends Component {
           }, 100);
         } else {
           if (nextStep && nextStep.signInStep === 'CONFIRM_SIGN_UP') {
-            toast.info('Tài khoản chưa được kích hoạt. Hãy nhập mã xác thực!');
+            toast.info(t('auth.account_not_confirmed'));
             this.setState({ authMode: 'confirm' });
           } else {
-            toast.info('Vui lòng hoàn tất bước tiếp theo: ' + (nextStep?.signInStep || ''));
+            toast.info(t('auth.complete_next_step', { step: nextStep?.signInStep || '' }));
           }
         }
       } else if (authMode === 'register') {
@@ -163,7 +163,7 @@ class AuthPage extends Component {
           if (signUpError.name === 'UsernameExistsException') {
             try {
               await resendSignUpCode({ username: email });
-              toast.info('Tài khoản đã tồn tại nhưng chưa xác thực. Đã gửi lại mã xác nhận!');
+              toast.info(t('auth.existing_unconfirmed'));
               this.startResendCooldown();
               this.setState({ authMode: 'confirm', verificationCode: '', isLoading: false });
               return;
@@ -173,7 +173,7 @@ class AuthPage extends Component {
           }
           throw signUpError;
         }
-        toast.success('Đăng ký thành công! Vui lòng nhập mã xác nhận gửi tới email của bạn.');
+        toast.success(t('auth.register_success'));
         this.startResendCooldown();
         this.setState({ authMode: 'confirm', verificationCode: '' });
       } else if (authMode === 'confirm') {
@@ -182,20 +182,20 @@ class AuthPage extends Component {
           confirmationCode: verificationCode
         });
         if (isSignUpComplete) {
-          toast.info('Xác thực thành công! Vui lòng đăng nhập.');
+          toast.info(t('auth.confirm_success'));
           this.setState({ authMode: 'login', password: '', confirmPassword: '', verificationCode: '' });
         } else {
-          toast.info('Xác thực chưa hoàn tất. Vui lòng kiểm tra lại.');
+          toast.info(t('auth.confirm_incomplete'));
         }
       } else if (authMode === 'forgot') {
         const output = await resetPassword({ username: email });
         const { nextStep } = output;
         if (nextStep.resetPasswordStep === 'CONFIRM_RESET_PASSWORD_WITH_CODE') {
-          toast.success('Mã khôi phục đã được gửi tới email của bạn!');
+          toast.success(t('auth.reset_code_sent'));
           this.startResendCooldown();
           this.setState({ authMode: 'resetPassword', verificationCode: '' });
         } else {
-          toast.success('Mật khẩu đã được đặt lại thành công!');
+          toast.success(t('auth.password_reset_done'));
           this.setState({ authMode: 'login' });
         }
       } else if (authMode === 'resetPassword') {
@@ -204,20 +204,20 @@ class AuthPage extends Component {
           confirmationCode: verificationCode,
           newPassword: newPassword
         });
-        toast.success('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.');
+        toast.success(t('auth.password_reset_success'));
         this.setState({ authMode: 'login', verificationCode: '', newPassword: '', confirmNewPassword: '' });
       }
     } catch (error) {
       console.log('Error:', error);
       if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
-        toast.info('Phát hiện phiên đăng nhập cũ chưa dọn dẹp. Đang làm sạch, vui lòng bấm đăng nhập lại...');
+        toast.info(t('auth.stale_session_cleanup'));
         try {
           await handleLogoutApi();
         } catch (logoutError) {
           console.error('Error during cleanup:', logoutError);
         }
       } else {
-        toast.error(error.message || 'Xảy ra lỗi, vui lòng thử lại!');
+        toast.error(error.message || t('auth.generic_error'));
       }
     }
     this.setState({ isLoading: false });
