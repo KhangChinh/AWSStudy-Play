@@ -1,7 +1,7 @@
 import React from 'react';
 import { IonIcon } from '@ionic/react';
 import { cartOutline, cart } from 'ionicons/icons';
-import './Store.scss';
+import './Shop.scss';
 
 const Store = ({ t }) => (
   <div className="app-container store-app">

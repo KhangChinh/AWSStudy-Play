@@ -24,7 +24,7 @@ import StudyPlanner from '../study-planner/StudyPlanner';
 import cosmeticManager from '../../managers/cosmeticManager';
 import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
-import Store from '../store/Store';
+import Shop from '../shop/Shop';
 import SettingsApp from '../settings/SettingsApp';
 import SocialApp from '../social/SocialApp';
 import RankFrame from '../../components/RankFrame';
@@ -111,7 +111,7 @@ const APPS = [
   { id: 'profile', nameKey: 'common.profile', className: 'profile', icon: personOutline, content: <Profile /> },
   { id: 'gacha', nameKey: 'common.gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
   { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
-  { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
+  { id: 'shop', nameKey: 'common.shop', className: 'shop', icon: cartOutline, content: <Shop /> },
   { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
   { id: 'inventory', nameKey: 'common.inventory', className: 'inventory', icon: cubeOutline, content: <Inventory /> },
   { id: 'focus', nameKey: 'common.focus', className: 'focus', icon: shieldCheckmarkOutline, content: <FocusGuard /> },
