@@ -180,5 +180,4 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
     </div>
   );
 };
-
 export default RankFrame;

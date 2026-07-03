@@ -25,9 +25,10 @@ import MinigameHub from '../minihub/MinigameHub';
 import Store from '../store/Store';
 import FriendsApp from '../social/FriendsApp';
 import SettingsApp from '../settings/SettingsApp';
+import SocialApp from '../social/SocialApp';
 import RankFrame from '../../components/RankFrame';
 import { withRouter } from '../../utils/withRouter';
-import { handleLogoutApi } from '../../services/authServices';
+import { handleLogoutApi } from '../../services/authService';
 import { handleGetMasterDataApi, handleSyncAllApi, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
 import { handleClaimQuestApi } from '../../services/questServices';
 import { resolveAssetUrl } from '../../services/profileServices';
@@ -40,7 +41,8 @@ import {
   setDaily,
   setFriends,
   setGachaHistory,
-  setMasterData
+  setMasterData,
+  setFriendSyncTime
 } from '../../store/actions';
 import inventoryManager from '../../managers/inventoryManager';
 import './Dashboard.scss';
@@ -133,6 +135,7 @@ const APPS = [
   { id: 'store', nameKey: 'common.store', className: 'store', icon: cartOutline, content: <Store /> },
   { id: 'friends', nameKey: 'common.friends', className: 'friends', icon: peopleOutline, content: <FriendsApp /> },
   { id: 'focus', nameKey: 'common.focus_mode', className: 'focus', icon: lockClosedOutline, content: <FocusWidget /> },
+  { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
 ];
 
 const STUDY_FLOAT_ICONS = [
@@ -266,6 +269,10 @@ class Dashboard extends Component {
           streak: profile.studyStats?.streak || 0, // Streak mới từ Cloud
         });
 
+        if (profile.metadata?.friendUpdatedAt) {
+          this.props.setFriendSyncTime(profile.metadata.friendUpdatedAt);
+        }
+
         if (profile.budget) {
           this.props.setEconomy({
             pCoins: profile.budget.eCoin || 0,
@@ -378,7 +385,7 @@ class Dashboard extends Component {
       const isAlreadyOpen = prev.openApps.includes(appId);
       const newOpenApps = isAlreadyOpen ? prev.openApps : [...prev.openApps, appId];
       const newPositions = { ...prev.windowPositions };
-      
+
       // Update stack order: move appId to the top (end of array)
       const newStackOrder = prev.stackOrder.filter(id => id !== appId);
       newStackOrder.push(appId);
@@ -388,7 +395,7 @@ class Dashboard extends Component {
         const winH = 600;
         const screenW = window.innerWidth;
         const screenH = window.innerHeight - 48;
-        
+
         // Calculate offset based on number of currently open (non-minimized) windows
         const openCount = prev.openApps.filter(id => !prev.minimizedApps.includes(id)).length;
         const cascadeOffset = (openCount % 5) * 30; // Wrap after 5 windows
@@ -907,6 +914,7 @@ const mapDispatchToProps = (dispatch) => ({
   setFriends: (data) => dispatch(setFriends(data)),
   setGachaHistory: (data) => dispatch(setGachaHistory(data)),
   setMasterData: (data) => dispatch(setMasterData(data)),
+  setFriendSyncTime: (time) => dispatch(setFriendSyncTime(time)),
 });
 
 export default withTranslation()(withRouter(connect(mapStateToProps, mapDispatchToProps)(Dashboard)));

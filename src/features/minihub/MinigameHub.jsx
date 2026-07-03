@@ -5,7 +5,7 @@ import { IonIcon } from '@ionic/react';
 import { gameControllerOutline, playOutline, refreshOutline, timeOutline, trophyOutline } from 'ionicons/icons';
 import { setHighscores } from '../../store/actions';
 import { handleGetMinigameLeaderboardApi, handleGetMinigameLevelsApi } from '../../services/minigameServices';
-import SudokuGame from '../../../public/games/sudoku/SudokuGame';
+import SudokuGame from './SudokuGame';
 import './MinigameHub.scss';
 
 const GAMES = [

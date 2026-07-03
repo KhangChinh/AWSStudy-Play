@@ -13,7 +13,12 @@ import { app } from 'electron';
 const TOKEN_FILE = 'refresh_token.bin';
 
 function getTokenPath() {
-  return path.join(app.getPath('userData'), TOKEN_FILE);
+  const dir = path.join(app.getPath('userData'), 'security');
+  // Đảm bảo thư mục tồn tại
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return path.join(dir, TOKEN_FILE);
 }
 
 /**

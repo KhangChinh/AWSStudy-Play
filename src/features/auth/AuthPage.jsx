@@ -3,12 +3,12 @@ import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
-import { signIn, signUp, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, fetchUserAttributes } from 'aws-amplify/auth';
+import { signIn, signUp, signOut, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, fetchUserAttributes } from 'aws-amplify/auth';
 
 import './AuthPage.scss';
 import Spinner from '../../components/Spinner';
 import { withRouter } from '../../utils/withRouter';
-import { handleLoginSuccessApi } from '../../services/authServices';
+import { handleLoginSuccessApi, initializeAuth } from '../../services/authService';
 import { userLogin } from '../../store/actions';
 
 class AuthPage extends Component {
@@ -35,8 +35,13 @@ class AuthPage extends Component {
     };
   }
 
-  componentDidMount() {
-    // Initial auth check is now handled in App.jsx to prevent UI flashing
+  async componentDidMount() {
+    // Đảm bảo phiên cũ được xóa sạch khi quay lại màn hình Login
+    try {
+      await signOut();
+    } catch (_e) {
+      // ignore
+    }
   }
 
   componentWillUnmount() {
@@ -144,6 +149,7 @@ class AuthPage extends Component {
       if (authMode === 'login') {
         const { isSignedIn, nextStep } = await signIn({ username: email, password });
         if (isSignedIn) {
+          await initializeAuth(); // Cập nhật token mới vào RAM
           const attributes = await fetchUserAttributes();
           handleLoginSuccessApi();
           this.props.userLogin({ 

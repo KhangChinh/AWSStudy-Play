@@ -34,6 +34,8 @@ const initialState = {
   // Social
   friends: [],
   friendsLastKey: null,
+  friendLastEvaluatedKey: null,
+  friendUpdatedAt: null,
   daily: null,
   gachaHistory: [],
   gachaHistoryLastKey: null,
@@ -41,6 +43,18 @@ const initialState = {
   // Minigame
   minigameHighscores: {},
 };
+
+const getPayloadItems = (payload, ...keys) => {
+  if (Array.isArray(payload)) return payload;
+  for (const key of keys) {
+    if (Array.isArray(payload?.[key])) return payload[key];
+  }
+  return [];
+};
+
+const getPayloadLastKey = (payload) => (
+  payload?.lastEvaluatedKey || payload?.LastEvaluatedKey || null
+);
 
 const appReducer = (state = initialState, action) => {
   switch (action.type) {
@@ -85,11 +99,15 @@ const appReducer = (state = initialState, action) => {
         minigameHighscores: { ...state.minigameHighscores, ...action.payload },
       };
     case 'SET_FRIENDS':
+    {
+      const lastKey = getPayloadLastKey(action.payload);
       return {
         ...state,
-        friends: action.payload?.items || action.payload || [],
-        friendsLastKey: action.payload?.lastEvaluatedKey || null,
+        friends: getPayloadItems(action.payload, 'items', 'friends'),
+        friendsLastKey: lastKey,
+        friendLastEvaluatedKey: lastKey,
       };
+    }
     case 'SET_PROFILE':
       return {
         ...state,
@@ -117,6 +135,21 @@ const appReducer = (state = initialState, action) => {
       return {
         ...state,
         masterData: action.payload || [],
+      };
+    case 'APPEND_FRIENDS':
+    {
+      const lastKey = getPayloadLastKey(action.payload);
+      return {
+        ...state,
+        friends: [...state.friends, ...getPayloadItems(action.payload, 'items', 'friends')],
+        friendsLastKey: lastKey,
+        friendLastEvaluatedKey: lastKey,
+      };
+    }
+    case 'SET_FRIEND_SYNC_TIME':
+      return {
+        ...state,
+        friendUpdatedAt: action.payload,
       };
     default:
       return state;

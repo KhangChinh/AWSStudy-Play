@@ -1,66 +1,86 @@
 import { minigameApi, socialApi, syncApi } from '../utils/api';
 
+const okResponse = (response = {}) => ({
+  ...response,
+  success: response.success ?? (response.errCode === undefined || response.errCode === 0),
+  errCode: response.errCode ?? 0,
+});
+
+const errorResponse = (error) => ({
+  success: false,
+  errCode: -1,
+  message: error.message,
+  errMessage: error.message,
+});
+
 export const handleGetFriendsApi = async (lastKey = null) => {
   try {
-    return await socialApi.getFriends(lastKey);
+    return okResponse(await socialApi.getFriends(lastKey));
   } catch (e) {
-    console.log('Error getting friends:', e);
-    return { success: false, message: e.message };
+    console.warn('Error getting friends:', e);
+    return errorResponse(e);
   }
 };
 
 export const handleSearchUsersApi = async (query) => {
+  if (!query || query.trim().length < 2) {
+    return okResponse({ users: [] });
+  }
+
   try {
-    return await socialApi.search(query);
+    return okResponse(await socialApi.search(query.trim()));
   } catch (e) {
-    console.log('Error searching users:', e);
-    return { success: false, message: e.message };
+    console.warn('Error searching users:', e);
+    return errorResponse(e);
   }
 };
 
-export const handleAddFriendApi = async (targetUserId) => {
+export const handleSendFriendRequestApi = async (targetUserId) => {
   try {
-    return await socialApi.sendFriendRequest(targetUserId);
+    return okResponse(await socialApi.sendFriendRequest(targetUserId));
   } catch (e) {
-    console.log('Error sending friend request:', e);
-    return { success: false, message: e.message };
+    console.warn('Error sending friend request:', e);
+    return errorResponse(e);
   }
 };
+
+export const handleAddFriendApi = handleSendFriendRequestApi;
 
 export const handleAcceptFriendApi = async (targetUserId) => {
   try {
-    return await socialApi.acceptFriendRequest(targetUserId);
+    return okResponse(await socialApi.acceptFriendRequest(targetUserId));
   } catch (e) {
-    console.log('Error accepting friend request:', e);
-    return { success: false, message: e.message };
+    console.warn('Error accepting friend:', e);
+    return errorResponse(e);
   }
 };
 
 export const handleRemoveFriendApi = async (targetUserId) => {
   try {
-    return await socialApi.removeFriend(targetUserId);
+    return okResponse(await socialApi.removeFriend(targetUserId));
   } catch (e) {
-    console.log('Error removing friend:', e);
-    return { success: false, message: e.message };
+    console.warn('Error removing friend:', e);
+    return errorResponse(e);
   }
 };
 
 export const handleSyncFriendsApi = async (lastKey = null) => {
   try {
-    return await syncApi.friends(lastKey);
+    return okResponse(await syncApi.friends(lastKey));
   } catch (e) {
-    console.log('Error syncing friends:', e);
-    return { success: false, message: e.message };
+    console.warn('Error syncing friends:', e);
+    return errorResponse(e);
   }
 };
 
 export const handleGetLeaderboardApi = async (gameId, scope = 'global') => {
   try {
-    return scope === 'friends'
+    const response = scope === 'friends'
       ? await minigameApi.getFriendsLeaderboard(gameId)
       : await minigameApi.getGlobalLeaderboard(gameId);
+    return okResponse(response);
   } catch (e) {
-    console.log('Error getting leaderboard:', e);
-    return { success: false, message: e.message };
+    console.warn('Error getting leaderboard:', e);
+    return errorResponse(e);
   }
 };

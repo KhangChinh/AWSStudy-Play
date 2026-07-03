@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu, screen } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipcHandlers.js';
+import { clearToken } from './services/authHelper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,13 @@ export function createTimerWidget() {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false
+    }
+  });
+
+  widgetWin.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown' && ((input.control && input.shift && input.key.toLowerCase() === 'i') || input.key === 'F12')) {
+      widgetWin.webContents.toggleDevTools();
+      event.preventDefault();
     }
   });
 
@@ -101,6 +109,14 @@ function createWindow() {
   win.setMenuBarVisibility(false);
   win.setAutoHideMenuBar(true);
 
+  // Mở DevTools bằng phím tắt tùy chỉnh (Ctrl+Shift+I hoặc F12)
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown' && ((input.control && input.shift && input.key.toLowerCase() === 'i') || input.key === 'F12')) {
+      win.webContents.toggleDevTools();
+      event.preventDefault();
+    }
+  });
+
   // Ngăn chặn web page thay đổi title của window
   win.on('page-title-updated', (e) => e.preventDefault());
 
@@ -146,6 +162,9 @@ ipcMain.on('logout', () => {
   win.setResizable(false);
   win.center();
   win.removeMenu();
+
+  // Xóa token xác thực khỏi ổ đĩa khi đăng xuất
+  clearToken();
 });
 
 
