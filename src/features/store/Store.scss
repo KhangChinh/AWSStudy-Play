@@ -1,34 +1,3 @@
-.store-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.store-refresh-btn {
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.55;
-    cursor: wait;
-  }
-}
-
-.store-empty {
-  color: #94a3b8;
-  padding: 18px;
-}
-
 .store-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -46,8 +15,7 @@
       background: rgba(255, 255, 255, 0.03);
     }
 
-    &.coming-soon,
-    &.owned {
+    &.coming-soon {
       opacity: 0.6;
       filter: grayscale(0.8);
       cursor: not-allowed;
@@ -71,17 +39,6 @@
       align-items: center;
       justify-content: center;
       font-size: 40px;
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      ion-icon {
-        color: #94a3b8;
-        font-size: 38px;
-      }
     }
 
     .item-info {
@@ -116,14 +73,8 @@
         gap: 8px;
         transition: background 0.2s;
 
-        &:hover:not(:disabled) {
+        &:hover {
           background: #059669 !important;
-        }
-
-        &:disabled,
-        &.owned-btn {
-          background: #475569;
-          cursor: not-allowed;
         }
 
         ion-icon {

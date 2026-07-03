@@ -12,17 +12,20 @@
     height: 100%;
     overflow: visible;
   }
+
+  /* Cửa sổ chứa avatar – trùng với khung vuông trong viewBox (x60..180, y56..176) */
   .rf-window {
     position: absolute;
     left: 25%;
     top: 20.9%;
     width: 50%;
     height: 44.8%;
-    border-radius: 16%;
+    border-radius: 18%; // Chỉnh lại bo góc để khớp với frame
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: rgba(8, 12, 28, 0.55); // Trả lại nền cho cửa sổ
     font-size: var(--rf-icon, 32px);
     color: rgba(255, 255, 255, 0.85);
 

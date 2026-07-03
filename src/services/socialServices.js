@@ -1,86 +1,150 @@
-import { minigameApi, socialApi, syncApi } from '../utils/api';
+/**
+ * Social Services — Gọi AWS cho Social & Leaderboard
+ * React <-> AWS (Gọi Mây) qua HTTP
+ */
 
-const okResponse = (response = {}) => ({
-  ...response,
-  success: response.success ?? (response.errCode === undefined || response.errCode === 0),
-  errCode: response.errCode ?? 0,
-});
+import { getValidAccessToken } from './tokenService';
 
-const errorResponse = (error) => ({
-  success: false,
-  errCode: -1,
-  message: error.message,
-  errMessage: error.message,
-});
+const API_URL = import.meta.env.VITE_API_URL;
 
+/**
+ * Lấy danh sách bạn bè (phân trang)
+ * @param {string} lastKey — Key để lấy trang tiếp theo
+ */
 export const handleGetFriendsApi = async (lastKey = null) => {
   try {
-    return okResponse(await socialApi.getFriends(lastKey));
+    const url = lastKey ? `/friends?lastKey=${encodeURIComponent(lastKey)}` : '/friends';
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}${url}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error getting friends:', e);
-    return errorResponse(e);
+    return { errCode: -1, errMessage: e.message };
   }
 };
 
-export const handleSearchUsersApi = async (query) => {
-  if (!query || query.trim().length < 2) {
-    return okResponse({ users: [] });
-  }
-
-  try {
-    return okResponse(await socialApi.search(query.trim()));
-  } catch (e) {
-    console.warn('Error searching users:', e);
-    return errorResponse(e);
-  }
-};
-
+/**
+ * Gửi lời mời kết bạn
+ * @param {string} targetUserId 
+ */
 export const handleSendFriendRequestApi = async (targetUserId) => {
   try {
-    return okResponse(await socialApi.sendFriendRequest(targetUserId));
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/friends/request`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ targetUserId }),
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error sending friend request:', e);
-    return errorResponse(e);
+    return { errCode: -1, errMessage: e.message };
   }
 };
 
-export const handleAddFriendApi = handleSendFriendRequestApi;
-
+/**
+ * Chấp nhận lời mời kết bạn
+ * @param {string} targetUserId 
+ */
 export const handleAcceptFriendApi = async (targetUserId) => {
   try {
-    return okResponse(await socialApi.acceptFriendRequest(targetUserId));
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/friends/accept`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ targetUserId }),
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error accepting friend:', e);
-    return errorResponse(e);
+    return { errCode: -1, errMessage: e.message };
   }
 };
 
+/**
+ * Xóa bạn / Từ chối / Hủy lời mời
+ * @param {string} targetUserId 
+ */
 export const handleRemoveFriendApi = async (targetUserId) => {
   try {
-    return okResponse(await socialApi.removeFriend(targetUserId));
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/friends/remove`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ targetUserId }),
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error removing friend:', e);
-    return errorResponse(e);
+    return { errCode: -1, errMessage: e.message };
   }
 };
 
-export const handleSyncFriendsApi = async (lastKey = null) => {
+/**
+ * Tìm kiếm người dùng qua OpenSearch
+ * @param {string} keyword 
+ */
+export const handleSearchUsersApi = async (keyword) => {
+  if (!keyword || keyword.length < 2) return { users: [] };
   try {
-    return okResponse(await syncApi.friends(lastKey));
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/friends/search?q=${encodeURIComponent(keyword)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
-    console.warn('Error syncing friends:', e);
-    return errorResponse(e);
+    console.warn('Error searching users:', e);
+    return { errCode: -1, errMessage: e.message };
   }
 };
 
-export const handleGetLeaderboardApi = async (gameId, scope = 'global') => {
+/**
+ * Lấy bảng xếp hạng (Giữ nguyên từ cũ)
+ */
+export const handleGetLeaderboardApi = async (gameId) => {
   try {
-    const response = scope === 'friends'
-      ? await minigameApi.getFriendsLeaderboard(gameId)
-      : await minigameApi.getGlobalLeaderboard(gameId);
-    return okResponse(response);
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/leaderboard/${gameId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.warn('Error getting leaderboard:', e);
-    return errorResponse(e);
+    return { errCode: -1, errMessage: e.message };
   }
 };

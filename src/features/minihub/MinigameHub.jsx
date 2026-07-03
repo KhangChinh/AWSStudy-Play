@@ -1,187 +1,197 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { toast } from 'react-toastify';
+import { withTranslation } from 'react-i18next';
 import { IonIcon } from '@ionic/react';
-import { gameControllerOutline, playOutline, refreshOutline, timeOutline, trophyOutline } from 'ionicons/icons';
-import { setHighscores } from '../../store/actions';
-import { handleGetMinigameLeaderboardApi, handleGetMinigameLevelsApi } from '../../services/minigameServices';
-import SudokuGame from './SudokuGame';
-import './MinigameHub.scss';
+import { playOutline, trophyOutline, timeOutline, gameControllerOutline } from 'ionicons/icons';
 
-const GAMES = [
-  { id: 'sudoku', label: 'Sudoku', icon: 'S', disabled: false },
-  { id: 'minesweeper', label: 'Minesweeper', icon: 'M', disabled: true },
+import './MinigameHub.scss';
+import { handleGetLeaderboardApi } from '../../services/socialServices';
+import { toast } from 'react-toastify';
+import SudokuGame from './games/sudoku/SudokuGame.jsx';
+
+const MINIGAMES = [
+  { id: 'all', label: 'Tổng Wins', icon: '🏅' },
+  { id: 'minesweeper', label: 'Minesweeper', icon: '💣' },
+  { id: 'sudoku', label: 'Sudoku', icon: '🔢' },
 ];
 
+const MINIGAME_SCORES = {
+  all: [500, 425, 350, 275, 200],
+  minesweeper: [180, 155, 120, 90, 60],
+  sudoku: [130, 110, 90, 75, 50],
+};
+
+// ═══ Arcade Game List ═══
+const ArcadeList = ({ onPlayGame }) => (
+  <div className="arcade-list">
+    <h3><IonIcon icon={gameControllerOutline} /> Available Games</h3>
+    <div className="store-grid">
+      {[
+        { name: 'Minesweeper', price: 100, icon: '💣', disabled: true },
+        { name: 'Sudoku', price: 'Free', icon: '🔢', disabled: false },
+      ].map(game => (
+        <div className="store-item" key={game.name}>
+          <div className="item-cover">{game.icon}</div>
+          <div className="item-info">
+            <span className="item-title">{game.name}</span>
+            <span className="item-price">
+              {typeof game.price === 'number' ? `🪙 ${game.price} P-Coin / Play` : game.price}
+            </span>
+            <button
+              onClick={() => !game.disabled && onPlayGame(game.name.toLowerCase())}
+              style={game.disabled ? { background: '#475569', cursor: 'not-allowed', opacity: 0.6 } : {}}
+              disabled={game.disabled}
+            >
+              <IonIcon icon={playOutline} /> {game.disabled ? 'Coming Soon' : 'Play Now'}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ═══ Leaderboard (Stateless Functional Component for UI rendering) ═══
+//placeholder
+const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => {
+  const scores = tab === 'study'
+    ? [120.5, 98.2, 85.0, 72.4, 60.1]
+    : MINIGAME_SCORES[minigameFilter];
+
+  const scoreLabel = tab === 'study'
+    ? (v) => `${v.toFixed(1)}h`
+    : (v) => `${v} Wins`;
+
+  const DEMO_PLAYERS = [
+    { name: 'Cosmic_King', avatar: '👑' },
+    { name: 'Nebula_Runner', avatar: '✨' },
+    { name: 'Star_Gazer', avatar: '🔭' },
+    { name: 'Void_Walker', avatar: '🌌' },
+    { name: 'Galaxy_Master', avatar: '🌠' }
+  ];
+
+  return (
+    <div className="leaderboard-section">
+      <div className="section-header">
+        <h3><IonIcon icon={trophyOutline} /> Hall of Fame</h3>
+        <div className="tabs">
+          <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>
+            <IonIcon icon={timeOutline} /> Study
+          </button>
+          <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>
+            <IonIcon icon={gameControllerOutline} /> Minigame
+          </button>
+        </div>
+      </div>
+
+      {tab === 'minigame' && (
+        <div className="minigame-filter">
+          <select
+            className="minigame-select"
+            value={minigameFilter}
+            onChange={e => setMinigameFilter(e.target.value)}
+          >
+            {MINIGAMES.map(g => (
+              <option key={g.id} value={g.id}>{g.icon} {g.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="rank-list">
+        {DEMO_PLAYERS.map((player, i) => (
+          <div className={`rank-item ${i < 3 ? `top-${i + 1}` : ''}`} key={i}>
+            <div className="rank-number">
+              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+            </div>
+            <div className="player-info">
+              <div className="player-avatar">{player.avatar}</div>
+              <div className="player-details">
+                <div className="name-with-title">
+                  <span className="player-name">{player.name}</span>
+                  <span className="player-title" style={{ color: i === 0 ? '#a855f7' : i < 3 ? '#f87171' : '#94a3b8' }}>
+                    [{i === 0 ? 'Đại Gia' : i < 3 ? 'Chiến Thần' : 'Tân Thủ'}]
+                  </span>
+                </div>
+                <span className="player-rank-title">{i === 0 ? 'Grandmaster' : i < 3 ? 'Elite' : 'Challenger'}</span>
+              </div>
+            </div>
+            <div className="score-badge">
+              {scoreLabel(scores[i])}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+
+// ═══ Main MinigameHub ═══
 class MinigameHub extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      tab: 'minigame',
-      gameId: 'sudoku',
-      leaderboardScope: 'global',
-      levels: [],
-      leaderboard: [],
+      tab: 'study',
+      minigameFilter: 'all',
       isLoading: false,
       activeGame: null,
     };
   }
 
-  componentDidMount() {
-    this.loadCloudData();
-  }
-
-  loadCloudData = async () => {
-    const { gameId, leaderboardScope } = this.state;
+  //load data
+  handleLoadLeaderboard = async () => {
     this.setState({ isLoading: true });
     try {
-      const [levelsResponse, leaderboardResponse] = await Promise.all([
-        handleGetMinigameLevelsApi(gameId),
-        handleGetMinigameLeaderboardApi(gameId, leaderboardScope),
-      ]);
-
-      if (levelsResponse?.success) {
-        this.setState({ levels: levelsResponse.levels || [] });
-      }
-
-      if (leaderboardResponse?.success) {
-        const leaderboard = leaderboardResponse.leaderboard || [];
-        this.setState({ leaderboard });
-        this.props.setHighscores({ [gameId]: leaderboard });
+      const response = await handleGetLeaderboardApi(this.state.minigameFilter);
+      if (response && response.errCode === 0) {
+        // Lưu leaderboard vào redux nếu cần
       }
     } catch (error) {
-      toast.error(error.message || 'Cannot load minigame data');
-    } finally {
-      this.setState({ isLoading: false });
+      console.log('Error loading leaderboard:', error);
+      toast.error('Lỗi khi tải bảng xếp hạng!');
     }
+    this.setState({ isLoading: false });
   };
 
-  setGame = (gameId) => {
-    this.setState({ gameId }, this.loadCloudData);
+  //state update
+  setTab = (tab) => {
+    this.setState({ tab });
   };
 
-  setLeaderboardScope = (leaderboardScope) => {
-    this.setState({ leaderboardScope }, this.loadCloudData);
+  setMinigameFilter = (filter) => {
+    this.setState({ minigameFilter: filter }, () => {
+      // this.handleLoadLeaderboard(); // TODO: Uncomment when backend ready
+    });
   };
-
-  renderArcadeList = () => (
-    <div className="arcade-list">
-      <h3><IonIcon icon={gameControllerOutline} /> {this.props.t('minigames.arcade')}</h3>
-      <div className="store-grid">
-        {GAMES.map(game => (
-          <div className={`store-item ${game.disabled ? 'coming-soon' : ''}`} key={game.id}>
-            <div className="item-cover">{game.icon}</div>
-            <div className="item-info">
-              <span className="item-title">{game.label}</span>
-              <span className="item-price">{game.disabled ? this.props.t('minigames.coming_soon') : this.props.t('minigames.free')}</span>
-              <button
-                onClick={() => !game.disabled && this.setState({ activeGame: game.id })}
-                disabled={game.disabled}
-              >
-                <IonIcon icon={playOutline} /> {game.disabled ? this.props.t('minigames.coming_soon') : this.props.t('minigames.play_now')}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  renderLevels = () => (
-    <div className="leaderboard-section">
-      <div className="section-header">
-        <h3><IonIcon icon={timeOutline} /> Levels</h3>
-        <button className="minigame-refresh-btn" onClick={this.loadCloudData} disabled={this.state.isLoading}>
-          <IonIcon icon={refreshOutline} />
-        </button>
-      </div>
-      <div className="rank-list">
-        {this.state.levels.length === 0 ? (
-          <div className="rank-item">
-            <span className="player-rank-title">{this.state.isLoading ? 'Loading...' : 'No levels found'}</span>
-          </div>
-        ) : this.state.levels.map(level => (
-          <div className="rank-item" key={level.SK}>
-            <div className="rank-number">{level.SK}</div>
-            <div className="player-info">
-              <div className="player-details">
-                <div className="player-name">{level.name || level.SK}</div>
-                <span className="player-rank-title">Sanity {level.sanityCost || 0}</span>
-              </div>
-            </div>
-            <div className="score-badge">{level.score?.personalBest || 0}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  renderLeaderboard = () => (
-    <div className="leaderboard-section">
-      <div className="section-header">
-        <h3><IonIcon icon={trophyOutline} /> {this.props.t('minigames.hall_of_fame')}</h3>
-        <div className="tabs">
-          <button className={this.state.leaderboardScope === 'global' ? 'active' : ''} onClick={() => this.setLeaderboardScope('global')}>
-            Global
-          </button>
-          <button className={this.state.leaderboardScope === 'friends' ? 'active' : ''} onClick={() => this.setLeaderboardScope('friends')}>
-            Friends
-          </button>
-        </div>
-      </div>
-
-      <div className="minigame-filter">
-        <select className="minigame-select" value={this.state.gameId} onChange={e => this.setGame(e.target.value)}>
-          {GAMES.map(game => (
-            <option key={game.id} value={game.id}>{game.label}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="rank-list">
-        {this.state.leaderboard.length === 0 ? (
-          <div className="rank-item">
-            <span className="player-rank-title">{this.state.isLoading ? 'Loading...' : 'No leaderboard data'}</span>
-          </div>
-        ) : this.state.leaderboard.map((entry, index) => (
-          <div className={`rank-item ${index < 3 ? `top-${index + 1}` : ''}`} key={entry.userId || index}>
-            <div className="rank-number">#{entry.rank || index + 1}</div>
-            <div className="player-info">
-              <div className="player-avatar">{entry.displayInfo?.name?.slice(0, 1)?.toUpperCase() || '?'}</div>
-              <div className="player-details">
-                <div className="player-name">{entry.displayInfo?.name || entry.userId}</div>
-                <span className="player-rank-title">{entry.levelsCompleted || 0} levels</span>
-              </div>
-            </div>
-            <div className="score-badge">{entry.totalScore || 0}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   render() {
-    if (this.state.activeGame === 'sudoku') {
-      return <SudokuGame onClose={() => this.setState({ activeGame: null })} />;
+    const { tab, minigameFilter, activeGame } = this.state;
+
+    if (activeGame === 'sudoku') {
+      return (
+        <SudokuGame onClose={() => this.setState({ activeGame: null })} />
+      );
     }
 
     return (
       <div className="app-container minigame-hub">
-        <h2 className="app-title"><IonIcon icon={gameControllerOutline} /> {this.props.t('minigames.title')}</h2>
-        {this.renderArcadeList()}
-        {this.renderLevels()}
-        {this.renderLeaderboard()}
+        <h2 className="app-title">🎮 Minigame Hub</h2>
+        <ArcadeList onPlayGame={(game) => this.setState({ activeGame: game })} />
+        <LeaderboardView
+          tab={tab}
+          minigameFilter={minigameFilter}
+          setTab={this.setTab}
+          setMinigameFilter={this.setMinigameFilter}
+        />
       </div>
     );
   }
 }
 
+
 const mapStateToProps = (state) => ({
-  minigameHighscores: state.minigameHighscores,
+  minigameHighscores: state.minigame.minigameHighscores,
 });
 
-const mapDispatchToProps = (dispatch) => ({
-  setHighscores: (data) => dispatch(setHighscores(data)),
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(MinigameHub);
+export default connect(mapStateToProps, null)(withTranslation()(MinigameHub));

@@ -1,25 +1,48 @@
-import { economyApi, syncApi } from '../utils/api';
+//placeholder
+/**
+ * Economy Services — Gọi AWS cho Economy (P-Coin, Balance)
+ * React <-> AWS (Gọi Mây) qua HTTP
+ */
+
+import { getValidAccessToken } from './tokenService';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const handleGetBalanceApi = async () => {
   try {
-    const response = await syncApi.profile();
-    return response.profile?.budget || {};
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/economy/balance`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.log('Error getting balance:', e);
-    return { success: false, message: e.message };
+    return { errCode: -1, errMessage: e.message };
   }
 };
 
-export const handleExchangeKPToCoreApi = async (amount) => {
+export const handleSyncGameResultApi = async (data) => {
   try {
-    return await economyApi.exchange(amount);
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/economy/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
-    console.log('Error exchanging currency:', e);
-    return { success: false, message: e.message };
+    console.log('Error syncing game result:', e);
+    return { errCode: -1, errMessage: e.message };
   }
 };
-
-export const handleSyncGameResultApi = async () => ({
-  success: false,
-  message: 'Game session sync is currently handled by Lambda minigame session endpoints.',
-});

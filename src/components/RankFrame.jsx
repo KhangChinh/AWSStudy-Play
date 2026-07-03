@@ -60,6 +60,10 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
       className={`rank-frame-badge rank-frame-${tier} ${className}`}
       style={{ width: size, '--rf-glow': t.glow, '--rf-icon': `${Math.round(size * 0.38)}px` }}
     >
+      <div className="rf-window">
+        {children}
+      </div>
+
       <svg viewBox="0 0 240 268" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id={metal} x1="0" y1="0" x2="0" y2="1">
@@ -128,7 +132,7 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
         </g>
 
         {/* ── KHUNG VUÔNG ── */}
-        <rect x="60" y="56" width="120" height="120" rx="22" fill="rgba(8,12,28,0.55)" />
+        <rect x="60" y="56" width="120" height="120" rx="22" fill="none" />
         <rect
           x="60" y="56" width="120" height="120" rx="22"
           fill="none" stroke={`url(#${metal})`} strokeWidth="10"
@@ -174,10 +178,8 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
         </g>
       </svg>
 
-      <div className="rf-window">
-        {children}
-      </div>
     </div>
   );
 };
+
 export default RankFrame;

@@ -1,0 +1,153 @@
+.cropper-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.cropper-container {
+  background: #1e1b3a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+
+  .cropper-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: center;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #fff;
+      background: linear-gradient(135deg, #d8b4fe 0%, #f0abfc 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .crop-hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin: 0;
+    }
+  }
+
+  .cropper-view-area {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: #000;
+    overflow: hidden;
+
+    .crop-image-wrapper {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      img {
+        max-width: none;
+        user-select: none;
+      }
+    }
+
+    .crop-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      // The darkening effect around the hole
+      background: radial-gradient(circle, transparent 150px, rgba(0, 0, 0, 0.6) 151px);
+      
+      .crop-hole {
+        width: 300px;
+        height: 300px;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+
+  .cropper-controls {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    .zoom-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .zoom-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .zoom-slider-wrap {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: #c084fc;
+        font-size: 20px;
+
+        input[type=range] {
+          flex: 1;
+          accent-color: #9333ea;
+          height: 6px;
+          border-radius: 3px;
+          cursor: pointer;
+        }
+      }
+    }
+
+    .cropper-actions {
+      display: flex;
+      gap: 12px;
+
+      button {
+        flex: 1;
+        padding: 12px;
+        border-radius: 12px;
+        border: none;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+
+        &.btn-cancel {
+          background: rgba(255, 255, 255, 0.05);
+          color: #94a3b8;
+          &:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+        }
+
+        &.btn-apply {
+          background: linear-gradient(135deg, #9333ea 0%, #c026d3 100%);
+          color: white;
+          box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3);
+          &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(147, 51, 234, 0.4); }
+        }
+      }
+    }
+  }
+}

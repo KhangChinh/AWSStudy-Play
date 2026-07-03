@@ -41,7 +41,8 @@
         text-align: left;
       }
 
-      .badge, .badge-new {
+      .badge,
+      .badge-new {
         background: rgba(255, 255, 255, 0.05);
         padding: 2px 8px;
         border-radius: 10px;
@@ -166,6 +167,7 @@
     .tab-header {
       padding-bottom: 0;
     }
+
     .list-container {
       flex: 1;
       overflow-y: auto;
@@ -175,8 +177,14 @@
       align-content: flex-start;
       gap: 1rem;
 
-      &::-webkit-scrollbar { width: 6px; }
-      &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
     }
 
     .friend-card {
@@ -209,8 +217,16 @@
           justify-content: center;
           overflow: hidden;
 
-          img { width: 100%; height: 100%; object-fit: cover; }
-          ion-icon { font-size: 1.5rem; color: #38bdf8; }
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          ion-icon {
+            font-size: 1.5rem;
+            color: #38bdf8;
+          }
         }
 
         .status-indicator {
@@ -228,20 +244,36 @@
 
       .friend-info {
         flex: 1;
+
         .name-row {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           margin-bottom: 2px;
-          .friend-name { font-weight: 600; font-size: 1rem; }
-          .friend-rank { font-size: 0.75rem; color: #38bdf8; font-weight: 700; opacity: 0.8; }
+
+          .friend-name {
+            font-weight: 600;
+            font-size: 1rem;
+          }
+
+          .friend-rank {
+            font-size: 0.75rem;
+            color: #38bdf8;
+            font-weight: 700;
+            opacity: 0.8;
+          }
         }
-        .friend-status-text { font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); }
+
+        .friend-status-text {
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.4);
+        }
       }
 
       .friend-actions {
         display: flex;
         gap: 0.5rem;
+
         .action-btn {
           width: 34px;
           height: 34px;
@@ -254,8 +286,16 @@
           align-items: center;
           justify-content: center;
 
-          &:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
-          &.delete:hover { border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+          }
+
+          &.delete:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+          }
         }
       }
     }
@@ -289,13 +329,22 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
-        .request-name { font-weight: 600; font-size: 1.1rem; }
-        .request-level { font-size: 0.85rem; color: rgba(255, 255, 255, 0.4); }
+
+        .request-name {
+          font-weight: 600;
+          font-size: 1.1rem;
+        }
+
+        .request-level {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.4);
+        }
       }
 
       .request-actions {
         display: flex;
         gap: 0.75rem;
+
         .req-btn {
           width: 40px;
           height: 40px;
@@ -307,11 +356,25 @@
           justify-content: center;
           font-size: 1.25rem;
 
-          &.accept { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
-          &.decline { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-          &.cancel { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.4); }
+          &.accept {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+          }
 
-          &:hover { transform: scale(1.05); filter: brightness(1.2); }
+          &.decline {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+          }
+
+          &.cancel {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.4);
+          }
+
+          &:hover {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+          }
         }
       }
 
@@ -452,15 +515,28 @@
           align-items: center;
           justify-content: center;
           overflow: hidden;
-          img { width: 100%; height: 100%; object-fit: cover; }
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
         }
 
         .user-details {
           flex: 1;
           display: flex;
           flex-direction: column;
-          .user-name { font-weight: 600; font-size: 1rem; }
-          .user-meta { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); }
+
+          .user-name {
+            font-weight: 600;
+            font-size: 1rem;
+          }
+
+          .user-meta {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+          }
         }
 
         .add-btn {
@@ -476,9 +552,19 @@
           gap: 0.5rem;
           transition: all 0.2s;
 
-          &:hover { filter: brightness(1.1); transform: translateY(-1px); }
-          &:disabled { opacity: 0.5; cursor: wait; }
-          ion-icon { font-size: 1.1rem; }
+          &:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: wait;
+          }
+
+          ion-icon {
+            font-size: 1.1rem;
+          }
         }
       }
     }
@@ -491,7 +577,8 @@
   }
 
   // Utilites
-  .empty-state, .sub-empty-state {
+  .empty-state,
+  .sub-empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -499,10 +586,21 @@
     padding: 4rem 2rem;
     color: rgba(255, 255, 255, 0.2);
     text-align: center;
-    ion-icon { font-size: 4rem; margin-bottom: 1rem; }
-    p { font-size: 1.1rem; }
+
+    ion-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+    }
   }
-  .sub-empty-state { padding: 1.5rem; font-size: 0.9rem; }
+
+  .sub-empty-state {
+    padding: 1.5rem;
+    font-size: 0.9rem;
+  }
 
   .loading-more {
     text-align: center;
@@ -514,13 +612,27 @@
 }
 
 @keyframes tabFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.mt-4 { margin-top: 1.5rem; }
+.mt-4 {
+  margin-top: 1.5rem;
+}

@@ -48,20 +48,35 @@ class InventoryManager {
     if (this.history.length > 50) {
       this.history = this.history.slice(0, 50);
     }
+    this.save();
   }
 
   hasItem(itemId) {
     return this.inventory.some(i => (i.id === itemId || i.SK === itemId) && i.amount > 0);
   }
 
-  save() {
-    console.log('Inventory saved:', this.inventory);
-    console.log('History saved:', this.history.length);
+  async save() {
+    console.log('Inventory saving...', this.inventory.length);
+    if (window.api?.invoke) {
+      await window.api.invoke('inventory:save', {
+        inventory: this.inventory,
+        history: this.history
+      });
+    }
   }
 
-  load() {
-    // Logic to load
+  async load() {
+    if (window.api?.invoke) {
+      const res = await window.api.invoke('inventory:load');
+      if (res?.success && res.data) {
+        this.inventory = res.data.inventory || [];
+        this.history = res.data.history || [];
+        console.log('Inventory loaded:', this.inventory.length);
+      }
+    }
   }
 }
 
-export default new InventoryManager();
+const manager = new InventoryManager();
+manager.load();
+export default manager;

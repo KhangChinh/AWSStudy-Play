@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Focus Timer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', 'Inter', sans-serif;
+      background: rgba(15, 10, 30, 0.92);
+      color: #fff;
+      overflow: hidden;
+      -webkit-app-region: drag; /* Allow dragging the widget */
+      user-select: none;
+      border-radius: 12px;
+    }
+
+    .widget {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      height: 100%;
+    }
+
+    /* Pulsing left bar */
+    .pulse-bar {
+      width: 3px;
+      height: 36px;
+      border-radius: 3px;
+      background: #a855f7;
+      animation: bar-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes bar-pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px #a855f7; }
+      50% { opacity: 0.5; box-shadow: 0 0 2px #a855f7; }
+    }
+
+    .timer {
+      font-family: 'Consolas', 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      color: #e0b0ff;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
+      line-height: 1;
+    }
+
+    .info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .mode-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      width: fit-content;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .mode-badge.casual {
+      color: #86efac;
+      background: rgba(134, 239, 172, 0.15);
+    }
+
+    .mode-badge.rank {
+      color: #fbbf24;
+      background: rgba(251, 191, 36, 0.15);
+    }
+
+    .strikes {
+      font-size: 9px;
+      color: #f87171;
+      font-weight: 600;
+    }
+
+    .cam-status {
+      font-size: 9px;
+      color: #94a3b8;
+    }
+
+    .cam-status.ok { color: #86efac; }
+    .cam-status.warn {
+      color: #fbbf24;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Restore button */
+    .restore-btn {
+      -webkit-app-region: no-drag;
+      margin-left: auto;
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 5px;
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .restore-btn:hover {
+      background: rgba(168, 85, 247, 0.4);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="widget">
+    <div class="pulse-bar"></div>
+    <div class="timer" id="timer">--:--</div>
+    <div class="info">
+      <div class="mode-badge casual" id="mode">CASUAL</div>
+      <div class="strikes" id="strikes" style="display:none;">⚡ 0/3</div>
+      <div class="cam-status" id="cam">📷</div>
+    </div>
+    <button class="restore-btn" id="restoreBtn" title="Mở lại app">⬆</button>
+  </div>
+
+  <script>
+    const timerEl = document.getElementById('timer');
+    const modeEl = document.getElementById('mode');
+    const strikesEl = document.getElementById('strikes');
+    const camEl = document.getElementById('cam');
+    const restoreBtn = document.getElementById('restoreBtn');
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    // Listen for timer updates from main process
+    window.widgetAPI.onTimerUpdate((data) => {
+      timerEl.textContent = formatTime(data.remaining);
+
+      // Mode
+      modeEl.textContent = data.hardMode ? '⚔ RANK' : '🍵 CASUAL';
+      modeEl.className = 'mode-badge ' + (data.hardMode ? 'rank' : 'casual');
+
+      // Strikes
+      if (data.strikeCount > 0) {
+        strikesEl.style.display = '';
+        strikesEl.textContent = '⚡ ' + data.strikeCount + '/3';
+      } else {
+        strikesEl.style.display = 'none';
+      }
+    });
+
+    // Listen for cam status
+    window.widgetAPI.onCamStatus((status) => {
+      if (status === 'tracking') {
+        camEl.textContent = '👁 Tracking';
+        camEl.className = 'cam-status ok';
+      } else if (status === 'warning') {
+        camEl.textContent = '⚠ No face';
+        camEl.className = 'cam-status warn';
+      } else {
+        camEl.textContent = '📷';
+        camEl.className = 'cam-status';
+      }
+    });
+
+    // Listen for session end → close widget
+    window.widgetAPI.onSessionEnd(() => {
+      window.close();
+    });
+
+    // Restore main window
+    restoreBtn.addEventListener('click', () => {
+      window.widgetAPI.restoreMainWindow();
+    });
+  </script>
+</body>
+</html>

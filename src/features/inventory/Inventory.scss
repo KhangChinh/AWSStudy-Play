@@ -1,0 +1,52 @@
+.inventory-app {
+  color: #f8fafc;
+}
+
+.inventory-app .app-title {
+  margin-bottom: 18px;
+}
+
+.inventory-app .balance-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.22);
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 14px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.inventory-grid .item-card {
+  min-height: 132px;
+  padding: 14px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.64);
+  text-align: center;
+}
+
+.inventory-grid .item-icon {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  margin-bottom: 10px;
+  font-size: 32px;
+}
+
+.inventory-grid .item-name {
+  min-height: 34px;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}

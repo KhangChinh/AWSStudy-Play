@@ -23,7 +23,7 @@ import {
   handleRemoveFriendApi,
   handleSearchUsersApi
 } from '../../services/socialServices';
-import { setFriends, appendFriends, setFriendSyncTime } from '../../store/actions';
+import { setSocial, appendSocial } from '../../store/actions';
 import './SocialApp.scss';
 
 class SocialApp extends Component {
@@ -36,7 +36,7 @@ class SocialApp extends Component {
       isSearching: false,
       isLoading: false,
       isActionLoading: null, // targetUserId
-      apiNotConfigured: false, // true khi VITE_API_BASE_URL chưa được cấu hình
+      apiNotConfigured: false, // true khi VITE_API_URL chưa được cấu hình
       lastSearchTime: 0, // Cooldown tìm kiếm
     };
     this.searchTimeout = null;
@@ -48,9 +48,8 @@ class SocialApp extends Component {
   }
 
   initialSync = async () => {
-    const { friends, friendUpdatedAt } = this.props;
-    // Flow: If redux has no data or sync time is missing, fetch first page
-    if (friends.length === 0 || !friendUpdatedAt) {
+    const { friends } = this.props;
+    if (friends.length === 0) {
       this.fetchFriends(true);
     }
   };
@@ -58,7 +57,7 @@ class SocialApp extends Component {
   fetchFriends = async (isFirstPage = false) => {
     if (this.state.isLoading) return;
 
-    const { friendLastEvaluatedKey, setFriends, appendFriends } = this.props;
+    const { friendLastEvaluatedKey, setSocial, appendSocial } = this.props;
     const lastKey = isFirstPage ? null : friendLastEvaluatedKey;
 
     if (!isFirstPage && !lastKey) return;
@@ -69,19 +68,9 @@ class SocialApp extends Component {
     if (res && !res.errCode) {
       this.setState({ apiNotConfigured: false });
       if (isFirstPage) {
-        setFriends({ friends: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
-        if (window.api) window.api.invoke('store:set', 'friends_cache', res.friends);
+        setSocial({ items: res.friends, lastKey: res.lastEvaluatedKey });
       } else {
-        appendFriends({ friends: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
-        if (window.api) {
-          const current = this.props.friends;
-          window.api.invoke('store:set', 'friends_cache', [...current, ...res.friends]);
-        }
-      }
-
-      if (res.updatedAt) {
-        this.props.setFriendSyncTime(res.updatedAt);
-        if (window.api) window.api.invoke('store:set', 'friend_sync_time', res.updatedAt);
+        appendSocial({ items: res.friends, lastKey: res.lastEvaluatedKey });
       }
     } else if (res?.errMessage === 'API_NOT_CONFIGURED') {
       // Chưa cấu hình API URL — hiện trạng thái tĩnh, không spam toast
@@ -135,7 +124,7 @@ class SocialApp extends Component {
 
     if (res && res.users) {
       const filtered = res.users.filter(u =>
-        u.userId !== this.props.userInfo?.UserId &&
+        u.userId !== (this.props.userProfile?.PK || this.props.userProfile?.userId || this.props.userProfile?.UserId) &&
         !this.props.friends.some(f => f.SK === u.userId)
       );
       this.setState({ searchResults: filtered });
@@ -212,7 +201,7 @@ class SocialApp extends Component {
       <div className="list-container" onScroll={this.handleScroll}>
         {friends.length > 0 ? friends.map(friend => (
           <div key={friend.SK} className="friend-card">
-            <div className="avatar-container status-online">
+            <div className="avatar-container">
               <div className="avatar-placeholder">
                 {friend.friendAvatarUrl ? (
                   <img src={friend.friendAvatarUrl} alt="avatar" />
@@ -220,19 +209,17 @@ class SocialApp extends Component {
                   <IonIcon icon={peopleOutline} />
                 )}
               </div>
-              <div className="status-indicator" />
             </div>
             <div className="friend-info">
               <div className="name-row">
                 <span className="friend-name">{friend.friendName || 'Unknown'}</span>
-                {friend.level && <span className="friend-rank">Lv.{friend.level}</span>}
+                {friend.level && <span className="friend-rank">{this.props.t('social.level_short')}{friend.level}</span>}
               </div>
-              <span className="friend-status-text">Online</span>
             </div>
             <div className="friend-actions">
               <button
                 className="action-btn delete"
-                title={this.props.t('common.remove') || 'Remove'}
+                title={this.props.t('social.remove_friend')}
                 onClick={() => this.handleSocialAction('remove', friend.SK)}
                 disabled={this.state.isActionLoading === friend.SK}
               >
@@ -349,7 +336,7 @@ class SocialApp extends Component {
                 </div>
                 <div className="user-details">
                   <span className="user-name">{user.name}</span>
-                  <span className="user-meta">Streak: {user.streak || 0} • {user.titles?.[0] || 'Newbie'}</span>
+                  <span className="user-meta">{t('common.streak')}: {user.streak || 0} • {user.titles?.[0] || 'Newbie'}</span>
                 </div>
                 <button
                   className="add-btn"
@@ -409,7 +396,7 @@ class SocialApp extends Component {
           </button>
 
           <div className="sidebar-footer">
-            <button className="sync-btn" onClick={() => this.fetchFriends(true)} title="Sync Friends">
+            <button className="sync-btn" onClick={() => this.fetchFriends(true)} title={t('social.sync_friends')}>
               <IonIcon icon={refreshOutline} className={this.state.isLoading ? 'spinning' : ''} />
             </button>
           </div>
@@ -438,16 +425,14 @@ class SocialApp extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  friends: state.friends || [],
-  friendLastEvaluatedKey: state.friendLastEvaluatedKey,
-  friendUpdatedAt: state.friendUpdatedAt,
-  userInfo: state.userInfo,
+  friends: state.social.items || [],
+  friendLastEvaluatedKey: state.social.lastKey,
+  userProfile: state.profile.userProfile,
 });
 
 const mapDispatchToProps = (dispatch) => ({
-  setFriends: (data) => dispatch(setFriends(data)),
-  appendFriends: (data) => dispatch(appendFriends(data)),
-  setFriendSyncTime: (time) => dispatch(setFriendSyncTime(time)),
+  setSocial: (data) => dispatch(setSocial(data)),
+  appendSocial: (data) => dispatch(appendSocial(data)),
 });
 
 export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(SocialApp));

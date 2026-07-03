@@ -4,27 +4,21 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 body {
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0c0218;
-  /* Màu nền tối mặc định */
+  background-color: #0b1028;
+  color: #fff;
   overflow: hidden;
-  user-select: none;
-  animation: app-fade-in 0.8s ease-out;
 }
 
-@keyframes app-fade-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+img {
+  -webkit-user-drag: none;
 }
 
 a {
@@ -40,7 +34,6 @@ button {
 
 input {
   font-family: inherit;
-  user-select: text;
 }
 
 /* Custom Scrollbar */

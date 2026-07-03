@@ -1,19 +1,27 @@
-import { gachaApi, syncApi } from '../utils/api';
+/**
+ * Gacha Services — Gọi AWS Lambda cho Gacha Station
+ * React <-> AWS (Gọi Mây) qua HTTP
+ */
 
-export const handleRollGachaApi = async (count = 1) => {
+import { getValidAccessToken } from './tokenService';
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+export const handleRollGachaApi = async () => {
   try {
-    return await gachaApi.roll(count);
+    const token = await getValidAccessToken();
+    if (!token) throw new Error('No auth token');
+    const response = await fetch(`${API_URL}/gacha/roll`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
   } catch (e) {
     console.log('Error rolling gacha:', e);
-    return { success: false, message: e.message };
-  }
-};
-
-export const handleGetGachaHistoryApi = async (lastKey = null) => {
-  try {
-    return await syncApi.gachaHistory(lastKey);
-  } catch (e) {
-    console.log('Error getting gacha history:', e);
-    return { success: false, message: e.message };
+    return { errCode: -1, errMessage: e.message };
   }
 };

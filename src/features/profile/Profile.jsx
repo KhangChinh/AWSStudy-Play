@@ -1,17 +1,16 @@
 import React, { Component } from 'react';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
-import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import {
   personCircleOutline, starOutline, cubeOutline,
-  cashOutline, imageOutline, createOutline, saveOutline, closeOutline
+  cashOutline, imageOutline, addOutline
 } from 'ionicons/icons';
+import RankFrame from '../../components/RankFrame';
 import cosmeticManager from '../../managers/cosmeticManager';
 import inventoryManager from '../../managers/inventoryManager';
-import RankFrame from '../../components/RankFrame';
-import { userLogin, setProfile } from '../../store/actions';
-import { handleUpdateProfileNameApi, handleUploadAvatarApi, resolveAssetUrl } from '../../services/profileServices';
+import { setProfile } from '../../store/actions';
+import { toast } from 'react-toastify';
 import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
@@ -45,17 +44,16 @@ const resolveBackground = (background) => {
   return cosmeticManager.getCosmeticInfo('backgrounds', background);
 };
 
+const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
+const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
+const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
+
 class Profile extends Component {
   constructor(props) {
     super(props);
     this.state = {
       activeTab: 'backgrounds',
-      isEditingName: false,
-      nameDraft: '',
-      isSavingName: false,
-      isUploadingAvatar: false,
     };
-    this.avatarInputRef = React.createRef();
   }
 
   getBackgrounds = () => {
@@ -70,63 +68,6 @@ class Profile extends Component {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     this.handleCoverEdit();
-  };
-
-  handleEditName = () => {
-    this.setState({
-      isEditingName: true,
-      nameDraft: this.props.userInfo?.username || '',
-    });
-  };
-
-  handleSaveName = async () => {
-    const name = this.state.nameDraft.trim();
-    if (!name) return;
-
-    this.setState({ isSavingName: true });
-    try {
-      const response = await handleUpdateProfileNameApi(name);
-      if (!response?.success) throw new Error(response?.message || 'Update failed');
-      const profile = response.profile;
-      this.props.setProfile(profile);
-      this.props.userLogin({
-        ...this.props.userInfo,
-        username: profile?.information?.name || name,
-      });
-      this.setState({ isEditingName: false });
-      toast.success('Profile updated');
-    } catch (error) {
-      toast.error(error.message || 'Update failed');
-    } finally {
-      this.setState({ isSavingName: false });
-    }
-  };
-
-  handlePickAvatar = () => {
-    if (this.state.isUploadingAvatar) return;
-    this.avatarInputRef.current?.click();
-  };
-
-  handleAvatarFileChange = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    this.setState({ isUploadingAvatar: true });
-    try {
-      const response = await handleUploadAvatarApi(file);
-      if (!response?.success) throw new Error(response?.message || 'Avatar upload failed');
-      const avatar = resolveAssetUrl(response.avatarUrl);
-      this.props.userLogin({
-        ...this.props.userInfo,
-        avatar,
-      });
-      toast.success('Avatar updated');
-    } catch (error) {
-      toast.error(error.message || 'Avatar upload failed');
-    } finally {
-      this.setState({ isUploadingAvatar: false });
-      event.target.value = '';
-    }
   };
 
   renderTabContent = () => {
@@ -264,16 +205,15 @@ class Profile extends Component {
 
   render() {
     const {
-      economy,
-      userInfo,
+      userProfile,
       currentBackground,
       currentTitle,
       currentFrame,
       currentRank = 'diamond',
       t,
     } = this.props;
-    const { activeTab, isEditingName, nameDraft, isSavingName, isUploadingAvatar } = this.state;
-    const pCoins = economy?.pCoins || 0;
+    const { activeTab } = this.state;
+    const budget = userProfile?.budget || {};
     const rankLabel = translateRank(currentRank, t);
     const equippedTitle = cosmeticManager.getCosmeticInfo('titles', currentTitle)
       || cosmeticManager.getAllInCategory('titles')[0];
@@ -281,7 +221,7 @@ class Profile extends Component {
     const profileHeaderStyle = selectedBackground?.profileBackground
       ? { background: selectedBackground.profileBackground }
       : undefined;
-    const displayName = userInfo?.username || 'Player_9999';
+    const displayName = userProfile?.information?.name || 'Player_9999';
     const titleName = translateCosmeticName(equippedTitle, t);
 
     return (
@@ -298,53 +238,19 @@ class Profile extends Component {
           <div className="profile-cover-edit" aria-hidden="true">
             <IonIcon icon={imageOutline} />
           </div>
-          <input
-            ref={this.avatarInputRef}
-            className="avatar-file-input"
-            type="file"
-            accept="image/*"
-            onChange={this.handleAvatarFileChange}
-          />
           <div className="user-profile-section">
-            <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
-              {userInfo?.avatar ? (
-                <img src={userInfo.avatar} alt="avatar" className="avatar-img-large" />
-              ) : (
-                <IonIcon icon={personCircleOutline} />
-              )}
-            </RankFrame>
+            <div className="avatar-container-simple">
+              <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
+                {userProfile?.information?.avatarUrl ? (
+                  <img src={S3_ASSETS_BASE + userProfile.information.avatarUrl} alt="avatar" className="avatar-img-large" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                ) : (
+                  <img src={DEFAULT_AVATAR} alt="avatar" className="avatar-img-large" />
+                )}
+              </RankFrame>
+            </div>
             <div className="user-main-info">
               <div className="username-line">
-                {isEditingName ? (
-                  <input
-                    className="profile-name-input"
-                    value={nameDraft}
-                    maxLength={32}
-                    onClick={(event) => event.stopPropagation()}
-                    onChange={(event) => this.setState({ nameDraft: event.target.value })}
-                  />
-                ) : (
-                  <span className="name">{displayName}</span>
-                )}
-                <div className="profile-inline-actions" onClick={(event) => event.stopPropagation()}>
-                  {isEditingName ? (
-                    <>
-                      <button className="profile-icon-btn" onClick={this.handleSaveName} disabled={isSavingName}>
-                        <IonIcon icon={saveOutline} />
-                      </button>
-                      <button className="profile-icon-btn" onClick={() => this.setState({ isEditingName: false })}>
-                        <IonIcon icon={closeOutline} />
-                      </button>
-                    </>
-                  ) : (
-                    <button className="profile-icon-btn" onClick={this.handleEditName}>
-                      <IonIcon icon={createOutline} />
-                    </button>
-                  )}
-                  <button className="profile-icon-btn" onClick={this.handlePickAvatar} disabled={isUploadingAvatar}>
-                    <IonIcon icon={imageOutline} />
-                  </button>
-                </div>
+                <span className="name">{displayName}</span>
               </div>
               <div className="title-line">
                 <span className="title-badge" style={{ color: equippedTitle?.color }}>
@@ -355,18 +261,18 @@ class Profile extends Component {
               <div className="wallet-info">
                 <div className="coin-pill pink" title={t('common.sanity')}>
                   <IonIcon icon={starOutline} className="coin-icon" />
-                  <span className="coin-val">{economy?.sanity || 0}</span>
+                  <span className="coin-val">{budget.sanity || 0}</span>
                 </div>
                 <div className="coin-pill" title={t('common.ecoin')}>
                   <IonIcon icon={cashOutline} className="coin-icon" />
-                  <span className="coin-val">{pCoins.toLocaleString()}</span>
+                  <span className="coin-val">{(budget.eCoin || 0).toLocaleString()}</span>
                 </div>
                 <div className="coin-pill blue" title={t('common.knowledge_points')}>
                   <IonIcon icon={cubeOutline} className="coin-icon" />
-                  <span className="coin-val">{economy?.knowledgePoint?.toLocaleString() || 0}</span>
+                  <span className="coin-val">{(budget.knowledgePoint || 0).toLocaleString()}</span>
                 </div>
                 <div className="streak-badge" title={t('common.streak')}>
-                  🔥 <span>{userInfo?.streak || 0}</span>
+                  🔥 <span>{userProfile?.streak || 0}</span>
                 </div>
               </div>
             </div>
@@ -397,13 +303,11 @@ class Profile extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  userInfo: state.userInfo,
-  economy: state.economy,
+  userProfile: state.profile.userProfile,
 });
 
 const mapDispatchToProps = (dispatch) => ({
-  userLogin: (info) => dispatch(userLogin(info)),
-  setProfile: (profile) => dispatch(setProfile(profile)),
+  setProfile: (info) => dispatch(setProfile(info)),
 });
 
 export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Profile));

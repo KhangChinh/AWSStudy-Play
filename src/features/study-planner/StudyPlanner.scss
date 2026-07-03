@@ -1,0 +1,1741 @@
+// ============================================================================
+// StudyPlanner.scss — Premium Dark Cosmic Theme
+// A 3-tab Study Planner: AI Chat · Kế hoạch · Kiểm tra
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// 0. Design Tokens
+// ---------------------------------------------------------------------------
+$font-stack: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+// Purple spectrum
+$purple-300: #c084fc;
+$purple-400: #a855f7;
+$purple-500: #9333ea;
+$purple-600: #7e22ce;
+$purple-700: #6b21a8;
+
+// Accent palette
+$gold:       #fbbf24;
+$gold-dim:   rgba(251, 191, 36, 0.15);
+$green-500:  #10b981;
+$green-400:  #4ade80;
+$green-dim:  rgba(16, 185, 129, 0.15);
+$red-400:    #f87171;
+$red-dim:    rgba(248, 113, 113, 0.12);
+$blue-400:   #60a5fa;
+
+// Neutrals / text
+$text-primary:   #e2e8f0;
+$text-secondary: #94a3b8;
+$text-muted:     #64748b;
+$text-dim:       #475569;
+
+// Surface layers (glass)
+$glass-bg:       rgba(15, 23, 42, 0.88);
+$glass-bg-light: rgba(30, 41, 59, 0.72);
+$glass-bg-dark:  rgba(10, 15, 30, 0.95);
+$glass-border:   rgba(148, 163, 184, 0.08);
+$glass-border-h: rgba(192, 132, 252, 0.18);
+
+// Gradients
+$gradient-purple:    linear-gradient(135deg, $purple-500, $purple-400);
+$gradient-purple-h:  linear-gradient(135deg, $purple-600, $purple-500);
+$gradient-gold:      linear-gradient(135deg, #f59e0b, $gold);
+$gradient-correct:   linear-gradient(135deg, $green-500, $green-400);
+$gradient-wrong:     linear-gradient(135deg, #ef4444, $red-400);
+
+// Shadows
+$shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.25);
+$shadow-md:  0 4px 20px rgba(0, 0, 0, 0.35);
+$shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.45);
+$shadow-glow: 0 0 24px rgba(147, 51, 234, 0.2);
+
+// Radii
+$radius-sm:   8px;
+$radius-md:   12px;
+$radius-lg:   14px;
+$radius-pill:  9999px;
+
+// Timing
+$ease-out-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+$ease-bounce:     cubic-bezier(0.34, 1.56, 0.64, 1);
+$transition-fast: 180ms $ease-out-smooth;
+$transition-mid:  280ms $ease-out-smooth;
+$transition-slow: 420ms $ease-out-smooth;
+
+// Layout
+$sidebar-w: 220px;
+$tab-h:     46px;
+$input-h:   48px;
+
+// ---------------------------------------------------------------------------
+// 1. Keyframe Animations
+// ---------------------------------------------------------------------------
+@keyframes sp-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sp-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sp-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes sp-pulse-ring {
+  0%   { transform: scale(0.85); opacity: 0.6; }
+  70%  { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+@keyframes sp-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes sp-score-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+// ---------------------------------------------------------------------------
+// 2. Shared Mixins
+// ---------------------------------------------------------------------------
+@mixin glass($bg: $glass-bg, $blur: 18px) {
+  background: $bg;
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+}
+
+@mixin glass-border {
+  border: 1px solid $glass-border;
+}
+
+@mixin scrollbar-thin {
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.15);
+    border-radius: $radius-pill;
+    &:hover { background: rgba(148, 163, 184, 0.28); }
+  }
+}
+
+@mixin truncate($lines: 1) {
+  @if $lines == 1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@mixin chip-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: $radius-pill;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  transition: background $transition-fast, transform $transition-fast;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3. Root Container
+// ---------------------------------------------------------------------------
+.study-planner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-family: $font-stack;
+  color: $text-primary;
+  @include glass($glass-bg-dark, 24px);
+  border-radius: $radius-lg;
+  @include glass-border;
+  overflow: hidden;
+  animation: sp-fade-in 400ms $ease-out-smooth;
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4. Tab Bar
+// ---------------------------------------------------------------------------
+.sp-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: $tab-h;
+  padding: 0 12px;
+  @include glass(rgba(15, 23, 42, 0.92), 14px);
+  border-bottom: 1px solid $glass-border;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+
+  // Subtle top-edge highlight
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 16px auto 16px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(192, 132, 252, 0.12),
+      transparent
+    );
+  }
+}
+
+.sp-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 18px;
+  height: 34px;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-secondary;
+  cursor: pointer;
+  user-select: none;
+  transition: color $transition-fast, background $transition-fast;
+  border: none;
+  background: transparent;
+  outline: none;
+
+  .sp-tab-icon {
+    font-size: 15px;
+    opacity: 0.7;
+    transition: opacity $transition-fast;
+  }
+
+  &:hover {
+    color: $text-primary;
+    background: rgba(148, 163, 184, 0.06);
+
+    .sp-tab-icon { opacity: 0.9; }
+  }
+
+  &.active {
+    color: $purple-300;
+    background: rgba(147, 51, 234, 0.1);
+
+    .sp-tab-icon { opacity: 1; }
+
+    // Active underline
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      border-radius: 1px;
+      background: $gradient-purple;
+      box-shadow: 0 0 8px rgba(147, 51, 234, 0.4);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 5. Tab Content Wrapper
+// ---------------------------------------------------------------------------
+.sp-tab-content {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+
+  > * {
+    animation: sp-fade-in 320ms $ease-out-smooth;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 6. Shared Sidebar · Main Layout
+// ---------------------------------------------------------------------------
+%panel-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+%sidebar-base {
+  width: $sidebar-w;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  @include glass(rgba(15, 23, 42, 0.6), 12px);
+  border-right: 1px solid $glass-border;
+  @include scrollbar-thin;
+
+  .sp-sidebar-title {
+    padding: 12px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $text-muted;
+    border-bottom: 1px solid $glass-border;
+    margin-bottom: 8px;
+  }
+
+  .sp-sidebar-empty {
+    padding: 24px 16px;
+    font-size: 12.5px;
+    color: $text-muted;
+    text-align: center;
+    line-height: 1.6;
+    font-style: italic;
+  }
+}
+
+%main-base {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+// Shared "new" button at sidebar top
+%sidebar-new-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px;
+  padding: 9px 0;
+  border-radius: $radius-sm;
+  border: 1px dashed rgba(148, 163, 184, 0.18);
+  background: transparent;
+  color: $text-secondary;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $purple-300;
+    border-color: rgba(192, 132, 252, 0.3);
+    background: rgba(147, 51, 234, 0.06);
+    transform: translateY(-1px);
+  }
+}
+
+// Shared sidebar item
+%sidebar-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+  margin: 2px 8px;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast, transform $transition-fast;
+
+  &:hover {
+    background: rgba(148, 163, 184, 0.06);
+
+    .sp-delete-btn {
+      opacity: 1;
+    }
+  }
+
+  &.active {
+    background: rgba(147, 51, 234, 0.1);
+    border-left: 2px solid $purple-400;
+    padding-left: 12px;
+  }
+}
+
+// Shared delete button
+.sp-delete-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: $text-muted;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $red-dim;
+    color: $red-400;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 7. TAB 1 — AI Chat
+// ---------------------------------------------------------------------------
+.sp-chat {
+  @extend %panel-layout;
+}
+
+// 7a. Chat Sidebar
+.sp-chat-sidebar {
+  @extend %sidebar-base;
+
+  .sp-new-chat-btn {
+    @extend %sidebar-new-btn;
+  }
+
+  .sp-chat-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 8px;
+    @include scrollbar-thin;
+  }
+}
+
+.sp-chat-item {
+  @extend %sidebar-item;
+
+  .sp-chat-item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-primary;
+    @include truncate;
+  }
+
+  .sp-chat-item-date {
+    font-size: 11px;
+    color: $text-muted;
+  }
+
+  .sp-chat-delete {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: $text-muted;
+    font-size: 13px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $red-dim;
+      color: $red-400;
+    }
+  }
+
+  &:hover .sp-chat-delete {
+    opacity: 1;
+  }
+}
+
+// 7b. Chat Main
+.sp-chat-main {
+  @extend %main-base;
+}
+
+// Messages Area
+.sp-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  @include scrollbar-thin;
+}
+
+.sp-msg {
+  max-width: 72%;
+  padding: 12px 16px;
+  border-radius: $radius-md;
+  font-size: 13.5px;
+  line-height: 1.65;
+  animation: sp-slide-up 320ms $ease-out-smooth;
+  word-wrap: break-word;
+  position: relative;
+
+  // User bubble — right-aligned, purple gradient
+  &.user {
+    align-self: flex-end;
+    background: $gradient-purple;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+    box-shadow: $shadow-sm, 0 0 16px rgba(147, 51, 234, 0.18);
+  }
+
+  // Assistant bubble — left-aligned, dark glass
+  &.assistant {
+    align-self: flex-start;
+    @include glass($glass-bg-light, 14px);
+    @include glass-border;
+    color: $text-primary;
+    border-bottom-left-radius: 4px;
+
+    // Typing dots indicator
+    &.typing::after {
+      content: '●●●';
+      display: inline-block;
+      letter-spacing: 3px;
+      font-size: 11px;
+      color: $text-muted;
+      animation: sp-shimmer 1.5s infinite linear;
+      background: linear-gradient(
+        90deg,
+        $text-muted 25%,
+        $purple-300 50%,
+        $text-muted 75%
+      );
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  // Timestamp inside bubble
+  .sp-msg-time {
+    display: block;
+    margin-top: 6px;
+    font-size: 10px;
+    opacity: 0.5;
+    text-align: right;
+  }
+
+  // Code blocks inside messages
+  pre {
+    margin: 8px 0 4px;
+    padding: 10px 12px;
+    border-radius: $radius-sm;
+    background: rgba(0, 0, 0, 0.35);
+    font-size: 12px;
+    overflow-x: auto;
+    @include scrollbar-thin;
+  }
+}
+
+// Input area
+.sp-input-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid $glass-border;
+  @include glass(rgba(15, 23, 42, 0.7), 10px);
+  flex-shrink: 0;
+
+  input,
+  textarea {
+    flex: 1;
+    min-height: $input-h;
+    height: auto;
+    padding: 14px 16px;
+    border-radius: $radius-sm;
+    border: 1px solid $glass-border;
+    background: rgba(30, 41, 59, 0.5);
+    color: $text-primary;
+    font-family: $font-stack;
+    font-size: 13px;
+    outline: none;
+    resize: none;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
+
+    &::placeholder {
+      color: $text-dim;
+    }
+
+    &:focus {
+      border-color: rgba(192, 132, 252, 0.35);
+      box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.08);
+    }
+  }
+
+  .sp-send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: $radius-sm;
+    border: none;
+    background: $gradient-purple;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform $transition-fast, box-shadow $transition-fast,
+                opacity $transition-fast;
+
+    &:hover {
+      transform: translateY(-1px) scale(1.04);
+      box-shadow: $shadow-md, $shadow-glow;
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+// Generate plan button
+.sp-generate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 16px 12px;
+  padding: 12px 24px;
+  border-radius: $radius-sm;
+  border: none;
+  background: $gradient-gold;
+  color: #1c1917;
+  font-family: $font-stack;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+  animation: sp-slide-up 380ms $ease-bounce;
+
+  // Shimmer sweep
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.25),
+      transparent
+    );
+    animation: sp-shimmer 2.5s infinite;
+  }
+
+  &:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: $shadow-md, 0 0 20px rgba(251, 191, 36, 0.25);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8. TAB 2 — Plans (Kế hoạch)
+// ---------------------------------------------------------------------------
+.sp-plans {
+  @extend %panel-layout;
+}
+
+// 8a. Plans Sidebar
+.sp-plans-sidebar {
+  @extend %sidebar-base;
+
+  .sp-new-plan-btn {
+    @extend %sidebar-new-btn;
+  }
+
+  .sp-plans-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 8px;
+    @include scrollbar-thin;
+  }
+}
+
+.sp-plan-item {
+  @extend %sidebar-item;
+
+  .sp-plan-item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-primary;
+    @include truncate;
+  }
+
+  .sp-plan-item-meta {
+    font-size: 11px;
+    color: $text-muted;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sp-plan-progress {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(148, 163, 184, 0.1);
+    margin-top: 4px;
+    overflow: hidden;
+
+    &-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: $gradient-purple;
+      transition: width 600ms $ease-out-smooth;
+    }
+  }
+}
+
+// 8b. Plans Main
+.sp-plans-main {
+  @extend %main-base;
+  padding: 16px 20px;
+  overflow-y: auto;
+  @include scrollbar-thin;
+}
+
+// Plan Table
+.sp-plan-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 4px;
+
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+
+    th {
+      padding: 10px 14px;
+      font-size: 11.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: $text-secondary;
+      text-align: left;
+      @include glass(rgba(15, 23, 42, 0.92), 12px);
+      border-bottom: 1px solid $glass-border;
+
+      &:first-child { border-radius: $radius-sm 0 0 $radius-sm; }
+      &:last-child  { border-radius: 0 $radius-sm $radius-sm 0; }
+    }
+  }
+
+  tbody tr {
+    transition: background $transition-fast;
+
+    &:nth-child(even) td {
+      background: rgba(30, 41, 59, 0.25);
+    }
+
+    &:nth-child(odd) td {
+      background: rgba(15, 23, 42, 0.35);
+    }
+  }
+
+  td {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: $text-primary;
+    vertical-align: middle;
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    transition: background $transition-fast, border-color $transition-fast;
+
+    &:first-child { border-radius: $radius-sm 0 0 $radius-sm; }
+    &:last-child  { border-radius: 0 $radius-sm $radius-sm 0; }
+  }
+}
+
+// Phase row hover
+.sp-phase-row {
+  &:hover td {
+    background: rgba(147, 51, 234, 0.05) !important;
+    border-top-color: rgba(192, 132, 252, 0.08);
+    border-bottom-color: rgba(192, 132, 252, 0.08);
+  }
+}
+
+// Checkbox / Quiz-ready cell
+.sp-check-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  input[type='checkbox'] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid $text-dim;
+    border-radius: 5px;
+    cursor: pointer;
+    position: relative;
+    transition: all $transition-fast;
+
+    &:checked {
+      border-color: $green-500;
+      background: $green-500;
+
+      &::after {
+        content: '✓';
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+      }
+    }
+
+    &:hover {
+      border-color: $purple-300;
+    }
+  }
+
+  // Unchecked button (replaces raw ☐ text)
+  .sp-check-btn {
+    width: 20px;
+    height: 20px;
+    border: 2px solid $text-dim;
+    border-radius: 5px;
+    cursor: pointer;
+    background: transparent;
+    transition: all $transition-fast;
+    color: transparent; // Hide raw text
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      border-color: $purple-300;
+      background: rgba(147, 51, 234, 0.08);
+    }
+  }
+
+  // Quiz button replaces checkbox when checked
+  .sp-quiz-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: $radius-pill;
+    border: none;
+    background: $gradient-gold;
+    color: #1c1917;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    animation: sp-slide-up 280ms $ease-bounce;
+    transition: transform $transition-fast, box-shadow $transition-fast;
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.3);
+    }
+  }
+}
+
+// Resource chips
+.sp-resources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+
+  .sp-resource-chip {
+    @include chip-base;
+    background: rgba(96, 165, 250, 0.12);
+    color: $blue-400;
+    text-decoration: none;
+
+    &:hover {
+      background: rgba(96, 165, 250, 0.2);
+    }
+  }
+}
+
+// Topic chips
+.sp-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+
+  .sp-topic-chip {
+    @include chip-base;
+    background: rgba(147, 51, 234, 0.12);
+    color: $purple-300;
+
+    &:hover {
+      background: rgba(147, 51, 234, 0.2);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 9. TAB 3 — Quiz (Kiểm tra)
+// ---------------------------------------------------------------------------
+.sp-quiz {
+  @extend %panel-layout;
+}
+
+// 9a. Quiz Sidebar
+.sp-quiz-sidebar {
+  @extend %sidebar-base;
+
+  .sp-quiz-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    @include scrollbar-thin;
+  }
+}
+
+.sp-quiz-item {
+  @extend %sidebar-item;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+
+  .sp-quiz-item-info {
+    flex: 1;
+    min-width: 0;
+
+    .sp-quiz-item-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: $text-primary;
+      @include truncate;
+    }
+
+    .sp-quiz-item-date {
+      font-size: 11px;
+      color: $text-muted;
+    }
+  }
+
+  // Score badge
+  .sp-score-badge {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: $radius-pill;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+
+    &.high {
+      background: $green-dim;
+      color: $green-400;
+    }
+
+    &.mid {
+      background: $gold-dim;
+      color: $gold;
+    }
+
+    &.low {
+      background: $red-dim;
+      color: $red-400;
+    }
+  }
+}
+
+// 9b. Quiz Main
+.sp-quiz-main {
+  @extend %main-base;
+  padding: 24px 28px;
+  overflow-y: auto;
+  @include scrollbar-thin;
+}
+
+// Quiz header
+.sp-quiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  animation: sp-fade-in 300ms $ease-out-smooth;
+
+  .sp-quiz-counter {
+    font-size: 13px;
+    color: $text-secondary;
+    font-weight: 500;
+
+    strong {
+      color: $purple-300;
+    }
+  }
+
+  .sp-quiz-progress-bar {
+    flex: 1;
+    max-width: 200px;
+    height: 5px;
+    margin-left: 16px;
+    border-radius: 3px;
+    background: rgba(148, 163, 184, 0.1);
+    overflow: hidden;
+
+    &-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: $gradient-purple;
+      transition: width 400ms $ease-out-smooth;
+    }
+  }
+}
+
+// Question
+.sp-quiz-question {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: $text-primary;
+  margin-bottom: 24px;
+  animation: sp-slide-up 340ms $ease-out-smooth;
+}
+
+// Options
+.sp-quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.sp-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: $radius-md;
+  border: 1px solid $glass-border;
+  @include glass($glass-bg-light, 10px);
+  cursor: pointer;
+  transition: all $transition-mid;
+  animation: sp-slide-up 360ms $ease-out-smooth;
+  animation-fill-mode: both;
+
+  @for $i from 1 through 4 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 60}ms;
+    }
+  }
+
+  // Radio circle
+  .sp-option-radio {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid $text-dim;
+    flex-shrink: 0;
+    position: relative;
+    transition: border-color $transition-fast, background $transition-fast;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: $purple-400;
+      transition: transform 200ms $ease-bounce;
+    }
+  }
+
+  .sp-option-label {
+    font-size: 14px;
+    color: $text-primary;
+    line-height: 1.5;
+  }
+
+  .sp-option-marker {
+    margin-left: auto;
+    font-size: 16px;
+    opacity: 0;
+    transition: opacity $transition-fast;
+  }
+
+  // — Hover state
+  &:hover {
+    border-color: $glass-border-h;
+    background: rgba(147, 51, 234, 0.04);
+    transform: translateX(4px);
+
+    .sp-option-radio {
+      border-color: $purple-400;
+    }
+  }
+
+  // — Selected state
+  &.selected {
+    border-color: rgba(192, 132, 252, 0.3);
+    background: rgba(147, 51, 234, 0.08);
+
+    .sp-option-radio {
+      border-color: $purple-400;
+
+      &::after {
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+  }
+
+  // — Correct state (after submit)
+  &.correct {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: $green-dim;
+
+    .sp-option-radio {
+      border-color: $green-500;
+      background: $green-500;
+
+      &::after {
+        background: #fff;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .sp-option-label { color: $green-400; }
+
+    .sp-option-marker {
+      opacity: 1;
+      color: $green-400;
+    }
+  }
+
+  // — Wrong state (after submit)
+  &.wrong {
+    border-color: rgba(248, 113, 113, 0.3);
+    background: $red-dim;
+
+    .sp-option-radio {
+      border-color: $red-400;
+      background: $red-400;
+
+      &::after {
+        background: #fff;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .sp-option-label { color: $red-400; }
+
+    .sp-option-marker {
+      opacity: 1;
+      color: $red-400;
+    }
+  }
+
+  // Disabled after submission
+  &.disabled {
+    pointer-events: none;
+    opacity: 0.85;
+  }
+}
+
+// Navigation
+.sp-quiz-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  .sp-quiz-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 20px;
+    border-radius: $radius-sm;
+    border: 1px solid $glass-border;
+    background: rgba(30, 41, 59, 0.5);
+    color: $text-secondary;
+    font-family: $font-stack;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      color: $text-primary;
+      border-color: $glass-border-h;
+      background: rgba(147, 51, 234, 0.06);
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
+  .sp-quiz-page-info {
+    font-size: 12px;
+    color: $text-muted;
+    font-weight: 500;
+  }
+}
+
+// Submit button (inside nav)
+.sp-quiz-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 24px;
+  border-radius: $radius-sm;
+  border: none;
+  background: $gradient-purple;
+  color: #fff;
+  font-family: $font-stack;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.12),
+      transparent
+    );
+    transition: left 500ms ease;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md, $shadow-glow;
+
+    &::before {
+      left: 120%;
+    }
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+// Results
+.sp-quiz-results {
+  animation: sp-fade-in 400ms $ease-out-smooth;
+
+  .sp-results-score {
+    text-align: center;
+    padding: 32px 0 24px;
+
+    .sp-score-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      margin-bottom: 14px;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      animation: sp-score-pop 500ms $ease-bounce;
+      position: relative;
+
+      // Pulsing ring behind score
+      &::before {
+        content: '';
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        border: 2px solid currentColor;
+        opacity: 0.3;
+        animation: sp-pulse-ring 2s infinite ease-out;
+      }
+
+      &.high {
+        background: $green-dim;
+        color: $green-400;
+        border: 2px solid rgba(16, 185, 129, 0.25);
+      }
+
+      &.mid {
+        background: $gold-dim;
+        color: $gold;
+        border: 2px solid rgba(251, 191, 36, 0.25);
+      }
+
+      &.low {
+        background: $red-dim;
+        color: $red-400;
+        border: 2px solid rgba(248, 113, 113, 0.2);
+      }
+    }
+
+    .sp-score-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: $text-primary;
+    }
+
+    .sp-score-detail {
+      font-size: 13px;
+      color: $text-secondary;
+      margin-top: 4px;
+    }
+  }
+
+  // Per-question breakdown
+  .sp-results-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .sp-result-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: $radius-sm;
+    @include glass($glass-bg-light, 8px);
+    @include glass-border;
+    animation: sp-slide-up 300ms $ease-out-smooth;
+    animation-fill-mode: both;
+
+    @for $i from 1 through 20 {
+      &:nth-child(#{$i}) {
+        animation-delay: #{$i * 50}ms;
+      }
+    }
+
+    .sp-result-num {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    &.correct .sp-result-num {
+      background: $green-dim;
+      color: $green-400;
+    }
+
+    &.wrong .sp-result-num {
+      background: $red-dim;
+      color: $red-400;
+    }
+
+    .sp-result-text {
+      flex: 1;
+      font-size: 13px;
+      color: $text-primary;
+      @include truncate;
+    }
+
+    .sp-result-icon {
+      font-size: 15px;
+      flex-shrink: 0;
+
+      &.correct { color: $green-400; }
+      &.wrong   { color: $red-400;   }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 10. Global States
+// ---------------------------------------------------------------------------
+
+// Loading spinner
+.sp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 48px 0;
+  flex: 1;
+  animation: sp-fade-in 300ms $ease-out-smooth;
+
+  .sp-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(148, 163, 184, 0.1);
+    border-top-color: $purple-400;
+    border-radius: 50%;
+    animation: sp-spin 0.75s linear infinite;
+  }
+
+  .sp-loading-text {
+    font-size: 13px;
+    color: $text-muted;
+    font-weight: 500;
+  }
+}
+
+// Empty state
+.sp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 24px;
+  text-align: center;
+  flex: 1;
+  animation: sp-fade-in 400ms $ease-out-smooth;
+
+  .sp-empty-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(147, 51, 234, 0.08);
+    border: 1px solid rgba(147, 51, 234, 0.12);
+    font-size: 24px;
+    color: $purple-300;
+    margin-bottom: 4px;
+  }
+
+  .sp-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .sp-empty-desc {
+    font-size: 13px;
+    color: $text-muted;
+    max-width: 280px;
+    line-height: 1.5;
+  }
+
+  .sp-empty-action {
+    margin-top: 8px;
+    padding: 9px 22px;
+    border-radius: $radius-sm;
+    border: 1px dashed rgba(192, 132, 252, 0.25);
+    background: transparent;
+    color: $purple-300;
+    font-family: $font-stack;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba(147, 51, 234, 0.08);
+      border-color: rgba(192, 132, 252, 0.4);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 11. Utility / Focus Helpers
+// ---------------------------------------------------------------------------
+.sp-chat,
+.sp-plans,
+.sp-quiz {
+  // Ensure hidden tabs don't take space
+  &[hidden] {
+    display: none !important;
+  }
+}
+
+// Focus-visible outline for keyboard navigation
+.study-planner {
+  :focus-visible {
+    outline: 2px solid rgba(192, 132, 252, 0.5);
+    outline-offset: 2px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 12. Settings Modal & Buttons
+// ---------------------------------------------------------------------------
+
+.sp-tab-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .sp-tabs {
+    display: flex;
+    gap: 12px;
+  }
+}
+
+.sp-settings-btn {
+  background: transparent;
+  border: none;
+  color: $text-muted;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $purple-300;
+    background: rgba(147, 51, 234, 0.1);
+    transform: rotate(30deg);
+  }
+}
+
+.sp-settings-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: sp-fade-in $transition-fast $ease-out-smooth;
+}
+
+.sp-settings-modal {
+  width: 400px;
+  background: $glass-bg-dark;
+  border: 1px solid $glass-border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+  animation: sp-slide-up 300ms $ease-out-smooth;
+
+  .sp-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: $text-primary;
+    }
+
+    .sp-close-btn {
+      background: transparent;
+      border: none;
+      color: $text-muted;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: color $transition-fast;
+
+      &:hover {
+        color: $red-400;
+      }
+    }
+  }
+
+  .sp-settings-body {
+    padding: 20px;
+
+    .sp-form-group {
+      margin-bottom: 20px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: $text-secondary;
+        margin-bottom: 8px;
+      }
+
+      .sp-hint {
+        display: block;
+        font-size: 11px;
+        color: $text-muted;
+        margin-top: 6px;
+      }
+
+      input {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid $glass-border;
+        border-radius: $radius-md;
+        padding: 10px 12px;
+        color: $text-primary;
+        font-family: $font-stack;
+        font-size: 13px;
+        outline: none;
+        transition: border-color $transition-fast;
+
+        &:focus {
+          border-color: $purple-400;
+        }
+      }
+    }
+
+    .sp-provider-toggle {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: $radius-md;
+      padding: 4px;
+      border: 1px solid $glass-border;
+
+      button {
+        flex: 1;
+        padding: 8px 0;
+        background: transparent;
+        border: none;
+        color: $text-muted;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: $radius-sm;
+        cursor: pointer;
+        transition: all $transition-fast;
+
+        &.active {
+          background: $purple-600;
+          color: white;
+          box-shadow: $shadow-sm;
+        }
+
+        &:not(.active):hover {
+          color: $text-secondary;
+          background: rgba(255, 255, 255, 0.05);
+        }
+      }
+    }
+  }
+
+  .sp-settings-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    button {
+      padding: 8px 16px;
+      border-radius: $radius-md;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all $transition-fast;
+
+      &.sp-btn-cancel {
+        background: transparent;
+        border: 1px solid $glass-border;
+        color: $text-secondary;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+      }
+
+      &.sp-btn-save {
+        background: $gradient-purple;
+        border: none;
+        color: white;
+
+        &:hover {
+          filter: brightness(1.1);
+        }
+      }
+    }
+  }
+}

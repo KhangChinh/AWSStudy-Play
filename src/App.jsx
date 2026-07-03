@@ -1,17 +1,19 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
 import { ToastContainer } from 'react-toastify';
-import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import 'react-toastify/dist/ReactToastify.css';
 
-import store from './store';
+import { store, persistor } from './store';
 import Dashboard from './features/dashboard/Dashboard';
 import AuthPage from './features/auth/AuthPage';
-import TimerWidget from './features/focus/TimerWidget';
 import Spinner from './components/Spinner';
-import { handleLoginSuccessApi, initializeAuth } from './services/authService';
-import { userLogin } from './store/actions';
+
+import { handleSyncProfileApi } from './services/syncService';
+import { handleLogoutApi } from './services/authService';
+import { initializeAuth } from './services/tokenService';
+
 import './index.css';
 
 class App extends Component {
@@ -24,25 +26,30 @@ class App extends Component {
 
   async componentDidMount() {
     try {
-      // Khởi tạo Auth (lấy token vào RAM)
-      await initializeAuth();
-
-      const user = await getCurrentUser();
-      const attributes = await fetchUserAttributes();
-      if (user) {
-        // Nếu đã đăng nhập, thực hiện setup ban đầu
-        handleLoginSuccessApi(); // Resize window
-        this.props.userLogin({
-          email: attributes.email || user.signInDetails?.loginId || user.username,
-          username: attributes.name || attributes.nickname || user.username
-        });
-      }
-    } catch (_error) {
-      console.log('No active session found.');
+      await this.bootstrapSession();
+    } catch (error) {
+      console.log('[App] Bootstrap failed:', error.message);
     } finally {
       this.setState({ isCheckingAuth: false });
     }
   }
+
+  bootstrapSession = async () => {
+    const hasValidSession = await initializeAuth();
+    if (!hasValidSession) {
+      console.log('[App] Không có phiên Cognito hợp lệ hoặc đã hết hạn.');
+      await handleLogoutApi();
+      return;
+    }
+    try {
+      await handleSyncProfileApi();
+      // Gửi IPC để main process resize cửa sổ sang kích thước Dashboard
+      if (window.api?.send) window.api.send('login-success');
+    } catch (error) {
+      console.warn('[App] Đồng bộ profile thất bại, đăng xuất...', error.message);
+      await handleLogoutApi();
+    }
+  };
 
   render() {
     const { isCheckingAuth } = this.state;
@@ -61,19 +68,15 @@ class App extends Component {
         <Routes>
           <Route
             path="/login"
-            element={isLoggedIn ? <Navigate to="/desktop" replace /> : <AuthPage />}
+            element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <AuthPage />}
           />
           <Route
-            path="/desktop"
+            path="/dashboard"
             element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />}
           />
           <Route
-            path="/timer-widget"
-            element={<TimerWidget />}
-          />
-          <Route
             path="*"
-            element={<Navigate to={isLoggedIn ? "/desktop" : "/login"} replace />}
+            element={<Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />}
           />
         </Routes>
         <ToastContainer
@@ -94,18 +97,16 @@ class App extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  isLoggedIn: state.isLoggedIn,
+  isLoggedIn: !!state.profile?.userProfile,
 });
 
-const mapDispatchToProps = (dispatch) => ({
-  userLogin: (info) => dispatch(userLogin(info)),
-});
-
-const ConnectedApp = connect(mapStateToProps, mapDispatchToProps)(App);
+const ConnectedApp = connect(mapStateToProps)(App);
 
 const Root = () => (
   <Provider store={store}>
-    <ConnectedApp />
+    <PersistGate loading={null} persistor={persistor}>
+      <ConnectedApp />
+    </PersistGate>
   </Provider>
 );
 

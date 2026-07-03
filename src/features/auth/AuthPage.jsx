@@ -1,15 +1,12 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import { Component } from 'react';
+import { withTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
-import { signIn, signUp, signOut, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, fetchUserAttributes } from 'aws-amplify/auth';
-
+import { signIn, signUp, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
 import './AuthPage.scss';
 import Spinner from '../../components/Spinner';
-import { withRouter } from '../../utils/withRouter';
-import { handleLoginSuccessApi, initializeAuth } from '../../services/authService';
-import { userLogin } from '../../store/actions';
+import { handleLoginApi, handleLogoutApi } from '../../services/authService';
 
 class AuthPage extends Component {
   constructor(props) {
@@ -19,7 +16,6 @@ class AuthPage extends Component {
       showPassword: false,
       showConfirmPassword: false,
       isLoading: false,
-      // Form fields
       username: '',
       email: '',
       password: '',
@@ -28,20 +24,7 @@ class AuthPage extends Component {
       newPassword: '',
       confirmNewPassword: '',
       resendCooldown: 0,
-      // DisableButton
-      disabledButtons: {
-        submit: false,
-      },
     };
-  }
-
-  async componentDidMount() {
-    // Đảm bảo phiên cũ được xóa sạch khi quay lại màn hình Login
-    try {
-      await signOut();
-    } catch (_e) {
-      // ignore
-    }
   }
 
   componentWillUnmount() {
@@ -49,7 +32,7 @@ class AuthPage extends Component {
   }
 
   startResendCooldown = () => {
-    this.setState({ resendCooldown: 60 });
+    this.setState({ resendCooldown: 300 });
     if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
     this.resendTimerInterval = setInterval(() => {
       this.setState((prev) => {
@@ -62,9 +45,11 @@ class AuthPage extends Component {
       });
     }, 1000);
   };
+
   handleInputChange = (field, value) => {
     this.setState({ [field]: value });
   };
+
   handleToggleAuthMode = (mode) => {
     const keepEmail = ['confirm', 'forgot', 'resetPassword'].includes(mode);
     this.setState({
@@ -80,6 +65,7 @@ class AuthPage extends Component {
       showConfirmPassword: false,
     });
   };
+
   handleResendCode = async () => {
     const { email, resendCooldown, authMode } = this.state;
     if (resendCooldown > 0) return;
@@ -102,11 +88,10 @@ class AuthPage extends Component {
     }
     this.setState({ isLoading: false });
   };
+
   handleSubmit = async (e) => {
     e.preventDefault();
     const { authMode, email, password, username, confirmPassword, verificationCode, newPassword, confirmNewPassword } = this.state;
-
-    // Validation
     if ((authMode === 'login' || authMode === 'register') && (!email || !password)) {
       toast.error('Vui lòng nhập đầy đủ thông tin!');
       return;
@@ -143,25 +128,18 @@ class AuthPage extends Component {
         return;
       }
     }
-
     this.setState({ isLoading: true });
     try {
       if (authMode === 'login') {
         const { isSignedIn, nextStep } = await signIn({ username: email, password });
         if (isSignedIn) {
-          await initializeAuth(); // Cập nhật token mới vào RAM
-          const attributes = await fetchUserAttributes();
-          handleLoginSuccessApi();
-          this.props.userLogin({ 
-            email: attributes.email || email, 
-            username: attributes.name || attributes.nickname || email 
-          });
           toast.success('Đăng nhập thành công!');
+          await handleLoginApi();
+          if (window.api?.send) window.api.send('login-success');
           setTimeout(() => {
-            this.props.navigate('/desktop');
+            this.props.navigate('/dashboard');
           }, 100);
         } else {
-          console.log('Next step:', nextStep);
           if (nextStep && nextStep.signInStep === 'CONFIRM_SIGN_UP') {
             toast.info('Tài khoản chưa được kích hoạt. Hãy nhập mã xác thực!');
             this.setState({ authMode: 'confirm' });
@@ -189,7 +167,7 @@ class AuthPage extends Component {
               this.startResendCooldown();
               this.setState({ authMode: 'confirm', verificationCode: '', isLoading: false });
               return;
-            } catch (_resendError) {
+            } catch (resendError) {
               throw signUpError;
             }
           }
@@ -204,7 +182,7 @@ class AuthPage extends Component {
           confirmationCode: verificationCode
         });
         if (isSignUpComplete) {
-          toast.success('Xác thực tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.');
+          toast.info('Xác thực thành công! Vui lòng đăng nhập.');
           this.setState({ authMode: 'login', password: '', confirmPassword: '', verificationCode: '' });
         } else {
           toast.info('Xác thực chưa hoàn tất. Vui lòng kiểm tra lại.');
@@ -231,76 +209,87 @@ class AuthPage extends Component {
       }
     } catch (error) {
       console.log('Error:', error);
-      toast.error(error.message || 'Xảy ra lỗi, vui lòng thử lại!');
+      if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
+        toast.info('Phát hiện phiên đăng nhập cũ chưa dọn dẹp. Đang làm sạch, vui lòng bấm đăng nhập lại...');
+        try {
+          await handleLogoutApi();
+        } catch (logoutError) {
+          console.error('Error during cleanup:', logoutError);
+        }
+      } else {
+        toast.error(error.message || 'Xảy ra lỗi, vui lòng thử lại!');
+      }
     }
     this.setState({ isLoading: false });
   };
+
   render() {
     const { authMode, showPassword, showConfirmPassword, isLoading, email, password, username, confirmPassword, verificationCode } = this.state;
+    const { t } = this.props;
     return (
       <div className="auth-page">
         {isLoading && <Spinner />}
         <div className="stars"></div>
         <div className="twinkling"></div>
         <div className="purple-nebula"></div>
-
         <div className="auth-container">
           <div className="auth-nav">
             <button
               className={authMode === 'login' ? 'active' : ''}
               onClick={() => this.handleToggleAuthMode('login')}
-              disabled={authMode === 'confirm'}
+              disabled={authMode === 'confirm' || authMode === 'forgot' || authMode === 'resetPassword'}
             >
-              Sign In
+              {t('auth.sign_in')}
             </button>
             <button
               className={authMode === 'register' ? 'active' : ''}
               onClick={() => this.handleToggleAuthMode('register')}
-              disabled={authMode === 'confirm'}
+              disabled={authMode === 'confirm' || authMode === 'forgot' || authMode === 'resetPassword'}
             >
-              Sign Up
+              {t('auth.sign_up')}
             </button>
           </div>
 
           <div className="form-wrapper">
             <h2 className="title">
-              {authMode === 'login' && 'Welcome Back!'}
-              {authMode === 'register' && 'Join the Universe'}
-              {authMode === 'confirm' && 'Verify Identity'}
-              {authMode === 'forgot' && 'Reset Password'}
-              {authMode === 'resetPassword' && 'New Password'}
+              {authMode === 'login' && t('auth.welcome_back')}
+              {authMode === 'register' && t('auth.join_universe')}
+              {authMode === 'confirm' && t('auth.verify_identity')}
+              {authMode === 'forgot' && t('auth.reset_password')}
+              {authMode === 'resetPassword' && t('auth.new_password')}
             </h2>
             <p className="subtitle">
-              {authMode === 'login' && 'Enter your credentials to access your system.'}
-              {authMode === 'register' && 'Register a new identity in our system.'}
-              {authMode === 'confirm' && 'Enter the verification code sent to your email.'}
-              {authMode === 'forgot' && 'Enter your email to receive a password reset code.'}
-              {authMode === 'resetPassword' && 'Enter the code and your new password.'}
+              {authMode === 'login' && t('auth.enter_credentials')}
+              {authMode === 'register' && t('auth.register_identity')}
+              {authMode === 'confirm' && t('auth.enter_verify_code')}
+              {authMode === 'forgot' && t('auth.enter_email_reset')}
+              {authMode === 'resetPassword' && t('auth.enter_code_and_password')}
             </p>
 
             <form className="auth-form" onSubmit={this.handleSubmit}>
               {authMode === 'register' && (
                 <div className="input-group">
-                  <label>Username</label>
+                  <label>{t('auth.username')}</label>
                   <input type="text" placeholder="SpaceExplorer99" value={username} onChange={(e) => this.handleInputChange('username', e.target.value)} disabled={isLoading} />
                 </div>
               )}
 
               {authMode !== 'resetPassword' && (
                 <div className="input-group">
-                  <label>Email Address</label>
+                  <label>{t('auth.email_address')}</label>
                   <input type="email" placeholder="example@gmail.com" value={email} onChange={(e) => this.handleInputChange('email', e.target.value)} disabled={isLoading || authMode === 'confirm'} readOnly={authMode === 'confirm'} />
                 </div>
               )}
 
               {(authMode === 'login' || authMode === 'register') && (
                 <div className="input-group">
-                  <label>Password</label>
+                  <label>{t('auth.password')}</label>
                   <div className="password-input-wrapper">
                     <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => this.handleInputChange('password', e.target.value)} disabled={isLoading} />
                     <button
                       type="button"
                       className="toggle-password"
+                      tabIndex={-1}
                       onClick={() => this.setState({ showPassword: !showPassword })}
                       disabled={isLoading}
                     >
@@ -312,12 +301,13 @@ class AuthPage extends Component {
 
               {authMode === 'register' && (
                 <div className="input-group">
-                  <label>Confirm Password</label>
+                  <label>{t('auth.confirm_password')}</label>
                   <div className="password-input-wrapper">
                     <input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => this.handleInputChange('confirmPassword', e.target.value)} disabled={isLoading} />
                     <button
                       type="button"
                       className="toggle-password"
+                      tabIndex={-1}
                       onClick={() => this.setState({ showConfirmPassword: !showConfirmPassword })}
                       disabled={isLoading}
                     >
@@ -329,7 +319,7 @@ class AuthPage extends Component {
 
               {(authMode === 'confirm' || authMode === 'resetPassword') && (
                 <div className="input-group">
-                  <label>Verification Code</label>
+                  <label>{t('auth.verification_code')}</label>
                   <input type="text" placeholder="e.g. 123456" value={verificationCode} onChange={(e) => this.handleInputChange('verificationCode', e.target.value)} disabled={isLoading} />
                 </div>
               )}
@@ -337,12 +327,13 @@ class AuthPage extends Component {
               {authMode === 'resetPassword' && (
                 <>
                   <div className="input-group">
-                    <label>New Password</label>
+                    <label>{t('auth.new_password_label')}</label>
                     <div className="password-input-wrapper">
                       <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={this.state.newPassword} onChange={(e) => this.handleInputChange('newPassword', e.target.value)} disabled={isLoading} />
                       <button
                         type="button"
                         className="toggle-password"
+                        tabIndex={-1}
                         onClick={() => this.setState({ showPassword: !showPassword })}
                         disabled={isLoading}
                       >
@@ -351,12 +342,13 @@ class AuthPage extends Component {
                     </div>
                   </div>
                   <div className="input-group">
-                    <label>Confirm New Password</label>
+                    <label>{t('auth.confirm_new_password')}</label>
                     <div className="password-input-wrapper">
                       <input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={this.state.confirmNewPassword} onChange={(e) => this.handleInputChange('confirmNewPassword', e.target.value)} disabled={isLoading} />
                       <button
                         type="button"
                         className="toggle-password"
+                        tabIndex={-1}
                         onClick={() => this.setState({ showConfirmPassword: !showConfirmPassword })}
                         disabled={isLoading}
                       >
@@ -370,7 +362,7 @@ class AuthPage extends Component {
               {authMode === 'login' && (
                 <div className="auth-helper-links">
                   <div className="forgot-password">
-                    <a href="#" onClick={(e) => { e.preventDefault(); if (!isLoading) this.handleToggleAuthMode('forgot'); }}>Forgot password?</a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); if (!isLoading) this.handleToggleAuthMode('forgot'); }}>{t('auth.forgot_password')}</a>
                   </div>
                 </div>
               )}
@@ -378,10 +370,12 @@ class AuthPage extends Component {
               {authMode === 'confirm' && (
                 <div className="auth-helper-links">
                   <button type="button" className="btn-link" onClick={this.handleResendCode} disabled={isLoading || this.state.resendCooldown > 0}>
-                    {this.state.resendCooldown > 0 ? `Resend code (${this.state.resendCooldown}s)` : 'Resend code'}
+                    {this.state.resendCooldown > 0
+                      ? t('auth.resend_code_countdown', { count: this.state.resendCooldown })
+                      : t('auth.resend_code')}
                   </button>
                   <button type="button" className="btn-link" onClick={() => this.handleToggleAuthMode('login')} disabled={isLoading}>
-                    Back to Sign In
+                    {t('auth.back_to_sign_in')}
                   </button>
                 </div>
               )}
@@ -390,24 +384,23 @@ class AuthPage extends Component {
                 <div className="auth-helper-links">
                   {authMode === 'resetPassword' && (
                     <button type="button" className="btn-link" onClick={this.handleResendCode} disabled={isLoading || this.state.resendCooldown > 0}>
-                      {this.state.resendCooldown > 0 ? `Resend code (${this.state.resendCooldown}s)` : 'Resend code'}
+                      {this.state.resendCooldown > 0
+                        ? t('auth.resend_code_countdown', { count: this.state.resendCooldown })
+                        : t('auth.resend_code')}
                     </button>
                   )}
                   <button type="button" className="btn-link" onClick={() => this.handleToggleAuthMode('login')} disabled={isLoading}>
-                    Back to Sign In
-                  </button>
-                  <button type="button" className="btn-link" onClick={() => this.handleToggleAuthMode('register')} disabled={isLoading}>
-                    Register New Account
+                    {t('auth.back_to_sign_in')}
                   </button>
                 </div>
               )}
 
               <button type="submit" className="btn-cosmic" disabled={isLoading}>
-                {authMode === 'login' && 'Initialize Login'}
-                {authMode === 'register' && 'Register Identity'}
-                {authMode === 'confirm' && 'Verify Identity'}
-                {authMode === 'forgot' && 'Send Reset Code'}
-                {authMode === 'resetPassword' && 'Reset Password'}
+                {authMode === 'login' && t('auth.btn_login')}
+                {authMode === 'register' && t('auth.btn_register')}
+                {authMode === 'confirm' && t('auth.btn_verify')}
+                {authMode === 'forgot' && t('auth.btn_send_reset')}
+                {authMode === 'resetPassword' && t('auth.btn_reset_password')}
               </button>
             </form>
           </div>
@@ -417,13 +410,4 @@ class AuthPage extends Component {
   }
 }
 
-const mapStateToProps = (state) => ({
-  userInfo: state.userInfo,
-  isLoggedIn: state.isLoggedIn,
-});
-
-const mapDispatchToProps = (dispatch) => ({
-  userLogin: (info) => dispatch(userLogin(info)),
-});
-
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(AuthPage));
+export default withTranslation()(AuthPage);

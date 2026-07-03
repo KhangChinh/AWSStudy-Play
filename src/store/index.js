@@ -1,10 +1,26 @@
-/**
- * Redux Store — Khởi tạo store toàn cục
- */
-
 import { createStore } from 'redux';
-import appReducer from './reducers';
+import { persistStore, persistReducer } from 'redux-persist';
+import rootReducer from './reducers';
 
-const store = createStore(appReducer);
+// Custom storage adapter — redux-persist/lib/storage is CJS and doesn't
+// resolve correctly through Vite's ESM interop in Electron.
+const storage = {
+  getItem: (key) => Promise.resolve(window.localStorage.getItem(key)),
+  setItem: (key, value) => Promise.resolve(window.localStorage.setItem(key, value)),
+  removeItem: (key) => Promise.resolve(window.localStorage.removeItem(key)),
+};
 
-export default store;
+
+const persistConfig = {
+  key: 'root',
+  storage,
+  blacklist: ['sync', 'studyPlanner'],
+};
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+const store = createStore(persistedReducer);
+
+const persistor = persistStore(store);
+
+export { store, persistor };
