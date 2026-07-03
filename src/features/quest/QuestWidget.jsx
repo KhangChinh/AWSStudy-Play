@@ -91,7 +91,7 @@ const QuestWidget = ({
               })
             ) : (
               <div className="empty-quests-mini">
-                <span>{t('quest.empty') || 'No quests today'}</span>
+                <span>{t('quest.empty')}</span>
               </div>
             )}
           </div>

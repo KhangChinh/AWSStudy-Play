@@ -70,11 +70,11 @@ const SettingsApp = ({
     const file = event.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error(t('profile.invalid_image_type') || 'Invalid file type');
+      toast.error(t('profile.invalid_image_type'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error(t('profile.image_too_large') || 'Image size must be less than 5MB');
+      toast.error(t('profile.image_too_large'));
       return;
     }
 
@@ -91,7 +91,7 @@ const SettingsApp = ({
       const API_URL = import.meta.env.VITE_API_URL;
       const token = await getValidAccessToken();
       if (!token) {
-        toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+        toast.error(t('auth.session_expired'));
         return;
       }
 
@@ -106,9 +106,9 @@ const SettingsApp = ({
       if (!presignRes.ok) {
         const errData = await presignRes.json().catch(() => ({}));
         if (presignRes.status === 429) {
-          toast.error(t('profile.avatar_cooldown') || 'Chưa đủ thời gian để đổi ảnh đại diện (7 ngày/lần)');
+          toast.error(t('profile.avatar_cooldown'));
         } else {
-          toast.error(errData.message || 'Không lấy được URL upload');
+          toast.error(errData.message || t('profile.avatar_upload_url_failed'));
         }
         return;
       }
@@ -125,7 +125,7 @@ const SettingsApp = ({
         body: formData,
       });
       if (!uploadRes.ok) {
-        toast.error('Upload ảnh lên S3 thất bại');
+        toast.error(t('profile.avatar_s3_upload_failed'));
         return;
       }
 
@@ -139,13 +139,13 @@ const SettingsApp = ({
       });
       if (!confirmRes.ok) {
         const errData = await confirmRes.json().catch(() => ({}));
-        toast.error(errData.message || 'Xác nhận ảnh đại diện thất bại');
+        toast.error(errData.message || t('profile.avatar_confirm_failed'));
         return;
       }
       const confirmData = await confirmRes.json();
       const newAvatarPath = confirmData.avatarUrl;
 
-      toast.success(t('profile.avatar_updated') || 'Cập nhật ảnh đại diện thành công!');
+      toast.success(t('profile.avatar_updated'));
       // Cập nhật Redux — avatarUrl là relative path
       dispatchUserLogin({
         ...userProfile,
@@ -156,7 +156,7 @@ const SettingsApp = ({
       });
     } catch (err) {
       console.error('Avatar upload error:', err);
-      toast.error('Upload ảnh đại diện thất bại');
+      toast.error(t('profile.avatar_upload_failed'));
     } finally {
       setIsUploading(false);
     }
@@ -186,7 +186,7 @@ const SettingsApp = ({
             <p className="upload-label">{t('settings.upload_avatar')}</p>
             <p className="upload-note">{t('settings.upload_note')}</p>
             <button className="btn-upload-trigger" onClick={() => fileInputRef.current?.click()}>
-              {t('settings.change_image') || 'Change Image'}
+              {t('settings.change_image')}
             </button>
           </div>
           <input

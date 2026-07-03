@@ -4,9 +4,11 @@ import {
   addOutline, sendOutline, trashOutline, rocketOutline, chatbubbleEllipsesOutline,
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { loadChatSessions, saveChatSession, deleteChatSession } from '../../../services/studyPlannerService';
 
 const ChatTab = ({ onPlanCreated }) => {
+  const { t, i18n } = useTranslation();
   const [chatSessions, setChatSessions] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -36,7 +38,7 @@ const ChatTab = ({ onPlanCreated }) => {
     const id = `chat_${Date.now()}`;
     const newSession = {
       id,
-      title: 'Cuộc trò chuyện mới',
+      title: t('study.new_chat'),
       messages: [],
       collectedInfo: {},
       readyToGenerate: false,
@@ -75,8 +77,8 @@ const ChatTab = ({ onPlanCreated }) => {
     if (!activeChatId || !window.api?.invoke) return;
     const session = chatSessions.find(c => c.id === activeChatId) || {};
     // Tự động đặt title từ tin nhắn đầu tiên
-    let title = session.title || 'Cuộc trò chuyện mới';
-    if (msgs.length > 0 && title === 'Cuộc trò chuyện mới') {
+    let title = session.title || t('study.new_chat');
+    if (msgs.length > 0 && title === t('study.new_chat')) {
       title = msgs[0].content.substring(0, 40) + (msgs[0].content.length > 40 ? '...' : '');
     }
     const updated = {
@@ -141,10 +143,10 @@ const ChatTab = ({ onPlanCreated }) => {
         // Save to store
         await saveCurrentChat(updatedMessages, mergedInfo, result.readyToGenerate || false);
       } else {
-        toast.error(result?.error || 'AI không phản hồi. Hãy kiểm tra Ollama đã chạy chưa.');
+        toast.error(result?.error || t('study.ai_no_response'));
       }
     } catch (err) {
-      toast.error('Lỗi kết nối AI: ' + err.message);
+      toast.error(t('study.ai_connection_error', { message: err.message }));
     }
     setSending(false);
   };
@@ -164,13 +166,13 @@ const ChatTab = ({ onPlanCreated }) => {
           createdAt: Date.now(),
         };
         await window.api.invoke('study:savePlan', plan);
-        toast.success('🎯 Kế hoạch học tập đã được tạo!');
+        toast.success(t('study.plan_created'));
         onPlanCreated?.(planId);
       } else {
-        toast.error(result?.error || 'Không thể tạo kế hoạch');
+        toast.error(result?.error || t('study.plan_create_failed'));
       }
     } catch (err) {
-      toast.error('Lỗi tạo kế hoạch: ' + err.message);
+      toast.error(t('study.plan_create_error', { message: err.message }));
     }
     setGenerating(false);
   };
@@ -187,7 +189,7 @@ const ChatTab = ({ onPlanCreated }) => {
       {/* Sidebar */}
       <div className="sp-chat-sidebar">
         <button className="sp-new-chat-btn" onClick={startNewChat}>
-          <IonIcon icon={addOutline} /> Cuộc trò chuyện mới
+          <IonIcon icon={addOutline} /> {t('study.new_chat')}
         </button>
         <div className="sp-chat-list">
           {chatSessions.map(session => (
@@ -198,7 +200,7 @@ const ChatTab = ({ onPlanCreated }) => {
             >
               <div className="sp-chat-item-title">{session.title}</div>
               <div className="sp-chat-item-date">
-                {new Date(session.createdAt).toLocaleDateString('vi-VN')}
+                {new Date(session.createdAt).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
               </div>
               <button className="sp-chat-delete" onClick={(e) => deleteChat(e, session.id)}>
                 <IonIcon icon={trashOutline} />
@@ -213,9 +215,9 @@ const ChatTab = ({ onPlanCreated }) => {
         {!activeChatId ? (
           <div className="sp-empty">
             <IonIcon icon={chatbubbleEllipsesOutline} className="sp-empty-icon" />
-            <h3>Trợ lý học tập AI</h3>
-            <p>Hãy cho tôi biết bạn muốn học gì — tôi sẽ giúp bạn lên kế hoạch!</p>
-            <button className="sp-start-btn" onClick={startNewChat}>Bắt đầu trò chuyện</button>
+            <h3>{t('study.ai_study_assistant')}</h3>
+            <p>{t('study.ai_study_assistant_desc')}</p>
+            <button className="sp-start-btn" onClick={startNewChat}>{t('study.start_chat')}</button>
           </div>
         ) : (
           <>
@@ -223,7 +225,7 @@ const ChatTab = ({ onPlanCreated }) => {
               {messages.length === 0 && (
                 <div className="sp-msg assistant">
                   <div className="sp-msg-content">
-                    Xin chào! 👋 Tôi là trợ lý học tập AI. Hãy cho tôi biết bạn muốn học gì nhé!
+                    {t('study.chat_welcome')}
                   </div>
                 </div>
               )}
@@ -249,9 +251,9 @@ const ChatTab = ({ onPlanCreated }) => {
                 disabled={generating}
               >
                 {generating ? (
-                  <><span className="sp-spin" /> Đang tạo kế hoạch...</>
+                  <><span className="sp-spin" /> {t('study.generating_plan')}</>
                 ) : (
-                  <><IonIcon icon={rocketOutline} /> Tạo kế hoạch học tập</>
+                  <><IonIcon icon={rocketOutline} /> {t('study.generate_study_plan')}</>
                 )}
               </button>
             )}
@@ -261,7 +263,7 @@ const ChatTab = ({ onPlanCreated }) => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Nhập tin nhắn..."
+                placeholder={t('study.message_placeholder')}
                 rows={1}
                 disabled={sending}
               />

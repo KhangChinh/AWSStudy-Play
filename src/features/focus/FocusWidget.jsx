@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { withTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { lockClosedOutline, chevronDownOutline, chevronForwardOutline, rocketOutline } from 'ionicons/icons';
@@ -30,14 +31,14 @@ class FocusWidget extends Component {
         blacklist: this.props.blacklist || [],
       });
       if (result && result.success) {
-        toast.success('Focus session đã bắt đầu!');
+        toast.success(this.props.t('focus.started'));
         this.setState({ activeSession: result });
       } else {
-        toast.error('Không thể bắt đầu focus session!');
+        toast.error(this.props.t('focus.error'));
       }
     } catch (e) {
       console.log('Error starting focus:', e);
-      toast.error('Lỗi khi bắt đầu focus session!');
+      toast.error(this.props.t('focus.error'));
     }
     this.setState({ isLoading: false });
   };
@@ -49,23 +50,28 @@ class FocusWidget extends Component {
         <div
           className="widget-header"
           onClick={this.handleToggle}
-          title="Toggle Focus Mode"
+          title={this.props.t('focus.toggle')}
         >
           <h3>
-            <IonIcon icon={lockClosedOutline} /> Focus Mode
+            <IonIcon icon={lockClosedOutline} /> {this.props.t('common.focus_mode')}
           </h3>
           <IonIcon icon={isExpanded ? chevronDownOutline : chevronForwardOutline} className="toggle-icon" />
         </div>
 
         {isExpanded && (
           <div className="widget-content">
-            <p className="description">Select apps to block:</p>
+            <p className="description">{this.props.t('focus.select_apps_to_block')}</p>
             <div className="app-list">
-              {['Mini Games', 'Store', 'Social Media', 'Web Browser'].map(app => (
+              {[
+                ['common.minigames', 'Mini Games'],
+                ['common.store', 'Store'],
+                ['focus.social_media', 'Social Media'],
+                ['focus.web_browser', 'Web Browser'],
+              ].map(([appKey, app]) => (
                 <div className="app-item" key={app}>
                   <div className="app-name">
                     <input type="checkbox" />
-                    <span>{app}</span>
+                    <span>{this.props.t(appKey)}</span>
                   </div>
                   <div className="time-range">
                     <input type="time" defaultValue="20:00" />
@@ -76,7 +82,7 @@ class FocusWidget extends Component {
               ))}
             </div>
             <button className="btn-start-focus" onClick={this.handleStartFocus}>
-              <IonIcon icon={rocketOutline} /> Start Focus Session
+              <IonIcon icon={rocketOutline} /> {this.props.t('focus.start')}
             </button>
           </div>
         )}
@@ -85,4 +91,4 @@ class FocusWidget extends Component {
   }
 }
 
-export default FocusWidget;
+export default withTranslation()(FocusWidget);

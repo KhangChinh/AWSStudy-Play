@@ -76,7 +76,7 @@ class SocialApp extends Component {
       // Chưa cấu hình API URL — hiện trạng thái tĩnh, không spam toast
       this.setState({ apiNotConfigured: true });
     } else {
-      toast.error(this.props.t('social.load_failed') || 'Failed to load friends');
+      toast.error(this.props.t('social.load_failed'));
     }
     this.setState({ isLoading: false });
   };
@@ -115,7 +115,7 @@ class SocialApp extends Component {
 
     if (now - this.state.lastSearchTime < cooldown) {
       const remaining = Math.ceil((cooldown - (now - this.state.lastSearchTime)) / 1000);
-      toast.warn(this.props.t('social.search_cooldown', { count: remaining }) || `Please wait ${remaining}s before searching again.`);
+      toast.warn(this.props.t('social.search_cooldown', { count: remaining }));
       return;
     }
 
@@ -133,11 +133,11 @@ class SocialApp extends Component {
     } else {
       const msg = res?.errMessage || '';
       if (msg.includes('500')) {
-        toast.error(this.props.t('social.server_error_500') || 'Server Error (500). Please check OpenSearch status or Lambda logs.');
+        toast.error(this.props.t('social.server_error_500'));
       } else if (msg) {
         toast.error(msg);
       } else {
-        toast.error(this.props.t('social.search_failed') || 'Search failed. Please try again.');
+        toast.error(this.props.t('social.search_failed'));
       }
     }
 
@@ -175,9 +175,9 @@ class SocialApp extends Component {
       const msg = res?.errMessage || '';
       const { t } = this.props;
       if (msg.includes('500')) {
-        toast.error(t('social.server_error_500') || 'Server Error (500). Please check OpenSearch status or Lambda logs.');
+        toast.error(t('social.server_error_500'));
       } else {
-        toast.error(msg || t('social.action_failed') || 'Action failed');
+        toast.error(msg || t('social.action_failed'));
       }
     }
 
@@ -192,10 +192,10 @@ class SocialApp extends Component {
   renderFriendsTab = (friends) => (
     <div className="social-tab-content friends-list">
       <div className="tab-header">
-        <h3>{this.props.t('social.friends_list') || 'Friend List'}</h3>
+        <h3>{this.props.t('social.friends_list')}</h3>
         <button className="reload-btn" onClick={() => this.fetchFriends(true)} disabled={this.state.isLoading}>
           <IonIcon icon={refreshOutline} className={this.state.isLoading ? 'spinning' : ''} />
-          <span>{this.props.t('common.reload') || 'Reload'}</span>
+          <span>{this.props.t('common.reload')}</span>
         </button>
       </div>
       <div className="list-container" onScroll={this.handleScroll}>
@@ -230,7 +230,7 @@ class SocialApp extends Component {
         )) : (
           <div className="empty-state">
             <IonIcon icon={peopleOutline} />
-            <p>{this.props.t('social.no_friends') || 'No friends yet'}</p>
+            <p>{this.props.t('social.no_friends')}</p>
           </div>
         )}
         {this.state.isLoading && <div className="loading-more">...</div>}
@@ -243,7 +243,7 @@ class SocialApp extends Component {
     return (
       <div className="social-tab-content requests-list">
         <div className="tab-header mb-2">
-          <h3>{t('social.friend_requests') || 'Requests'}</h3>
+          <h3>{t('social.friend_requests')}</h3>
           <button className="reload-btn" onClick={() => this.fetchFriends(true)} disabled={this.state.isLoading}>
             <IonIcon icon={refreshOutline} className={this.state.isLoading ? 'spinning' : ''} />
           </button>
@@ -254,7 +254,7 @@ class SocialApp extends Component {
             <div key={req.SK} className="request-card">
               <div className="request-info">
                 <span className="request-name">{req.friendName}</span>
-                <span className="request-level">{t('social.incoming_desc') || 'Sent you an invitation'}</span>
+                <span className="request-level">{t('social.incoming_desc')}</span>
               </div>
               <div className="request-actions">
                 <button
@@ -278,13 +278,13 @@ class SocialApp extends Component {
           )}
         </div>
 
-        <div className="tab-section-header mt-4">{t('social.sent_requests') || 'Pending Outgoing'} ({requestsOut.length})</div>
+        <div className="tab-section-header mt-4">{t('social.sent_requests')} ({requestsOut.length})</div>
         <div className="list-container">
           {requestsOut.map(req => (
             <div key={req.SK} className="request-card outgoing">
               <div className="request-info">
                 <span className="request-name">{req.friendName}</span>
-                <span className="request-level">{t('social.waiting_desc') || 'Waiting for confirmation...'}</span>
+                <span className="request-level">{t('social.waiting_desc')}</span>
               </div>
               <div className="request-actions">
                 <button
@@ -311,7 +311,7 @@ class SocialApp extends Component {
           <IonIcon icon={searchOutline} />
           <input
             type="text"
-            placeholder={t('social.search_by_username') || 'Search by username...'}
+            placeholder={t('social.search_by_username')}
             value={this.state.searchQuery}
             onChange={this.onSearchChange}
             onKeyDown={this.handleKeyDown}
@@ -336,7 +336,7 @@ class SocialApp extends Component {
                 </div>
                 <div className="user-details">
                   <span className="user-name">{user.name}</span>
-                  <span className="user-meta">{t('common.streak')}: {user.streak || 0} • {user.titles?.[0] || 'Newbie'}</span>
+                  <span className="user-meta">{t('common.streak')}: {user.streak || 0} • {user.titles?.[0] || t('titles.newbie.name')}</span>
                 </div>
                 <button
                   className="add-btn"
@@ -351,7 +351,7 @@ class SocialApp extends Component {
           ) : (
             this.state.searchQuery.length >= 2 && !this.state.isSearching && (
               <div className="empty-search">
-                {t('social.no_username_found', { query: this.state.searchQuery }) || `No user found with username "${this.state.searchQuery}"`}
+                {t('social.no_username_found', { query: this.state.searchQuery })}
               </div>
             )
           )}
@@ -406,9 +406,9 @@ class SocialApp extends Component {
           {this.state.apiNotConfigured ? (
             <div className="empty-state api-error">
               <IonIcon icon={refreshOutline} />
-              <p>{t('social.api_not_configured') || 'Server connection not configured. Please check your environment settings.'}</p>
+              <p>{t('social.api_not_configured')}</p>
               <button className="reload-btn mt-4" onClick={() => this.fetchFriends(true)}>
-                {t('common.retry') || 'Retry Connection'}
+                {t('common.retry')}
               </button>
             </div>
           ) : (

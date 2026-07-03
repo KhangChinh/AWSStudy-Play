@@ -6,11 +6,13 @@ import {
   helpCircleOutline,
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { loadQuizHistory, saveQuizResult, deleteQuizResult } from '../../../services/studyPlannerService';
 import { submitQuizReward } from '../../../services/questService';
 import { ingestServerData } from '../../../services/syncService';
 
 const QuizTab = ({ quizRequest, onClearRequest }) => {
+  const { t, i18n } = useTranslation();
   const [quizzes, setQuizzes] = useState([]);
   const [activeQuizId, setActiveQuizId] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -58,12 +60,12 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
         const quizId = `quiz_${Date.now()}`;
         setActiveQuizId(quizId);
         setQuestions(result.questions);
-        toast.success('📝 Bộ câu hỏi đã sẵn sàng!');
+        toast.success(t('study.quiz_ready'));
       } else {
-        toast.error(result?.error || 'Không thể tạo câu hỏi');
+        toast.error(result?.error || t('study.quiz_create_failed'));
       }
     } catch (err) {
-      toast.error('Lỗi tạo quiz: ' + err.message);
+      toast.error(t('study.quiz_create_error', { message: err.message }));
     }
     setGenerating(false);
   };
@@ -96,7 +98,7 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
 
   const handleSubmit = async () => {
     if (Object.keys(userAnswers).length < questions.length) {
-      toast.warning('Hãy trả lời tất cả câu hỏi trước khi nộp bài!');
+      toast.warning(t('study.answer_all_questions'));
       return;
     }
     setSubmitted(true);
@@ -137,11 +139,11 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
     }
 
     if (correct === questions.length) {
-      toast.success(`🎉 Xuất sắc! ${correct}/${questions.length} câu đúng!`);
+      toast.success(t('study.quiz_excellent', { correct, total: questions.length }));
     } else if (correct >= questions.length * 0.7) {
-      toast.success(`✅ Tốt lắm! ${correct}/${questions.length} câu đúng`);
+      toast.success(t('study.quiz_good', { correct, total: questions.length }));
     } else {
-      toast.info(`📖 ${correct}/${questions.length} câu đúng. Hãy ôn tập thêm!`);
+      toast.info(t('study.quiz_review', { correct, total: questions.length }));
     }
   };
 
@@ -154,10 +156,10 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
     <div className="sp-quiz">
       {/* Sidebar */}
       <div className="sp-quiz-sidebar">
-        <div className="sp-sidebar-title">Lịch sử kiểm tra</div>
+        <div className="sp-sidebar-title">{t('study.quiz_history')}</div>
         <div className="sp-quiz-list">
           {quizzes.length === 0 && !generating && (
-            <div className="sp-sidebar-empty">Chưa có bài kiểm tra nào.</div>
+            <div className="sp-sidebar-empty">{t('study.no_quizzes')}</div>
           )}
           {quizzes.map(quiz => (
             <div
@@ -168,7 +170,7 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
               <div className="sp-quiz-item-info">
                 <div className="sp-quiz-item-title">{quiz.phaseName}</div>
                 <div className="sp-quiz-item-date">
-                  {new Date(quiz.createdAt).toLocaleDateString('vi-VN')}
+                  {new Date(quiz.createdAt).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
                 </div>
               </div>
               <div className="sp-quiz-item-score">
@@ -189,15 +191,15 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
         {generating && (
           <div className="sp-loading">
             <div className="sp-spinner" />
-            <p>AI đang tạo câu hỏi...</p>
+            <p>{t('study.generating_quiz')}</p>
           </div>
         )}
 
         {!generating && questions.length === 0 && (
           <div className="sp-empty">
             <IonIcon icon={helpCircleOutline} className="sp-empty-icon" />
-            <h3>Kiểm tra kiến thức</h3>
-            <p>Hoàn thành một giai đoạn trong kế hoạch học tập, sau đó bấm "Kiểm tra" để tạo bộ câu hỏi.</p>
+            <h3>{t('study.knowledge_check')}</h3>
+            <p>{t('study.knowledge_check_desc')}</p>
           </div>
         )}
 
@@ -205,13 +207,13 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
           <div className="sp-quiz-active">
             <div className="sp-quiz-header">
               <h3>{quizMeta?.phaseName}</h3>
-              <span className="sp-quiz-counter">Câu {currentQ + 1}/{questions.length}</span>
+              <span className="sp-quiz-counter">{t('study.question_counter', { current: currentQ + 1, total: questions.length })}</span>
             </div>
 
             {submitted && score !== null && (
               <div className="sp-quiz-score-banner">
                 <IonIcon icon={trophyOutline} className="sp-trophy" style={{ color: '#fbbf24', marginRight: '8px' }} />
-                <span>Điểm số của bạn: <strong>{score}/{questions.length}</strong></span>
+                <span>{t('study.your_score')}: <strong>{score}/{questions.length}</strong></span>
               </div>
             )}
 
@@ -262,7 +264,7 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
                 disabled={currentQ === 0}
                 onClick={() => setCurrentQ(prev => prev - 1)}
               >
-                <IonIcon icon={chevronBackOutline} /> Trước
+                <IonIcon icon={chevronBackOutline} /> {t('study.previous')}
               </button>
               <span className="sp-quiz-page-info">{currentQ + 1} / {questions.length}</span>
               {currentQ < questions.length - 1 ? (
@@ -270,7 +272,7 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
                   className="sp-quiz-nav-btn"
                   onClick={() => setCurrentQ(prev => prev + 1)}
                 >
-                  Tiếp <IonIcon icon={chevronForwardOutline} />
+                  {t('study.next')} <IonIcon icon={chevronForwardOutline} />
                 </button>
               ) : (
                 !submitted && (
@@ -278,7 +280,7 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
                     className="sp-quiz-submit"
                     onClick={handleSubmit}
                   >
-                    <IonIcon icon={checkmarkCircleOutline} /> Hoàn thành
+                    <IonIcon icon={checkmarkCircleOutline} /> {t('study.complete')}
                   </button>
                 )
               )}
