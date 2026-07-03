@@ -4,6 +4,7 @@ import { IonIcon } from '@ionic/react';
 import { shieldCheckmarkOutline, closeOutline, lockClosedOutline, videocamOutline } from 'ionicons/icons';
 
 import { getValidAccessToken } from '../../services/tokenService';
+import { ingestServerData } from '../../services/syncService';
 import { startTracking, stopTracking, reattachVideo, pauseTracking, resumeTracking } from './faceTracker';
 import './FocusGuard.scss';
 
@@ -167,6 +168,7 @@ const FocusGuard = () => {
         }
       },
       'quest-updated': (updatedQuests) => {
+        // We can keep this for manual/partial updates if needed, but the main sync will happen in sessionEndData
         if (updatedQuests && window.api?.invoke) {
           window.api.invoke('quest:load').then((stored) => {
             const existingDaily = stored?.data || {};
@@ -180,6 +182,26 @@ const FocusGuard = () => {
           }
           if (updatedQuests.all_daily?.isCompleted) {
             toast.success('🏆 Hoàn thành tất cả nhiệm vụ ngày!');
+          }
+        }
+      },
+      'focus:sessionEndData': (data) => {
+        if (data && (data.profile || data.daily)) {
+          console.log('[FocusGuard] Received sessionEndData payload, ingesting to Redux...');
+          ingestServerData({
+            profile: data.profile,
+            daily: data.daily
+          });
+          // Also show toast notifications if quests completed during the session
+          if (data.questUpdate) {
+            for (const [key, quest] of Object.entries(data.questUpdate)) {
+              if (key !== 'all_daily' && quest.isCompleted) {
+                toast.success(`🎯 Nhiệm vụ "${quest.name}" đã hoàn thành!`);
+              }
+            }
+            if (data.questUpdate.all_daily?.isCompleted) {
+              toast.success('🏆 Hoàn thành tất cả nhiệm vụ ngày!');
+            }
           }
         }
       },

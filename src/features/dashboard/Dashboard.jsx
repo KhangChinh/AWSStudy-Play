@@ -553,7 +553,13 @@ class Dashboard extends Component {
         }));
 
         if (result.newKnowledgePoint !== undefined) {
-          const newProfile = { ...this.props.userProfile, knowledgePoint: result.newKnowledgePoint };
+          const newProfile = { 
+            ...this.props.userProfile, 
+            budget: {
+              ...(this.props.userProfile.budget || {}),
+              knowledgePoint: result.newKnowledgePoint
+            }
+          };
           this.props.setProfile(newProfile);
         }
       } else {

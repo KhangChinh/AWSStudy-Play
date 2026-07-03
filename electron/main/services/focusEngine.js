@@ -90,12 +90,13 @@ function startTimerTick() {
         try {
           const result = await endSession(authToken, { sessionId: currentSessionId });
           console.log(`[AWS] Session ended: ${result.status}`);
+          sendToRenderer('focus:sessionEndData', result);
           if (result.questUpdate) {
             console.log('[Quest] Quest progress updated from timer complete');
             sendToRenderer('quest-updated', result.questUpdate);
           }
-        } catch (e) {
-          console.error('[AWS] Failed to end session:', e.message);
+        } catch (err) {
+          console.error('[AWS] Failed to end session:', err.message);
         }
       }
 
@@ -136,12 +137,13 @@ async function stopTimerForcefully() {
     try {
       const result = await endSession(authToken, { sessionId: currentSessionId });
       console.log(`[AWS] Session ended: ${result.status}`);
+      sendToRenderer('focus:sessionEndData', result);
       if (result.questUpdate) {
         console.log('[Quest] Quest progress updated from stop');
         sendToRenderer('quest-updated', result.questUpdate);
       }
-    } catch (e) {
-      console.error('[AWS] Failed to end session:', e.message);
+    } catch (err) {
+      console.error('[AWS] Failed to end session:', err.message);
     }
   }
 
@@ -238,7 +240,13 @@ function endSessionFail() {
   broadcastToClients(null);
   
   if (currentSessionId && authToken) {
-    endSession(authToken, { sessionId: currentSessionId }).catch(() => {});
+    endSession(authToken, { sessionId: currentSessionId })
+      .then(result => {
+        if (result) {
+          sendToRenderer('focus:sessionEndData', result);
+        }
+      })
+      .catch(() => {});
   }
 }
 

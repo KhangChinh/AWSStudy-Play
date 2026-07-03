@@ -83,6 +83,7 @@ contextBridge.exposeInMainWorld('api', {
       'focus:warning',
       'focus:forceClose',
       'focus:sessionEnd',
+      'focus:sessionEndData',
       'focus-mode-changed',
       'gate-status',
       'timer-expired',
