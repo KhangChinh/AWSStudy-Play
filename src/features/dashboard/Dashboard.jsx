@@ -684,6 +684,7 @@ class Dashboard extends Component {
     if (isConfirmed) {
       try {
         await handleLogoutApi();
+        if (window.api?.send) window.api.send('logout');
         toast.success(this.props.t('dashboard.logout_success'));
         this.props.navigate('/login');
       } catch (e) {

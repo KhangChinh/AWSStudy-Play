@@ -134,6 +134,7 @@ class AuthPage extends Component {
         if (isSignedIn) {
           toast.success('Đăng nhập thành công!');
           await handleLoginApi();
+          if (window.api?.send) window.api.send('login-success');
           setTimeout(() => {
             this.props.navigate('/dashboard');
           }, 100);
