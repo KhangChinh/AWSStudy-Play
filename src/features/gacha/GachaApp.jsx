@@ -15,6 +15,9 @@ import rewardManager from '../../managers/rewardManager';
 import inventoryManager from '../../managers/inventoryManager';
 import { ITEMS } from '../../data/items';
 
+const KNOWLEDGE_CORE_PER_ROLL = 1;
+const KNOWLEDGE_POINTS_PER_ROLL = 150;
+
 class GachaApp extends Component {
   constructor(props) {
     super(props);
@@ -50,7 +53,38 @@ class GachaApp extends Component {
     return fallback;
   };
 
-  buildProfileWithKnowledgePoint = (nextKnowledgePoint) => {
+  getRollCost = (count) => {
+    const requiredCore = count * KNOWLEDGE_CORE_PER_ROLL;
+    const currentKnowledgeCore = Math.max(0, Math.floor(this.getBudgetValue(['knowledgeCore', 'knowledge_core'])));
+    const coreCost = Math.min(currentKnowledgeCore, requiredCore);
+    const missingRolls = requiredCore - coreCost;
+
+    return {
+      coreCost,
+      pointCost: missingRolls * KNOWLEDGE_POINTS_PER_ROLL,
+    };
+  };
+
+  renderRollCost = (count) => {
+    const { coreCost, pointCost } = this.getRollCost(count);
+
+    return (
+      <>
+        {coreCost > 0 && (
+          <>
+            <IonIcon icon={cubeOutline} className="cost-icon" /> x{coreCost}
+          </>
+        )}
+        {pointCost > 0 && (
+          <>
+            <IonIcon icon={schoolOutline} className="cost-icon points" /> x{pointCost.toLocaleString()}
+          </>
+        )}
+      </>
+    );
+  };
+
+  buildProfileWithGachaCost = (nextKnowledgeCore, nextKnowledgePoint) => {
     const profile = this.props.userProfile || {};
     const hasBudget = !!profile.budget;
     const nextProfile = { ...profile };
@@ -58,12 +92,25 @@ class GachaApp extends Component {
     if (hasBudget) {
       nextProfile.budget = {
         ...profile.budget,
+        knowledgeCore: nextKnowledgeCore,
         knowledgePoint: nextKnowledgePoint,
       };
+
+      if ('knowledge_core' in profile.budget) {
+        nextProfile.budget.knowledge_core = nextKnowledgeCore;
+      }
 
       if ('knowledge_points' in profile.budget) {
         nextProfile.budget.knowledge_points = nextKnowledgePoint;
       }
+    }
+
+    if (!hasBudget || 'knowledgeCore' in profile) {
+      nextProfile.knowledgeCore = nextKnowledgeCore;
+    }
+
+    if ('knowledge_core' in profile) {
+      nextProfile.knowledge_core = nextKnowledgeCore;
     }
 
     if (!hasBudget || 'knowledgePoint' in profile) {
@@ -114,6 +161,7 @@ class GachaApp extends Component {
     let maxRarity = 'gray';
 
     const rarityOrder = ['R', 'SR', 'SSR'];
+    const { coreCost, pointCost } = this.getRollCost(count);
 
     for (let i = 0; i < count; i++) {
       const rarity = gachaManager.calculateRoll(activeBanner, { pity5: tempPity5, pity4: tempPity4 });
@@ -147,23 +195,26 @@ class GachaApp extends Component {
       rarityMap: newRewards.map(r => r.rarity === 'SSR' ? 5 : r.rarity === 'SR' ? 4 : 3),
       items: newRewards.map((r, i) => ({ ...r, rarityIndex: i })),
       sanityBreakdown: sanityBreakdown,
-      knowledgeUsed: count * 10
+      knowledgeUsed: pointCost
     });
 
     // Detect if any item is NEW based on processed results
     const hasNewItem = processResult.details.some(res => !res.isDuplicate && res.type !== 'currency');
 
-    // Deduct KnowledgePoints/Sanity in Redux
+    // Deduct Knowledge Core and Knowledge Points in Redux
     if (this.props.userProfile) {
-      const cost = count * 10;
+      const currentKnowledgeCore = this.getBudgetValue(['knowledgeCore', 'knowledge_core']);
       const currentKnowledgePoint = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
 
-      if (currentKnowledgePoint < cost) {
+      if (pointCost > 0 && currentKnowledgePoint < pointCost) {
         toast.error(this.props.t('gacha.not_enough_knowledge_points'));
         return;
       }
 
-      const newProfile = this.buildProfileWithKnowledgePoint(currentKnowledgePoint - cost);
+      const newProfile = this.buildProfileWithGachaCost(
+        currentKnowledgeCore - coreCost,
+        currentKnowledgePoint - pointCost
+      );
       this.props.setProfile(newProfile);
       this.props.appendGachaHistory({ items: processResult.details });
     }
@@ -248,7 +299,7 @@ class GachaApp extends Component {
             <div className="roll-actions">
               <div className="roll-btn-group">
                 <div className="cost-tag">
-                  <img src="/src/assets/Sanity.png" alt="Sanity" className="cost-icon" /> x1
+                  {this.renderRollCost(1)}
                 </div>
                 <button className="btn-roll x1" onClick={() => this.handleRoll(1)} disabled={isPlaying}>
                   {this.props.t('gacha.single_roll')}
@@ -256,7 +307,7 @@ class GachaApp extends Component {
               </div>
               <div className="roll-btn-group">
                 <div className="cost-tag">
-                  <img src="/src/assets/Sanity.png" alt="Sanity" className="cost-icon" /> x10
+                  {this.renderRollCost(10)}
                 </div>
                 <button className="btn-roll x10" onClick={() => this.handleRoll(10)} disabled={isPlaying}>
                   {this.props.t('gacha.ten_rolls')}

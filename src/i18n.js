@@ -389,6 +389,7 @@ i18n
             rate_up_desc: 'Rate up for selected <span class="text-purple">SR-Rank</span> and <span class="text-gold">Limited SSR-Rank</span> items!',
             duplicate: 'Duplicate',
             not_enough_knowledge_points: 'Not enough Knowledge Points!',
+            not_enough_knowledge_core: 'Not enough Knowledge Core!',
           },
           gacha_animation: {
             skip: 'Skip >>',
@@ -823,6 +824,7 @@ i18n
             rate_up_desc: 'Tăng tỷ lệ cho vật phẩm <span class="text-purple">hạng SR</span> và <span class="text-gold">SSR giới hạn</span>!',
             duplicate: 'Trùng lặp',
             not_enough_knowledge_points: 'Không đủ Điểm tri thức!',
+            not_enough_knowledge_core: 'Không đủ Lõi tri thức!',
           },
           gacha_animation: {
             skip: 'Bỏ qua >>',
