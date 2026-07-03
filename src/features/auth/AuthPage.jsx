@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { withTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
@@ -224,6 +225,7 @@ class AuthPage extends Component {
 
   render() {
     const { authMode, showPassword, showConfirmPassword, isLoading, email, password, username, confirmPassword, verificationCode } = this.state;
+    const { t } = this.props;
     return (
       <div className="auth-page">
         {isLoading && <Spinner />}
@@ -237,51 +239,51 @@ class AuthPage extends Component {
               onClick={() => this.handleToggleAuthMode('login')}
               disabled={authMode === 'confirm' || authMode === 'forgot' || authMode === 'resetPassword'}
             >
-              Sign In
+              {t('auth.sign_in')}
             </button>
             <button
               className={authMode === 'register' ? 'active' : ''}
               onClick={() => this.handleToggleAuthMode('register')}
               disabled={authMode === 'confirm' || authMode === 'forgot' || authMode === 'resetPassword'}
             >
-              Sign Up
+              {t('auth.sign_up')}
             </button>
           </div>
 
           <div className="form-wrapper">
             <h2 className="title">
-              {authMode === 'login' && 'Welcome Back!'}
-              {authMode === 'register' && 'Join the Universe'}
-              {authMode === 'confirm' && 'Verify Identity'}
-              {authMode === 'forgot' && 'Reset Password'}
-              {authMode === 'resetPassword' && 'New Password'}
+              {authMode === 'login' && t('auth.welcome_back')}
+              {authMode === 'register' && t('auth.join_universe')}
+              {authMode === 'confirm' && t('auth.verify_identity')}
+              {authMode === 'forgot' && t('auth.reset_password')}
+              {authMode === 'resetPassword' && t('auth.new_password')}
             </h2>
             <p className="subtitle">
-              {authMode === 'login' && 'Enter your credentials to access your system.'}
-              {authMode === 'register' && 'Register a new identity in our system.'}
-              {authMode === 'confirm' && 'Enter the verification code sent to your email.'}
-              {authMode === 'forgot' && 'Enter your email to receive a password reset code.'}
-              {authMode === 'resetPassword' && 'Enter the code and your new password.'}
+              {authMode === 'login' && t('auth.enter_credentials')}
+              {authMode === 'register' && t('auth.register_identity')}
+              {authMode === 'confirm' && t('auth.enter_verify_code')}
+              {authMode === 'forgot' && t('auth.enter_email_reset')}
+              {authMode === 'resetPassword' && t('auth.enter_code_and_password')}
             </p>
 
             <form className="auth-form" onSubmit={this.handleSubmit}>
               {authMode === 'register' && (
                 <div className="input-group">
-                  <label>Username</label>
+                  <label>{t('auth.username')}</label>
                   <input type="text" placeholder="SpaceExplorer99" value={username} onChange={(e) => this.handleInputChange('username', e.target.value)} disabled={isLoading} />
                 </div>
               )}
 
               {authMode !== 'resetPassword' && (
                 <div className="input-group">
-                  <label>Email Address</label>
+                  <label>{t('auth.email_address')}</label>
                   <input type="email" placeholder="example@gmail.com" value={email} onChange={(e) => this.handleInputChange('email', e.target.value)} disabled={isLoading || authMode === 'confirm'} readOnly={authMode === 'confirm'} />
                 </div>
               )}
 
               {(authMode === 'login' || authMode === 'register') && (
                 <div className="input-group">
-                  <label>Password</label>
+                  <label>{t('auth.password')}</label>
                   <div className="password-input-wrapper">
                     <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => this.handleInputChange('password', e.target.value)} disabled={isLoading} />
                     <button
@@ -298,7 +300,7 @@ class AuthPage extends Component {
 
               {authMode === 'register' && (
                 <div className="input-group">
-                  <label>Confirm Password</label>
+                  <label>{t('auth.confirm_password')}</label>
                   <div className="password-input-wrapper">
                     <input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => this.handleInputChange('confirmPassword', e.target.value)} disabled={isLoading} />
                     <button
@@ -315,7 +317,7 @@ class AuthPage extends Component {
 
               {(authMode === 'confirm' || authMode === 'resetPassword') && (
                 <div className="input-group">
-                  <label>Verification Code</label>
+                  <label>{t('auth.verification_code')}</label>
                   <input type="text" placeholder="e.g. 123456" value={verificationCode} onChange={(e) => this.handleInputChange('verificationCode', e.target.value)} disabled={isLoading} />
                 </div>
               )}
@@ -323,7 +325,7 @@ class AuthPage extends Component {
               {authMode === 'resetPassword' && (
                 <>
                   <div className="input-group">
-                    <label>New Password</label>
+                    <label>{t('auth.new_password_label')}</label>
                     <div className="password-input-wrapper">
                       <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={this.state.newPassword} onChange={(e) => this.handleInputChange('newPassword', e.target.value)} disabled={isLoading} />
                       <button
@@ -337,7 +339,7 @@ class AuthPage extends Component {
                     </div>
                   </div>
                   <div className="input-group">
-                    <label>Confirm New Password</label>
+                    <label>{t('auth.confirm_new_password')}</label>
                     <div className="password-input-wrapper">
                       <input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={this.state.confirmNewPassword} onChange={(e) => this.handleInputChange('confirmNewPassword', e.target.value)} disabled={isLoading} />
                       <button
@@ -356,7 +358,7 @@ class AuthPage extends Component {
               {authMode === 'login' && (
                 <div className="auth-helper-links">
                   <div className="forgot-password">
-                    <a href="#" onClick={(e) => { e.preventDefault(); if (!isLoading) this.handleToggleAuthMode('forgot'); }}>Forgot password?</a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); if (!isLoading) this.handleToggleAuthMode('forgot'); }}>{t('auth.forgot_password')}</a>
                   </div>
                 </div>
               )}
@@ -364,10 +366,12 @@ class AuthPage extends Component {
               {authMode === 'confirm' && (
                 <div className="auth-helper-links">
                   <button type="button" className="btn-link" onClick={this.handleResendCode} disabled={isLoading || this.state.resendCooldown > 0}>
-                    {this.state.resendCooldown > 0 ? `Resend code (${this.state.resendCooldown}s)` : 'Resend code'}
+                    {this.state.resendCooldown > 0
+                      ? t('auth.resend_code_countdown', { count: this.state.resendCooldown })
+                      : t('auth.resend_code')}
                   </button>
                   <button type="button" className="btn-link" onClick={() => this.handleToggleAuthMode('login')} disabled={isLoading}>
-                    Back to Sign In
+                    {t('auth.back_to_sign_in')}
                   </button>
                 </div>
               )}
@@ -376,21 +380,23 @@ class AuthPage extends Component {
                 <div className="auth-helper-links">
                   {authMode === 'resetPassword' && (
                     <button type="button" className="btn-link" onClick={this.handleResendCode} disabled={isLoading || this.state.resendCooldown > 0}>
-                      {this.state.resendCooldown > 0 ? `Resend code (${this.state.resendCooldown}s)` : 'Resend code'}
+                      {this.state.resendCooldown > 0
+                        ? t('auth.resend_code_countdown', { count: this.state.resendCooldown })
+                        : t('auth.resend_code')}
                     </button>
                   )}
                   <button type="button" className="btn-link" onClick={() => this.handleToggleAuthMode('login')} disabled={isLoading}>
-                    Back to Sign In
+                    {t('auth.back_to_sign_in')}
                   </button>
                 </div>
               )}
 
               <button type="submit" className="btn-cosmic" disabled={isLoading}>
-                {authMode === 'login' && 'Initialize Login'}
-                {authMode === 'register' && 'Register Identity'}
-                {authMode === 'confirm' && 'Verify Identity'}
-                {authMode === 'forgot' && 'Send Reset Code'}
-                {authMode === 'resetPassword' && 'Reset Password'}
+                {authMode === 'login' && t('auth.btn_login')}
+                {authMode === 'register' && t('auth.btn_register')}
+                {authMode === 'confirm' && t('auth.btn_verify')}
+                {authMode === 'forgot' && t('auth.btn_send_reset')}
+                {authMode === 'resetPassword' && t('auth.btn_reset_password')}
               </button>
             </form>
           </div>
@@ -400,4 +406,4 @@ class AuthPage extends Component {
   }
 }
 
-export default (AuthPage);
+export default withTranslation()(AuthPage);

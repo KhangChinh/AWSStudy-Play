@@ -2,6 +2,12 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
+// Nếu user chưa từng chọn ngôn ngữ, mặc định là 'en'
+const savedLang = localStorage.getItem('i18nextLng');
+if (!savedLang) {
+  localStorage.setItem('i18nextLng', 'en');
+}
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -161,6 +167,36 @@ i18n
             api_key_placeholder: 'Enter Gemini API Key...',
             api_key_hint: 'Get a free key at Google AI Studio',
             save_settings: 'Save Settings',
+          },
+          auth: {
+            welcome_back: 'Welcome Back!',
+            join_universe: 'Join the Universe',
+            verify_identity: 'Verify Identity',
+            reset_password: 'Reset Password',
+            new_password: 'New Password',
+            enter_credentials: 'Enter your credentials to access your system.',
+            register_identity: 'Register a new identity in our system.',
+            enter_verify_code: 'Enter the verification code sent to your email.',
+            enter_email_reset: 'Enter your email to receive a password reset code.',
+            enter_code_and_password: 'Enter the code and your new password.',
+            sign_in: 'Sign In',
+            sign_up: 'Sign Up',
+            username: 'Username',
+            email_address: 'Email Address',
+            password: 'Password',
+            confirm_password: 'Confirm Password',
+            verification_code: 'Verification Code',
+            new_password_label: 'New Password',
+            confirm_new_password: 'Confirm New Password',
+            forgot_password: 'Forgot password?',
+            resend_code: 'Resend code',
+            resend_code_countdown: 'Resend code ({{count}}s)',
+            back_to_sign_in: 'Back to Sign In',
+            btn_login: 'Initialize Login',
+            btn_register: 'Register Identity',
+            btn_verify: 'Verify Identity',
+            btn_send_reset: 'Send Reset Code',
+            btn_reset_password: 'Reset Password',
           },
           store: {
             title: 'Cosmetics Store',
@@ -401,6 +437,36 @@ i18n
             api_key_hint: 'Lấy key miễn phí tại Google AI Studio',
             save_settings: 'Lưu cài đặt',
           },
+          auth: {
+            welcome_back: 'Chào mừng trở lại!',
+            join_universe: 'Tham gia vũ trụ',
+            verify_identity: 'Xác minh danh tính',
+            reset_password: 'Đặt lại mật khẩu',
+            new_password: 'Mật khẩu mới',
+            enter_credentials: 'Nhập thông tin để truy cập hệ thống.',
+            register_identity: 'Đăng ký danh tính mới trong hệ thống.',
+            enter_verify_code: 'Nhập mã xác nhận được gửi đến email của bạn.',
+            enter_email_reset: 'Nhập email để nhận mã đặt lại mật khẩu.',
+            enter_code_and_password: 'Nhập mã xác nhận và mật khẩu mới.',
+            sign_in: 'Đăng nhập',
+            sign_up: 'Đăng ký',
+            username: 'Tên người dùng',
+            email_address: 'Địa chỉ Email',
+            password: 'Mật khẩu',
+            confirm_password: 'Xác nhận mật khẩu',
+            verification_code: 'Mã xác nhận',
+            new_password_label: 'Mật khẩu mới',
+            confirm_new_password: 'Xác nhận mật khẩu mới',
+            forgot_password: 'Quên mật khẩu?',
+            resend_code: 'Gửi lại mã',
+            resend_code_countdown: 'Gửi lại mã ({{count}}s)',
+            back_to_sign_in: 'Về đăng nhập',
+            btn_login: 'Đăng Nhập',
+            btn_register: 'Đăng Ký',
+            btn_verify: 'Xác Minh',
+            btn_send_reset: 'Gửi Mã Đặt Lại',
+            btn_reset_password: 'Đặt Lại Mật Khẩu',
+          },
           store: {
             title: 'Cửa hàng vật phẩm',
             purchase: 'Mua ngay',
@@ -487,7 +553,7 @@ i18n
       },
     },
     supportedLngs: ['vi', 'en'],
-    fallbackLng: 'vi',
+    fallbackLng: 'en',
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
