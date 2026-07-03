@@ -300,6 +300,38 @@ export function registerStoreIPC(ipcMain) {
       return { success: false, error: err.message };
     }
   });
+  // ═══ Quests Alias ═══
+  ipcMain.handle('quest:save', async (_event, daily) => {
+    try {
+      const encrypted = encodeBase64(daily);
+      store.set('userDaily', encrypted);
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] quest:save failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('quest:load', async () => {
+    try {
+      const encrypted = store.get('userDaily');
+      if (!encrypted) return null;
+      const decoded = decodeBase64(encrypted);
+      return { success: true, data: decoded };
+    } catch (err) {
+      console.error('[storeIpc] quest:load failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('quest:clear', async () => {
+    try {
+      store.delete('userDaily');
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] quest:clear failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
   // ═══ Clear on logout user ═══
   ipcMain.handle('store:clearLoginData', async () => {
     try {

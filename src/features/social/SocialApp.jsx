@@ -48,9 +48,8 @@ class SocialApp extends Component {
   }
 
   initialSync = async () => {
-    const { friends, friendUpdatedAt } = this.props;
-    // Flow: If redux has no data or sync time is missing, fetch first page
-    if (friends.length === 0 || !friendUpdatedAt) {
+    const { friends } = this.props;
+    if (friends.length === 0) {
       this.fetchFriends(true);
     }
   };
@@ -69,19 +68,9 @@ class SocialApp extends Component {
     if (res && !res.errCode) {
       this.setState({ apiNotConfigured: false });
       if (isFirstPage) {
-        setSocial({ items: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
-        if (window.api) window.api.invoke('secureStore:setItem', { key: 'friends_cache', value: JSON.stringify(res.friends) });
+        setSocial({ items: res.friends, lastKey: res.lastEvaluatedKey });
       } else {
-        appendSocial({ items: res.friends, lastEvaluatedKey: res.lastEvaluatedKey });
-        if (window.api) {
-          const current = this.props.friends;
-          window.api.invoke('secureStore:setItem', { key: 'friends_cache', value: JSON.stringify([...current, ...res.friends]) });
-        }
-      }
-
-      if (res.updatedAt) {
-        this.props.setFriendSyncTime(res.updatedAt);
-        if (window.api) window.api.invoke('secureStore:setItem', { key: 'friend_sync_time', value: String(res.updatedAt) });
+        appendSocial({ items: res.friends, lastKey: res.lastEvaluatedKey });
       }
     } else if (res?.errMessage === 'API_NOT_CONFIGURED') {
       // Chưa cấu hình API URL — hiện trạng thái tĩnh, không spam toast
@@ -135,7 +124,7 @@ class SocialApp extends Component {
 
     if (res && res.users) {
       const filtered = res.users.filter(u =>
-        u.userId !== this.props.userProfile?.UserId &&
+        u.userId !== (this.props.userProfile?.PK || this.props.userProfile?.userId || this.props.userProfile?.UserId) &&
         !this.props.friends.some(f => f.SK === u.userId)
       );
       this.setState({ searchResults: filtered });
@@ -436,10 +425,9 @@ class SocialApp extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  friends: state.social.friends || [],
-  friendLastEvaluatedKey: state.social.friendLastEvaluatedKey,
-  friendUpdatedAt: state.social.friendUpdatedAt,
-  userProfile: state.auth.userProfile,
+  friends: state.social.items || [],
+  friendLastEvaluatedKey: state.social.lastKey,
+  userProfile: state.profile.userProfile,
 });
 
 const mapDispatchToProps = (dispatch) => ({

@@ -7,7 +7,7 @@ import RankFrame from '../../components/RankFrame';
 import ImageCropper from '../../components/ImageCropper';
 import cosmeticManager from '../../managers/cosmeticManager';
 import { handleUpdateNameApi } from '../../services/cosmeticServices';
-import { getAvatarUploadUrl, updateAvatarUrl } from '../../services/userService';
+import { getValidAccessToken } from '../../services/tokenService';
 import { connect } from 'react-redux';
 import { setProfile } from '../../store/actions';
 import { toast } from 'react-toastify';
@@ -23,7 +23,7 @@ const SettingsApp = ({
   dispatchUserLogin
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
-  const [newName, setNewName] = useState(userProfile?.username || '');
+  const [newName, setNewName] = useState(userProfile?.information?.name || '');
   const [loading, setLoading] = useState(false);
   const [pendingImage, setPendingImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -32,10 +32,11 @@ const SettingsApp = ({
 
   const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
-  const displayName = userProfile?.username || 'Player_9999';
+  const displayName = userProfile?.information?.name || 'Player_9999';
   const currentLanguage = (i18n?.resolvedLanguage || i18n?.language || 'vi').split('-')[0];
 
   const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
+  const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
   const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
   const handleSaveName = async () => {
@@ -51,7 +52,10 @@ const SettingsApp = ({
         // Cập nhật Redux để Dashboard/Profile thấy tên mới ngay lập tức
         dispatchUserLogin({
           ...userProfile,
-          username: response.profile.information?.name || newName.trim()
+          information: {
+            ...userProfile?.information,
+            name: response.profile.information?.name || newName.trim()
+          }
         });
         setIsEditingName(false);
       }
@@ -84,35 +88,75 @@ const SettingsApp = ({
     setPendingImage(null);
     setIsUploading(true);
     try {
-      const fileName = `avatar_${userProfile.userId || 'user'}_${Date.now()}.jpg`;
-      const res = await getAvatarUploadUrl(fileName, 'image/jpeg');
-
-      if (res.success && res.uploadUrl) {
-        const uploadRes = await fetch(res.uploadUrl, {
-          method: 'PUT',
-          body: blob,
-          headers: { 'Content-Type': 'image/jpeg' }
-        });
-
-        if (uploadRes.ok) {
-          const finalUrl = res.finalUrl || `${S3_AVATAR_BASE}${fileName}`;
-          const updateRes = await updateAvatarUrl(finalUrl);
-
-          if (updateRes.success) {
-            toast.success(t('profile.avatar_updated') || 'Avatar updated!');
-            dispatchUserLogin({ ...userProfile, avatar: finalUrl });
-          } else {
-            toast.error(updateRes.error || 'Failed to update database');
-          }
-        } else {
-          toast.error('S3 Upload failed');
-        }
-      } else {
-        toast.error(res.error || 'Failed to get upload URL');
+      const API_URL = import.meta.env.VITE_API_URL;
+      const token = await getValidAccessToken();
+      if (!token) {
+        toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+        return;
       }
+
+      // B1: Lấy presigned POST URL
+      const presignRes = await fetch(`${API_URL}/avatar/presign`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!presignRes.ok) {
+        const errData = await presignRes.json().catch(() => ({}));
+        if (presignRes.status === 429) {
+          toast.error(t('profile.avatar_cooldown') || 'Chưa đủ thời gian để đổi ảnh đại diện (7 ngày/lần)');
+        } else {
+          toast.error(errData.message || 'Không lấy được URL upload');
+        }
+        return;
+      }
+      const presignData = await presignRes.json();
+      const { url: uploadUrl, fields } = presignData;
+
+      // B2: Upload lên S3 bằng presigned POST (multipart/form-data)
+      const formData = new FormData();
+      Object.entries(fields || {}).forEach(([k, v]) => formData.append(k, v));
+      formData.append('file', blob, 'avatar.jpg');
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!uploadRes.ok) {
+        toast.error('Upload ảnh lên S3 thất bại');
+        return;
+      }
+
+      // B3: Confirm với server để ghi vào DB
+      const confirmRes = await fetch(`${API_URL}/avatar/confirm`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!confirmRes.ok) {
+        const errData = await confirmRes.json().catch(() => ({}));
+        toast.error(errData.message || 'Xác nhận ảnh đại diện thất bại');
+        return;
+      }
+      const confirmData = await confirmRes.json();
+      const newAvatarPath = confirmData.avatarUrl;
+
+      toast.success(t('profile.avatar_updated') || 'Cập nhật ảnh đại diện thành công!');
+      // Cập nhật Redux — avatarUrl là relative path
+      dispatchUserLogin({
+        ...userProfile,
+        information: {
+          ...userProfile?.information,
+          avatarUrl: newAvatarPath,
+        },
+      });
     } catch (err) {
       console.error('Avatar upload error:', err);
-      toast.error('Avatar upload failed');
+      toast.error('Upload ảnh đại diện thất bại');
     } finally {
       setIsUploading(false);
     }
@@ -129,8 +173,8 @@ const SettingsApp = ({
             className={`settings-avatar-preview ${isUploading ? 'uploading' : ''}`}
             onClick={() => fileInputRef.current?.click()}
           >
-            {userProfile?.avatar ? (
-              <img src={userProfile.avatar} alt="avatar" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+            {userProfile?.information?.avatarUrl ? (
+              <img src={S3_ASSETS_BASE + userProfile.information.avatarUrl} alt="avatar" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
             ) : (
               <img src={DEFAULT_AVATAR} alt="avatar" />
             )}
@@ -239,6 +283,7 @@ const SettingsApp = ({
 
 const mapDispatchToProps = (dispatch) => ({
   setProfile: (data) => dispatch(setProfile(data)),
+  dispatchUserLogin: (data) => dispatch(setProfile(data)),
 });
 
 export default connect(null, mapDispatchToProps)(SettingsApp);

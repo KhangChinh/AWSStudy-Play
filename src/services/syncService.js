@@ -42,7 +42,7 @@ const ingestServerData = async (payload) => {
   if (gachaHistory) {
     store.dispatch({
       type: 'SET_GACHA_HISTORY',
-      payload: { items: gachaHistory, lastKey: gachaHistoryLastKey || null }
+      payload: { gachaHistory, lastEvaluatedKey: gachaHistoryLastKey || null }
     });
     promises.push(window.api?.invoke('store:saveGachaHistory', {
       gachaHistory,
@@ -87,7 +87,7 @@ const handleSyncAllApi = async () => {
       const getDaily = true;
       // Phân trang: Lấy nếu mảng đang rỗng hoặc chưa tồn tại (true), bỏ qua nếu đã có data (false)
       const getInventory = Boolean(!currentState.inventory?.items?.length);
-      const getGachaHistory = Boolean(!currentState.gachaHistory?.items?.length);
+      const getGachaHistory = Boolean(!currentState.gachaHistory?.gachaHistory?.length);
       const getSocial = Boolean(!currentState.social?.items?.length);
       const token = await getValidAccessToken();
       if (!token) throw new Error('No auth token');
@@ -126,7 +126,7 @@ const handleSyncAllApi = async () => {
         }
         if (daily) {
           store.dispatch(setDailyQuests(daily));
-          await window.api?.invoke('quest:save', daily).catch(() => { });
+          await window.api?.invoke('store:saveDaily', daily).catch(() => { });
         }
         if (inventory) {
           store.dispatch(setInventory({ items: inventory, lastKey: inventoryLastKey }));
@@ -135,7 +135,7 @@ const handleSyncAllApi = async () => {
           }).catch(() => { });
         }
         if (gachaHistory) {
-          store.dispatch(setGachaHistory({ items: gachaHistory, lastKey: gachaHistoryLastKey }));
+          store.dispatch(setGachaHistory({ gachaHistory, lastEvaluatedKey: gachaHistoryLastKey }));
           await window.api?.invoke('store:saveGachaHistory', {
             gachaHistory, lastEvaluatedKey: gachaHistoryLastKey
           }).catch(() => { });
@@ -251,17 +251,17 @@ const handleSyncInventoryApi = async () => {
 
 const handleSyncGachaHistoryApi = async () => {
   try {
-    const { items, lastKey, hasMore } = store.getState().gachaHistory;
+    const { gachaHistory, gachaHistoryLastEvaluatedKey: lastKey, hasMore } = store.getState().gachaHistory;
     if (!hasMore) return null;
 
-    if (!items || items.length === 0) {
+    if (!gachaHistory || gachaHistory.length === 0) {
       const localData = await window.api?.invoke('store:loadGachaHistory');
       if (localData && localData.gachaHistory && localData.gachaHistory.length > 0) {
         store.dispatch({
           type: 'SET_GACHA_HISTORY',
           payload: {
-            items: localData.gachaHistory,
-            lastKey: localData.lastEvaluatedKey
+            gachaHistory: localData.gachaHistory,
+            lastEvaluatedKey: localData.lastEvaluatedKey
           }
         });
         return {
@@ -292,7 +292,7 @@ const handleSyncGachaHistoryApi = async () => {
     const syncResult = await response.json();
 
     if (syncResult && syncResult.success && syncResult.gachaHistory) {
-      const payload = { items: syncResult.gachaHistory, lastKey: syncResult.lastEvaluatedKey };
+      const payload = { gachaHistory: syncResult.gachaHistory, lastEvaluatedKey: syncResult.lastEvaluatedKey };
 
       if (lastKey) store.dispatch({ type: 'APPEND_GACHA_HISTORY', payload });
       else store.dispatch({ type: 'SET_GACHA_HISTORY', payload });

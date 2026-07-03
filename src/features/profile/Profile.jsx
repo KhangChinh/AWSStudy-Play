@@ -45,6 +45,7 @@ const resolveBackground = (background) => {
 };
 
 const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
+const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
 const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
 class Profile extends Component {
@@ -220,7 +221,7 @@ class Profile extends Component {
     const profileHeaderStyle = selectedBackground?.profileBackground
       ? { background: selectedBackground.profileBackground }
       : undefined;
-    const displayName = userProfile?.username || 'Player_9999';
+    const displayName = userProfile?.information?.name || 'Player_9999';
     const titleName = translateCosmeticName(equippedTitle, t);
 
     return (
@@ -240,8 +241,8 @@ class Profile extends Component {
           <div className="user-profile-section">
             <div className="avatar-container-simple">
               <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
-                {userProfile?.avatar ? (
-                  <img src={userProfile.avatar} alt="avatar" className="avatar-img-large" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                {userProfile?.information?.avatarUrl ? (
+                  <img src={S3_ASSETS_BASE + userProfile.information.avatarUrl} alt="avatar" className="avatar-img-large" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
                 ) : (
                   <img src={DEFAULT_AVATAR} alt="avatar" className="avatar-img-large" />
                 )}
