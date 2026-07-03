@@ -43,6 +43,8 @@ class App extends Component {
     }
     try {
       await handleSyncProfileApi();
+      // Gửi IPC để main process resize cửa sổ sang kích thước Dashboard
+      if (window.api?.send) window.api.send('login-success');
     } catch (error) {
       console.warn('[App] Đồng bộ profile thất bại, đăng xuất...', error.message);
       await handleLogoutApi();

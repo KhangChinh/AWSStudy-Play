@@ -289,6 +289,7 @@ class AuthPage extends Component {
                     <button
                       type="button"
                       className="toggle-password"
+                      tabIndex={-1}
                       onClick={() => this.setState({ showPassword: !showPassword })}
                       disabled={isLoading}
                     >
@@ -306,6 +307,7 @@ class AuthPage extends Component {
                     <button
                       type="button"
                       className="toggle-password"
+                      tabIndex={-1}
                       onClick={() => this.setState({ showConfirmPassword: !showConfirmPassword })}
                       disabled={isLoading}
                     >
@@ -331,6 +333,7 @@ class AuthPage extends Component {
                       <button
                         type="button"
                         className="toggle-password"
+                        tabIndex={-1}
                         onClick={() => this.setState({ showPassword: !showPassword })}
                         disabled={isLoading}
                       >
@@ -345,6 +348,7 @@ class AuthPage extends Component {
                       <button
                         type="button"
                         className="toggle-password"
+                        tabIndex={-1}
                         onClick={() => this.setState({ showConfirmPassword: !showConfirmPassword })}
                         disabled={isLoading}
                       >
