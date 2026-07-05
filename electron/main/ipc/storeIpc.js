@@ -340,6 +340,7 @@ export function registerStoreIPC(ipcMain) {
       store.delete('userGachaHistory');
       store.delete('userSocial');
       store.delete('userDaily');
+      store.delete('userSudokuLevels');
       return { success: true };
     } catch (err) {
       console.error('[storeIpc] store:clearLoginData failed:', err);

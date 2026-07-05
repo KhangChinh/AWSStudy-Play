@@ -1,23 +1,19 @@
-﻿import React, { Component } from 'react';
+import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withTranslation } from 'react-i18next';
 import { IonIcon } from '@ionic/react';
 import { playOutline, trophyOutline, timeOutline, gameControllerOutline } from 'ionicons/icons';
 
 import './MinigameHub.scss';
-import { handleGetLeaderboardApi } from '../../services/socialServices';
+
+import { handleSyncSudokuLevels } from '../../services/minigameServices';
 import { toast } from 'react-toastify';
 import SudokuGame from './games/sudoku/SudokuGame.jsx';
 
 const MINIGAMES = [
-  { id: 'all', labelKey: 'minigames.total_wins', icon: '\u{1F3C5}' },
-  { id: 'minesweeper', labelKey: 'minigames.games.minesweeper', icon: '\u{1F4A3}' },
-  { id: 'sudoku', labelKey: 'minigames.games.sudoku', icon: '\u{1F522}' },
-];
-
-const ARCADE_GAMES = [
-  { id: 'minesweeper', nameKey: 'minigames.games.minesweeper', price: 100, icon: '\u{1F4A3}', disabled: true },
-  { id: 'sudoku', nameKey: 'minigames.games.sudoku', price: 'free', icon: '\u{1F522}', disabled: false },
+  { id: 'all', label: 'Tổng Wins', icon: '🏅' },
+  { id: 'minesweeper', label: 'Minesweeper', icon: '💣' },
+  { id: 'sudoku', label: 'Sudoku', icon: '🔢' },
 ];
 
 const MINIGAME_SCORES = {
@@ -26,24 +22,28 @@ const MINIGAME_SCORES = {
   sudoku: [130, 110, 90, 75, 50],
 };
 
-const ArcadeList = ({ onPlayGame, t }) => (
+// ═══ Arcade Game List ═══
+const ArcadeList = ({ onPlayGame }) => (
   <div className="arcade-list">
-    <h3><IonIcon icon={gameControllerOutline} /> {t('minigames.arcade')}</h3>
+    <h3><IonIcon icon={gameControllerOutline} /> Available Games</h3>
     <div className="store-grid">
-      {ARCADE_GAMES.map(game => (
-        <div className="store-item" key={game.id}>
+      {[
+        { name: 'Minesweeper', price: 100, icon: '💣', disabled: true },
+        { name: 'Sudoku', price: 'Free', icon: '🔢', disabled: false },
+      ].map(game => (
+        <div className="store-item" key={game.name}>
           <div className="item-cover">{game.icon}</div>
           <div className="item-info">
-            <span className="item-title">{t(game.nameKey)}</span>
+            <span className="item-title">{game.name}</span>
             <span className="item-price">
-              {typeof game.price === 'number' ? `${game.price} ${t('minigames.pcoin_play')}` : t('minigames.free')}
+              {typeof game.price === 'number' ? `🪙 ${game.price} P-Coin / Play` : game.price}
             </span>
             <button
-              onClick={() => !game.disabled && onPlayGame(game.id)}
+              onClick={() => !game.disabled && onPlayGame(game.name.toLowerCase())}
               style={game.disabled ? { background: '#475569', cursor: 'not-allowed', opacity: 0.6 } : {}}
               disabled={game.disabled}
             >
-              <IonIcon icon={playOutline} /> {game.disabled ? t('minigames.coming_soon') : t('minigames.play_now')}
+              <IonIcon icon={playOutline} /> {game.disabled ? 'Coming Soon' : 'Play Now'}
             </button>
           </div>
         </div>
@@ -52,33 +52,34 @@ const ArcadeList = ({ onPlayGame, t }) => (
   </div>
 );
 
-const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, t }) => {
+// ═══ Leaderboard ═══
+const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => {
   const scores = tab === 'study'
     ? [120.5, 98.2, 85.0, 72.4, 60.1]
     : MINIGAME_SCORES[minigameFilter];
 
   const scoreLabel = tab === 'study'
-    ? (v) => t('minigames.study_hours', { hours: v.toFixed(1) })
-    : (v) => t('minigames.win_count', { count: v });
+    ? (v) => `${v.toFixed(1)}h`
+    : (v) => `${v} Wins`;
 
-  const players = [
-    { name: 'Cosmic_King', avatar: '\u{1F451}' },
-    { name: 'Nebula_Runner', avatar: '\u2728' },
-    { name: 'Star_Gazer', avatar: '\u{1F52D}' },
-    { name: 'Void_Walker', avatar: '\u{1F30C}' },
-    { name: 'Galaxy_Master', avatar: '\u{1F320}' },
+  const DEMO_PLAYERS = [
+    { name: 'Cosmic_King', avatar: '👑' },
+    { name: 'Nebula_Runner', avatar: '✨' },
+    { name: 'Star_Gazer', avatar: '🔭' },
+    { name: 'Void_Walker', avatar: '🌌' },
+    { name: 'Galaxy_Master', avatar: '🌠' }
   ];
 
   return (
     <div className="leaderboard-section">
       <div className="section-header">
-        <h3><IonIcon icon={trophyOutline} /> {t('minigames.hall_of_fame')}</h3>
+        <h3><IonIcon icon={trophyOutline} /> Hall of Fame</h3>
         <div className="tabs">
           <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>
-            <IonIcon icon={timeOutline} /> {t('minigames.study')}
+            <IonIcon icon={timeOutline} /> Study
           </button>
           <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>
-            <IonIcon icon={gameControllerOutline} /> {t('minigames.minigame')}
+            <IonIcon icon={gameControllerOutline} /> Minigame
           </button>
         </div>
       </div>
@@ -91,17 +92,17 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, t }) 
             onChange={e => setMinigameFilter(e.target.value)}
           >
             {MINIGAMES.map(g => (
-              <option key={g.id} value={g.id}>{g.icon} {t(g.labelKey)}</option>
+              <option key={g.id} value={g.id}>{g.icon} {g.label}</option>
             ))}
           </select>
         </div>
       )}
 
       <div className="rank-list">
-        {players.map((player, i) => (
-          <div className={`rank-item ${i < 3 ? `top-${i + 1}` : ''}`} key={player.name}>
+        {DEMO_PLAYERS.map((player, i) => (
+          <div className={`rank-item ${i < 3 ? `top-${i + 1}` : ''}`} key={i}>
             <div className="rank-number">
-              {i === 0 ? '\u{1F947}' : i === 1 ? '\u{1F948}' : i === 2 ? '\u{1F949}' : `#${i + 1}`}
+              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
             </div>
             <div className="player-info">
               <div className="player-avatar">{player.avatar}</div>
@@ -109,10 +110,10 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, t }) 
                 <div className="name-with-title">
                   <span className="player-name">{player.name}</span>
                   <span className="player-title" style={{ color: i === 0 ? '#a855f7' : i < 3 ? '#f87171' : '#94a3b8' }}>
-                    [{i === 0 ? t('minigames.rank_titles.whale') : i < 3 ? t('minigames.rank_titles.warrior') : t('minigames.rank_titles.newbie')}]
+                    [{i === 0 ? 'Đại Gia' : i < 3 ? 'Chiến Thần' : 'Tân Thủ'}]
                   </span>
                 </div>
-                <span className="player-rank-title">{i === 0 ? t('minigames.grandmaster') : i < 3 ? t('minigames.elite') : t('minigames.challenger')}</span>
+                <span className="player-rank-title">{i === 0 ? 'Grandmaster' : i < 3 ? 'Elite' : 'Challenger'}</span>
               </div>
             </div>
             <div className="score-badge">
@@ -125,6 +126,7 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, t }) 
   );
 };
 
+// ═══ Main MinigameHub ═══
 class MinigameHub extends Component {
   constructor(props) {
     super(props);
@@ -136,16 +138,51 @@ class MinigameHub extends Component {
     };
   }
 
+  // ─── THÊM MỚI: Xử lý nút bấm Play Game ───
+  handlePlayGame = async (gameId) => {
+    if (gameId === 'sudoku') {
+      this.setState({ isLoading: true });
+      try {
+        toast.info("Đang tải danh sách màn chơi...");
+        const response = await handleSyncSudokuLevels();
+
+        // Log dữ liệu để kiểm tra
+        console.log("=== DANH SÁCH MÀN CHƠI SUDOKU ===");
+        console.log(response);
+        console.log("=================================");
+
+        // FIX: Đổi điều kiện kiểm tra từ !response.errCode sang check sự tồn tại của response.levels 
+        if (response && (response.levels || response.success)) {
+          // Xóa dòng log console cho gọn hoặc để lại tùy bạn
+          toast.success("Tải màn chơi thành công!");
+
+          // 🚨 THÊM DÒNG NÀY: Kích hoạt render SudokuGame
+          this.setState({ activeGame: 'sudoku' })
+        } else {
+          // Chỉ rơi vào đây nếu service thực sự trả về null hoặc API lỗi không trả ra levels
+          toast.error("Có lỗi xảy ra hoặc không tìm thấy dữ liệu.");
+        }
+      } catch (error) {
+        console.log('Error loading levels:', error);
+        toast.error('Lỗi kết nối khi tải màn chơi!');
+      } finally {
+        this.setState({ isLoading: false });
+      }
+    } else {
+      this.setState({ activeGame: gameId });
+    }
+  };
+
   handleLoadLeaderboard = async () => {
     this.setState({ isLoading: true });
     try {
       const response = await handleGetLeaderboardApi(this.state.minigameFilter);
       if (response && response.errCode === 0) {
-        // Leaderboard data can be stored in Redux when backend data is ready.
+        // Lưu leaderboard vào redux nếu cần
       }
     } catch (error) {
       console.log('Error loading leaderboard:', error);
-      toast.error(this.props.t('minigames.leaderboard_load_error'));
+      toast.error('Lỗi khi tải bảng xếp hạng!');
     }
     this.setState({ isLoading: false });
   };
@@ -156,13 +193,12 @@ class MinigameHub extends Component {
 
   setMinigameFilter = (filter) => {
     this.setState({ minigameFilter: filter }, () => {
-      // this.handleLoadLeaderboard();
+      // this.handleLoadLeaderboard(); 
     });
   };
 
   render() {
     const { tab, minigameFilter, activeGame } = this.state;
-    const { t } = this.props;
 
     if (activeGame === 'sudoku') {
       return (
@@ -172,10 +208,11 @@ class MinigameHub extends Component {
 
     return (
       <div className="app-container minigame-hub">
-        <h2 className="app-title"><IonIcon icon={gameControllerOutline} /> {t('minigames.title')}</h2>
-        <ArcadeList t={t} onPlayGame={(game) => this.setState({ activeGame: game })} />
+        <h2 className="app-title">🎮 Minigame Hub</h2>
+        {/* THAY ĐỔI: Truyền hàm handlePlayGame xuống ArcadeList */}
+        <ArcadeList onPlayGame={this.handlePlayGame} />
+
         <LeaderboardView
-          t={t}
           tab={tab}
           minigameFilter={minigameFilter}
           setTab={this.setTab}
@@ -191,3 +228,4 @@ const mapStateToProps = (state) => ({
 });
 
 export default connect(mapStateToProps, null)(withTranslation()(MinigameHub));
+

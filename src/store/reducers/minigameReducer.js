@@ -3,7 +3,6 @@ import { SET_SUDOKU_LEVELS, APPEND_SUDOKU_LEVELS, CLEAR_SUDOKU_LEVELS } from '..
 const initialState = {
     sudokuLevels: [],
     sudokuLevelsLastEvaluatedKey: null,
-    sudokuLevelsHasMore: false,
     isLoading: false,
 };
 
@@ -14,7 +13,6 @@ const minigameReducer = (state = initialState, action) => {
                 ...state,
                 sudokuLevels: action.payload.sudokuLevels || [],
                 sudokuLevelsLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
-                sudokuLevelsHasMore: action.payload.lastEvaluatedKey !== null,
                 isLoading: false,
             };
         case APPEND_SUDOKU_LEVELS:
@@ -22,7 +20,6 @@ const minigameReducer = (state = initialState, action) => {
                 ...state,
                 sudokuLevels: [...state.sudokuLevels, ...(action.payload.sudokuLevels || [])],
                 sudokuLevelsLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
-                sudokuLevelsHasMore: action.payload.lastEvaluatedKey !== null,
                 isLoading: false,
             };
         case CLEAR_SUDOKU_LEVELS:
