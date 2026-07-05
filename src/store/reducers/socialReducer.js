@@ -45,6 +45,10 @@ const socialReducer = (state = initialState, action) => {
             friendName: update.friendName ?? update.name ?? item.friendName,
             friendAvatarUrl: update.friendAvatarUrl ?? update.avatarUrl ?? item.friendAvatarUrl,
             level: update.level ?? item.level,
+            rankScore: update.rankScore ?? item.rankScore,
+            streak: update.streak ?? item.streak,
+            friendEquippedFrame: update.friendEquippedFrame ?? update.equippedFrame ?? item.friendEquippedFrame,
+            equippedCosmetics: update.equippedCosmetics ?? item.equippedCosmetics,
             friendInfoUpdatedAt: update.friendInfoUpdatedAt ?? Date.now(),
           };
         }),

@@ -22,6 +22,7 @@ import {
   handleSearchUsersApi
 } from '../../services/socialServices';
 import { setSocial, appendSocial, mergeSocialFriends } from '../../store/actions';
+import RankFrame from '../../components/RankFrame';
 import './SocialApp.scss';
 
 const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
@@ -37,6 +38,41 @@ const resolveAvatarUrl = (avatarUrl) => {
 };
 
 const getFriendUserId = (friend) => friend?.SK || friend?.userId || friend?.friendId;
+
+const getUserId = (user) => user?.userId || user?.PK || user?.SK || user?.objectID;
+
+const getDisplayName = (user) => (
+  user?.name ||
+  user?.information?.name ||
+  user?.friendName ||
+  'Unknown'
+);
+
+const getStudyStats = (user) => user?.studyStats || {};
+
+const getEquippedFrameId = (source) => {
+  const frame = source?.equippedFrame || source?.friendEquippedFrame || source?.equippedCosmetics?.equippedFrame;
+  if (!frame) return 'frame_none';
+  if (typeof frame === 'string') return frame;
+  return frame.SK || frame.id || 'frame_none';
+};
+
+const getFrameTier = (source) => getEquippedFrameId(source).replace('frame_', '') || 'none';
+
+const normalizeSearchUser = (user = {}) => {
+  const stats = getStudyStats(user);
+  const userId = getUserId(user);
+
+  return {
+    ...user,
+    userId,
+    name: getDisplayName(user),
+    avatarUrl: user.avatarUrl || user.information?.avatarUrl || '',
+    rankScore: user.rankScore ?? stats.rankScore ?? 0,
+    streak: user.streak ?? stats.streak ?? 0,
+    equippedFrame: getEquippedFrameId(user),
+  };
+};
 
 class SocialApp extends Component {
   constructor(props) {
@@ -144,9 +180,11 @@ class SocialApp extends Component {
     const res = await handleSearchUsersApi(normalizedQuery);
 
     if (res && res.users) {
-      this.mergeFriendInfoFromUsers(res.users);
-      const filtered = res.users.filter(u =>
-        u.userId !== (this.props.userProfile?.PK || this.props.userProfile?.userId || this.props.userProfile?.UserId) &&
+      const users = res.users.map(normalizeSearchUser).filter((user) => Boolean(user.userId));
+      this.mergeFriendInfoFromUsers(users);
+      const currentUserId = this.props.userProfile?.PK || this.props.userProfile?.userId || this.props.userProfile?.UserId;
+      const filtered = users.filter(u =>
+        u.userId !== currentUserId &&
         !this.props.friends.some(f => getFriendUserId(f) === u.userId)
       );
       this.setState({ searchResults: filtered, searchHasRun: true, visibleSearchCount: 5 });
@@ -175,6 +213,9 @@ class SocialApp extends Component {
         friendName: user.name,
         friendAvatarUrl: user.avatarUrl,
         level: user.level,
+        rankScore: user.rankScore,
+        streak: user.streak,
+        friendEquippedFrame: user.equippedFrame,
       }));
 
     if (updates.length) {
@@ -191,6 +232,19 @@ class SocialApp extends Component {
   renderAvatar = (avatarUrl, alt = 'avatar') => (
     <img src={resolveAvatarUrl(avatarUrl)} alt={alt} onError={this.handleAvatarError} />
   );
+
+  renderFramedAvatar = (source, avatarUrl, alt = 'avatar', size = 64) => {
+    const tier = getFrameTier(source);
+    if (tier === 'none') {
+      return this.renderAvatar(avatarUrl, alt);
+    }
+
+    return (
+      <RankFrame tier={tier} size={size} className="social-rank-frame">
+        {this.renderAvatar(avatarUrl, alt)}
+      </RankFrame>
+    );
+  };
 
   handleSocialAction = async (type, targetUserId) => {
     this.setState({ isActionLoading: targetUserId });
@@ -247,7 +301,7 @@ class SocialApp extends Component {
           <div key={friend.SK} className="friend-card">
             <div className="avatar-container">
               <div className="avatar-placeholder">
-                {this.renderAvatar(friend.friendAvatarUrl, friend.friendName || 'avatar')}
+                {this.renderFramedAvatar(friend, friend.friendAvatarUrl, friend.friendName || 'avatar', 64)}
               </div>
             </div>
             <div className="friend-info">
@@ -381,7 +435,7 @@ class SocialApp extends Component {
               {visibleResults.map(user => (
                 <div key={user.userId} className="search-result-card">
                   <div className="user-avatar">
-                    {this.renderAvatar(user.avatarUrl, user.name || 'avatar')}
+                    {this.renderFramedAvatar(user, user.avatarUrl, user.name || 'avatar', 58)}
                   </div>
                   <div className="user-details">
                     <span className="user-name">{user.name}</span>

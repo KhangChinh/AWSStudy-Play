@@ -157,6 +157,16 @@
           justify-content: center;
           overflow: hidden;
 
+          &:has(.rank-frame-badge) {
+            overflow: visible;
+            background: transparent;
+            border-color: transparent;
+          }
+
+          .social-rank-frame {
+            margin-top: -4px;
+          }
+
           img {
             width: 100%;
             height: 100%;
@@ -484,6 +494,15 @@
           align-items: center;
           justify-content: center;
           overflow: hidden;
+
+          &:has(.rank-frame-badge) {
+            overflow: visible;
+            background: transparent;
+          }
+
+          .social-rank-frame {
+            margin-top: -3px;
+          }
 
           img {
             width: 100%;
