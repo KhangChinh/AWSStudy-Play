@@ -47,6 +47,7 @@ i18n
             level: 'Level',
             back: 'Back',
             next: 'Next',
+            show_more: 'Show more',
           },
           social: {
             friends: 'Friends',
@@ -289,7 +290,7 @@ i18n
             resend_code: 'Resend code',
             resend_code_countdown: 'Resend code ({{count}}s)',
             back_to_sign_in: 'Back to Sign In',
-            btn_login: 'Initialize Login',
+            btn_login: 'Sign In',
             btn_register: 'Register Identity',
             btn_verify: 'Verify Identity',
             btn_send_reset: 'Send Reset Code',
@@ -319,6 +320,19 @@ i18n
           store: {
             title: 'Cosmetics Store',
             purchase: 'Purchase',
+            purchasing: 'Purchasing...',
+            purchase_success: 'Purchase successful!',
+            purchase_failed: 'Purchase failed.',
+            owned: 'Owned',
+            quantity: 'Quantity',
+            max: 'Max',
+            total: 'Total',
+            not_enough_knowledge_points: 'Not enough Knowledge Points.',
+            not_enough_ecoin: 'Not enough eCoin.',
+            items: {
+              knowledge_core: 'Knowledge Core',
+              purple_background: 'Purple Background',
+            },
           },
           focus: {
             title: 'Focus Mode Settings',
@@ -388,14 +402,23 @@ i18n
             history: 'History',
             rate_up_desc: 'Rate up for selected <span class="text-purple">SR-Rank</span> and <span class="text-gold">Limited SSR-Rank</span> items!',
             duplicate: 'Duplicate',
+            featured_ssr: 'SSR',
+            featured_sr: 'SR',
+            infinite_time: '∞',
+            empty_rewards_error: 'Gacha did not return any rewards.',
             not_enough_knowledge_points: 'Not enough Knowledge Points!',
             not_enough_knowledge_core: 'Not enough Knowledge Core!',
           },
           gacha_animation: {
-            skip: 'Skip >>',
+            skip: 'Skip',
             click_continue: 'Click anywhere to continue',
             mystery_item: 'Mystery Item',
             item_icon_alt: 'Item icon',
+            converted_reward: 'Converted Reward',
+            new_acquisition: 'New Acquisition',
+            results: 'Results',
+            item: 'Item',
+            signal_acquired: 'Signal Acquired',
           },
           minigames: {
             title: 'Minigame Hub',
@@ -494,6 +517,7 @@ i18n
             level: 'Cấp độ',
             back: 'Quay lại',
             next: 'Tiếp theo',
+            show_more: 'Hiện thêm',
           },
           social: {
             friends: 'Danh sách bạn',
@@ -754,6 +778,19 @@ i18n
           store: {
             title: 'Cửa hàng vật phẩm',
             purchase: 'Mua ngay',
+            purchasing: 'Đang mua...',
+            purchase_success: 'Mua thành công!',
+            purchase_failed: 'Mua thất bại.',
+            owned: 'Đã sở hữu',
+            quantity: 'Số lượng',
+            max: 'Tối đa',
+            total: 'Tổng',
+            not_enough_knowledge_points: 'Không đủ Điểm tri thức.',
+            not_enough_ecoin: 'Không đủ eCoin.',
+            items: {
+              knowledge_core: 'Lõi tri thức',
+              purple_background: 'Nền tím',
+            },
           },
           focus: {
             title: 'Cài đặt tập trung',
@@ -823,14 +860,23 @@ i18n
             history: 'Lịch sử',
             rate_up_desc: 'Tăng tỷ lệ cho vật phẩm <span class="text-purple">hạng SR</span> và <span class="text-gold">SSR giới hạn</span>!',
             duplicate: 'Trùng lặp',
+            featured_ssr: 'SSR',
+            featured_sr: 'SR',
+            infinite_time: '∞',
+            empty_rewards_error: 'Gacha không trả về phần thưởng nào.',
             not_enough_knowledge_points: 'Không đủ Điểm tri thức!',
             not_enough_knowledge_core: 'Không đủ Lõi tri thức!',
           },
           gacha_animation: {
-            skip: 'Bỏ qua >>',
+            skip: 'Bỏ qua',
             click_continue: 'Nhấp bất kỳ đâu để tiếp tục',
             mystery_item: 'Vật phẩm bí ẩn',
             item_icon_alt: 'Biểu tượng vật phẩm',
+            converted_reward: 'Đã đổi thưởng',
+            new_acquisition: 'Vật phẩm mới',
+            results: 'Kết quả',
+            item: 'Vật phẩm',
+            signal_acquired: 'Đã bắt tín hiệu',
           },
           minigames: {
             title: 'Trung tâm trò chơi',
@@ -908,3 +954,4 @@ i18n
   });
 
 export default i18n;
+

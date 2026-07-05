@@ -87,7 +87,7 @@ const handleSyncAllApi = async () => {
       const getDaily = true;
       // Phân trang: Lấy nếu mảng đang rỗng hoặc chưa tồn tại (true), bỏ qua nếu đã có data (false)
       const getInventory = Boolean(!currentState.inventory?.items?.length);
-      const getGachaHistory = Boolean(!currentState.gachaHistory?.gachaHistory?.length);
+      const getGachaHistory = Boolean(!currentState.gacha?.gachaHistory?.length);
       const getSocial = Boolean(!currentState.social?.items?.length);
       const token = await getValidAccessToken();
       if (!token) throw new Error('No auth token');
@@ -251,7 +251,7 @@ const handleSyncInventoryApi = async () => {
 
 const handleSyncGachaHistoryApi = async () => {
   try {
-    const { gachaHistory, gachaHistoryLastEvaluatedKey: lastKey, hasMore } = store.getState().gachaHistory;
+    const { gachaHistory, gachaHistoryLastEvaluatedKey: lastKey, hasMore } = store.getState().gacha;
     if (!hasMore) return null;
 
     if (!gachaHistory || gachaHistory.length === 0) {

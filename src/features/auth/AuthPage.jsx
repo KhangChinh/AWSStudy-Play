@@ -67,6 +67,7 @@ class AuthPage extends Component {
   };
 
   handleResendCode = async () => {
+    const { t } = this.props;
     const { email, resendCooldown, authMode } = this.state;
     if (resendCooldown > 0) return;
     if (!email) {
@@ -91,6 +92,7 @@ class AuthPage extends Component {
 
   handleSubmit = async (e) => {
     e.preventDefault();
+    const { t } = this.props;
     const { authMode, email, password, username, confirmPassword, verificationCode, newPassword, confirmNewPassword } = this.state;
     if ((authMode === 'login' || authMode === 'register') && (!email || !password)) {
       toast.error(t('auth.fill_required'));
@@ -135,6 +137,7 @@ class AuthPage extends Component {
         if (isSignedIn) {
           toast.success(t('auth.login_success'));
           await handleLoginApi();
+          localStorage.removeItem('manualLogoutAt');
           if (window.api?.send) window.api.send('login-success');
           setTimeout(() => {
             this.props.navigate('/dashboard');
@@ -212,7 +215,7 @@ class AuthPage extends Component {
       if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
         toast.info(t('auth.stale_session_cleanup'));
         try {
-          await handleLogoutApi();
+          await handleLogoutApi({ resizeWindow: false });
         } catch (logoutError) {
           console.error('Error during cleanup:', logoutError);
         }

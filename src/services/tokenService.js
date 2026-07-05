@@ -23,6 +23,7 @@ function isTokenExpiringSoon(token) {
 async function triggerLogout() {
   console.warn('[TokenService] Token hết hạn hoàn toàn. Đang tự động đăng xuất...');
   currentAccessToken = null;
+  localStorage.setItem('manualLogoutAt', String(Date.now()));
   try {
     await signOut().catch(() => { });
     window.api?.send('logout');
@@ -55,6 +56,10 @@ async function initializeAuth() {
 
 function getValidToken() {
   return currentAccessToken;
+}
+
+function clearCachedAccessToken() {
+  currentAccessToken = null;
 }
 
 async function getValidAccessToken() {
@@ -92,5 +97,6 @@ export {
   triggerLogout,
   initializeAuth,
   getValidToken,
+  clearCachedAccessToken,
   getValidAccessToken,
 }

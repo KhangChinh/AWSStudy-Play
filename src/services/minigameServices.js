@@ -103,6 +103,7 @@ const handleSyncSudokuLevels = async () => {
         return null;
     }
 };
+<<<<<<< HEAD
 const handleStartSession = async (gameId, levelId) => {
     // [DEBUG] In ra giá trị và kiểu dữ liệu ngay khi hàm được gọi
     console.log(">>> [FRONTEND DEBUG] Đầu vào hàm - gameId:", gameId, "| Type:", typeof gameId);
@@ -138,11 +139,21 @@ const handleStartSession = async (gameId, levelId) => {
         console.log(">>> [FRONTEND DEBUG] Payload sẽ gửi đi (Body):", JSON.stringify(payload, null, 2));
 
         const response = await fetch(url, {
+=======
+
+const handleSyncGameResultApi = async (payload) => {
+    try {
+        const token = await getValidAccessToken();
+        if (!token) throw new Error('No auth token');
+
+        const response = await fetch(`${API_URL}/minigame/end`, {
+>>>>>>> 77b91de45554c272af8767aeeaaae17fcc14b6d8
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
+<<<<<<< HEAD
             body: JSON.stringify(payload),
         });
 
@@ -172,3 +183,25 @@ const handleStartSession = async (gameId, levelId) => {
 };
 
 export { handleSyncSudokuLevels, handleStartSession };
+=======
+            body: JSON.stringify({
+                gameId: payload.gameId || payload.minigame,
+                gameToken: payload.gameToken,
+                finalGrid: payload.finalGrid,
+                actionLog: payload.actionLog || [],
+            }),
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.errCode) {
+            throw new Error(result.errMessage || result.message || `API Error: ${response.status}`);
+        }
+
+        return { errCode: 0, ...result };
+    } catch (e) {
+        console.warn('[minigameServices] FAIL handleSyncGameResultApi:', e.message);
+        return { errCode: -1, errMessage: e.message };
+    }
+};
+export { handleSyncSudokuLevels, handleSyncGameResultApi };
+>>>>>>> 77b91de45554c272af8767aeeaaae17fcc14b6d8

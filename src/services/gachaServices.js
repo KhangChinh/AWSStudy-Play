@@ -1,29 +1,33 @@
 import { store } from '../store';
 import { getValidAccessToken } from './tokenService';
 import { ingestServerData } from './syncService';
+import { KNOWLEDGE_POINTS_PER_CORE } from './currencyServices';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const handleGachaAction = async (isx10) => {
+export const handleGachaApi = async (isx10) => {
   try {
     const costCore = isx10 ? 10 : 1;
     let profile = store.getState().profile?.userProfile;
     if (!profile) {
       profile = await window.api?.invoke('store:loadProfile');
     }
-    if (profile?.budget) {
-      const { knowledgeCore = 0, knowledgePoint = 0 } = profile.budget;
+    if (profile) {
+      const budget = profile.budget || {};
+      const knowledgeCore = Number(budget.knowledgeCore ?? budget.knowledge_core ?? profile.knowledgeCore ?? profile.knowledge_core ?? 0);
+      const knowledgePoint = Number(budget.knowledgePoint ?? budget.knowledge_points ?? profile.knowledgePoint ?? profile.knowledge_points ?? 0);
+
       if (knowledgeCore < costCore) {
         const missingCores = costCore - knowledgeCore;
-        const requiredPoints = missingCores * 150;
+        const requiredPoints = missingCores * KNOWLEDGE_POINTS_PER_CORE;
 
         if (knowledgePoint < requiredPoints) {
-          throw new Error(`Bạn cần tối thiểu ${costCore} Knowledge Core (hoặc quy đổi ${requiredPoints} Knowledge Point) để thực hiện!`);
+          throw new Error(`Need at least ${costCore} Knowledge Core or ${requiredPoints} Knowledge Point to roll.`);
         }
       }
     }
     const token = await getValidAccessToken();
-    if (!token) throw new Error('Không có quyền truy cập. Vui lòng đăng nhập lại.');
+    if (!token) throw new Error('No auth token. Please sign in again.');
     const response = await fetch(`${API_URL}/gacha`, {
       method: 'POST',
       headers: {
@@ -34,7 +38,7 @@ export const handleGachaAction = async (isx10) => {
     });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.message || `Lỗi máy chủ (${response.status})`);
+      throw new Error(errData.message || `Server error (${response.status})`);
     }
     const result = await response.json();
     if (result && result.success) {
@@ -43,15 +47,15 @@ export const handleGachaAction = async (isx10) => {
         inventory: result.inventory,
         inventoryLastKey: result.inventoryLastKey,
         gachaHistory: result.gachaHistory,
+        gachaHistoryLastKey: result.gachaHistoryLastKey,
       });
 
-      // Trả kết quả trực quan (hình ảnh + tên) về cho giao diện render
       return result.pulledItems;
     }
 
-    throw new Error('Gacha không thành công.');
+    throw new Error('Gacha failed.');
   } catch (error) {
-    console.error('[GachaService] Lỗi Gacha:', error.message);
+    console.error('[GachaService] Gacha error:', error.message);
     throw error;
   }
 };

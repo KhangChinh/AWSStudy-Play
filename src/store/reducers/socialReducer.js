@@ -1,4 +1,4 @@
-import { SET_SOCIAL, APPEND_SOCIAL, CLEAR_SOCIAL } from '../actions/socialActions';
+import { SET_SOCIAL, APPEND_SOCIAL, MERGE_SOCIAL_FRIENDS, CLEAR_SOCIAL } from '../actions/socialActions';
 
 const initialState = {
   items: [],
@@ -25,6 +25,31 @@ const socialReducer = (state = initialState, action) => {
         hasMore: action.payload.lastKey !== null,
         isLoading: false,
       };
+    case MERGE_SOCIAL_FRIENDS: {
+      const updates = action.payload?.items || [];
+      if (!updates.length) return state;
+
+      const updatesById = new Map(
+        updates
+          .map((item) => [item.SK || item.userId, item])
+          .filter(([id]) => Boolean(id))
+      );
+
+      return {
+        ...state,
+        items: state.items.map((item) => {
+          const update = updatesById.get(item.SK);
+          if (!update) return item;
+          return {
+            ...item,
+            friendName: update.friendName ?? update.name ?? item.friendName,
+            friendAvatarUrl: update.friendAvatarUrl ?? update.avatarUrl ?? item.friendAvatarUrl,
+            level: update.level ?? item.level,
+            friendInfoUpdatedAt: update.friendInfoUpdatedAt ?? Date.now(),
+          };
+        }),
+      };
+    }
     case CLEAR_SOCIAL:
       return initialState;
 

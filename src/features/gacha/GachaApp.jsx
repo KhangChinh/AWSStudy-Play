@@ -1,22 +1,22 @@
 import React, { Component } from 'react';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
-import { setProfile, appendGachaHistory } from '../../store/actions';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
-import { timeOutline, cubeOutline, chevronBackOutline, chevronForwardOutline, schoolOutline } from 'ionicons/icons';
+import { timeOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { toast } from 'react-toastify';
 import './GachaApp.scss';
 
 // Import System Managers
 import bannerManager from '../../managers/bannerManager';
-import gachaManager from '../../managers/gachaManager';
-import rewardManager from '../../managers/rewardManager';
-import inventoryManager from '../../managers/inventoryManager';
 import { ITEMS } from '../../data/items';
+import { S3_ASSETS_BASE } from '../../data/cosmetics';
+import { handleGachaApi } from '../../services/gachaServices';
+import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
+import currencyAssets from '../../data/currencyAssets';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
-const KNOWLEDGE_POINTS_PER_ROLL = 150;
+const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
 
 class GachaApp extends Component {
   constructor(props) {
@@ -37,6 +37,8 @@ class GachaApp extends Component {
       showDetails: false,
       detailPage: 0,
       activeDetailTab: 'history', // 'history' or 'inventory'
+      isSubmitting: false,
+      pendingConfirmRollCount: null,
     };
     this.timer = null;
   }
@@ -72,68 +74,122 @@ class GachaApp extends Component {
       <>
         {coreCost > 0 && (
           <>
-            <IonIcon icon={cubeOutline} className="cost-icon" /> x{coreCost}
+            <img className="cost-icon currency-img" src={currencyAssets.knowledgeCore} alt={this.props.t('common.knowledge_core')} /> x{coreCost}
           </>
         )}
         {pointCost > 0 && (
           <>
-            <IonIcon icon={schoolOutline} className="cost-icon points" /> x{pointCost.toLocaleString()}
+            <img className="cost-icon currency-img points" src={currencyAssets.knowledgePoint} alt={this.props.t('common.knowledge_points')} /> x{pointCost.toLocaleString()}
           </>
         )}
       </>
     );
   };
 
-  buildProfileWithGachaCost = (nextKnowledgeCore, nextKnowledgePoint) => {
-    const profile = this.props.userProfile || {};
-    const hasBudget = !!profile.budget;
-    const nextProfile = { ...profile };
-
-    if (hasBudget) {
-      nextProfile.budget = {
-        ...profile.budget,
-        knowledgeCore: nextKnowledgeCore,
-        knowledgePoint: nextKnowledgePoint,
-      };
-
-      if ('knowledge_core' in profile.budget) {
-        nextProfile.budget.knowledge_core = nextKnowledgeCore;
-      }
-
-      if ('knowledge_points' in profile.budget) {
-        nextProfile.budget.knowledge_points = nextKnowledgePoint;
-      }
+  openRollConfirm = (count) => {
+    if (this.state.isPlaying || this.state.isSubmitting) return;
+    const { pointCost } = this.getRollCost(count);
+    if (pointCost <= 0) {
+      this.handleRoll(count);
+      return;
     }
-
-    if (!hasBudget || 'knowledgeCore' in profile) {
-      nextProfile.knowledgeCore = nextKnowledgeCore;
-    }
-
-    if ('knowledge_core' in profile) {
-      nextProfile.knowledge_core = nextKnowledgeCore;
-    }
-
-    if (!hasBudget || 'knowledgePoint' in profile) {
-      nextProfile.knowledgePoint = nextKnowledgePoint;
-    }
-
-    if ('knowledge_points' in profile) {
-      nextProfile.knowledge_points = nextKnowledgePoint;
-    }
-
-    return nextProfile;
+    this.setState({ pendingConfirmRollCount: count });
   };
 
+  closeRollConfirm = () => {
+    if (this.state.isSubmitting) return;
+    this.setState({ pendingConfirmRollCount: null });
+  };
+
+  confirmRoll = () => {
+    const count = this.state.pendingConfirmRollCount;
+    if (!count || this.state.isPlaying || this.state.isSubmitting) return;
+    this.setState({ pendingConfirmRollCount: null }, () => this.handleRoll(count));
+  };
+
+  renderRollConfirmModal = () => {
+    const count = this.state.pendingConfirmRollCount;
+    if (!count) return null;
+
+    const { t } = this.props;
+    const { coreCost, pointCost } = this.getRollCost(count);
+    const requiredCore = count * KNOWLEDGE_CORE_PER_ROLL;
+    const missingCore = Math.max(0, requiredCore - coreCost);
+    const knowledgePoints = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
+    const hasEnoughPoints = pointCost <= knowledgePoints;
+
+    return (
+      <div className="gacha-confirm-modal" role="presentation" onMouseDown={this.closeRollConfirm}>
+        <div className="gacha-confirm-panel" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="gacha-confirm-header">
+            <h3>{t('common.knowledge_core')}</h3>
+            <button type="button" className="confirm-close" onClick={this.closeRollConfirm} disabled={this.state.isSubmitting}>x</button>
+          </div>
+
+          <div className="gacha-confirm-message">
+            Thiếu {missingCore.toLocaleString()} {t('common.knowledge_core')}, có muốn dùng {pointCost.toLocaleString()} {t('common.knowledge_points')} để mua?
+          </div>
+
+          <div className="gacha-confirm-consume">
+            <span>Tiêu hao</span>
+            <strong><img src={currencyAssets.knowledgePoint} alt={t('common.knowledge_points')} /> {pointCost.toLocaleString()}</strong>
+          </div>
+
+          {!hasEnoughPoints && (
+            <div className="gacha-confirm-warning">
+              {t('store.not_enough_knowledge_points')}
+            </div>
+          )}
+
+          <div className="gacha-confirm-actions">
+            <button type="button" className="secondary" onClick={this.closeRollConfirm} disabled={this.state.isSubmitting}>{t('common.cancel')}</button>
+            <button type="button" className="primary" onClick={this.confirmRoll} disabled={!hasEnoughPoints || this.state.isSubmitting}>{t('common.confirm')}</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
   componentDidMount() {
+    this.syncGachaStateFromProfile(this.props.userProfile);
     this.updateTimeDisplay();
     this.timer = setInterval(() => {
       this.updateTimeDisplay();
     }, 1000);
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.userProfile !== this.props.userProfile) {
+      this.syncGachaStateFromProfile(this.props.userProfile);
+    }
+
+    if (prevProps.inventory !== this.props.inventory || prevProps.gachaHistory !== this.props.gachaHistory) {
+      this.updateLocalListsFromRedux();
+    }
+  }
+
   componentWillUnmount() {
     clearInterval(this.timer);
   }
+
+  syncGachaStateFromProfile = (profile) => {
+    const stats = profile?.gachaStats;
+    if (!stats) return;
+
+    this.setState({
+      pity5: Number(stats.pity5Star) || 0,
+      pity4: Number(stats.pity4Star) || 0,
+      guaranteedSSR: Boolean(stats.is5StarGuaranteed),
+    });
+  };
+
+  updateLocalListsFromRedux = () => {
+    this.setState({
+      inventoryItems: this.props.inventory || [],
+      historyItems: this.props.gachaHistory || [],
+    });
+  };
 
   updateTimeDisplay = () => {
     const banner = bannerManager.getActiveBanner();
@@ -147,97 +203,76 @@ class GachaApp extends Component {
     this.setState({
       activeBanner: banner,
       timeLeftStr: `${m}m ${s}s`,
-      inventoryItems: inventoryManager.getItems(),
-      historyItems: inventoryManager.getHistory(),
+      inventoryItems: this.props.inventory || [],
+      historyItems: this.props.gachaHistory || [],
     });
   };
 
-  handleRoll = (count) => {
-    const { activeBanner, pity5, pity4 } = this.state;
-    const newRewards = [];
-    let tempPity5 = pity5;
-    let tempPity4 = pity4;
-    let tempGuaranteed = this.state.guaranteedSSR;
-    let maxRarity = 'gray';
+  resolveRewardIcon = (reward) => {
+    if (reward.imageUrl) {
+      if (reward.imageUrl.startsWith('http') || reward.imageUrl.startsWith('/')) return reward.imageUrl;
+      return `${S3_ASSETS_BASE}${reward.imageUrl}`;
+    }
 
+    return currencyAssets.sanity;
+  };
+
+  normalizeServerReward = (reward, index) => {
+    const numericRarity = Number(reward.rarity) || 3;
+    const rarity = numericRarity >= 5 ? 'SSR' : numericRarity >= 4 ? 'SR' : 'R';
+
+    return {
+      id: reward.SK || reward.id || `${reward.name || 'reward'}-${index}`,
+      name: reward.name || (reward.amount ? `Sanity x${reward.amount}` : 'Sanity'),
+      icon: this.resolveRewardIcon(reward),
+      rarity,
+      type: numericRarity === 3 ? 'currency' : 'item',
+      amount: reward.amount,
+      isConverted: Boolean(reward.isConverted),
+      conversionResult: reward.convertedTo ? { id: 'item_sanity', amount: reward.convertedTo } : null,
+      timestamp: Date.now() + index,
+    };
+  };
+
+  getHighestRarity = (rewards) => {
     const rarityOrder = ['R', 'SR', 'SSR'];
-    const { coreCost, pointCost } = this.getRollCost(count);
+    return rewards.reduce((highest, reward) => (
+      rarityOrder.indexOf(reward.rarity) > rarityOrder.indexOf(highest) ? reward.rarity : highest
+    ), 'R');
+  };
 
-    for (let i = 0; i < count; i++) {
-      const rarity = gachaManager.calculateRoll(activeBanner, { pity5: tempPity5, pity4: tempPity4 });
-      const itemId = gachaManager.getRandomItem(rarity, activeBanner, tempGuaranteed);
+  handleRoll = async (count) => {
+    if (this.state.isPlaying || this.state.isSubmitting) return;
 
-      if (rarity === 'SSR') {
-        const isFeatured = activeBanner.featured.SSR.includes(itemId);
-        tempGuaranteed = !isFeatured; // If didn't get featured, next is guaranteed
-        tempPity5 = 0;
-      } else {
-        tempPity5++;
+    this.setState({ isSubmitting: true });
+
+    try {
+      const pulledItems = await handleGachaApi(count === 10);
+      const rewards = (pulledItems || []).map(this.normalizeServerReward);
+
+      if (!rewards.length) {
+        throw new Error(this.props.t('gacha.empty_rewards_error'));
       }
 
-      if (rarity === 'SR') tempPity4 = 0;
-      else tempPity4++;
-
-      const itemData = ITEMS[itemId] || { id: itemId, name: itemId, icon: '📦' };
-      newRewards.push({ ...itemData, rarity });
-
-      // Update local max rarity for animation
-      if (rarityOrder.indexOf(rarity) > rarityOrder.indexOf(maxRarity)) {
-        maxRarity = rarity;
-      }
+      this.setState({
+        isSubmitting: false,
+        pendingConfirmRollCount: null,
+        isPlaying: true,
+        hasNewItem: rewards.some((reward) => reward.type !== 'currency' && !reward.isConverted),
+        currentRarity: this.getHighestRarity(rewards),
+        rewards,
+        pendingRolls: {
+          totalRolls: this.state.totalRolls + count,
+        }
+      });
+    } catch (error) {
+      this.setState({ isSubmitting: false });
+      toast.error(error.message || this.props.t('common.error'));
     }
-
-    // Detecting sanity amounts for Rarity 3 rolls (simulation)
-    const sanityBreakdown = newRewards.map(r => r.rarity === 'R' ? Math.floor(Math.random() * 11) + 10 : 0);
-
-    // Process rewards through manager (Simulating server-authority flow)
-    const processResult = rewardManager.processGachaResult({
-      rarityMap: newRewards.map(r => r.rarity === 'SSR' ? 5 : r.rarity === 'SR' ? 4 : 3),
-      items: newRewards.map((r, i) => ({ ...r, rarityIndex: i })),
-      sanityBreakdown: sanityBreakdown,
-      knowledgeUsed: pointCost
-    });
-
-    // Detect if any item is NEW based on processed results
-    const hasNewItem = processResult.details.some(res => !res.isDuplicate && res.type !== 'currency');
-
-    // Deduct Knowledge Core and Knowledge Points in Redux
-    if (this.props.userProfile) {
-      const currentKnowledgeCore = this.getBudgetValue(['knowledgeCore', 'knowledge_core']);
-      const currentKnowledgePoint = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
-
-      if (pointCost > 0 && currentKnowledgePoint < pointCost) {
-        toast.error(this.props.t('gacha.not_enough_knowledge_points'));
-        return;
-      }
-
-      const newProfile = this.buildProfileWithGachaCost(
-        currentKnowledgeCore - coreCost,
-        currentKnowledgePoint - pointCost
-      );
-      this.props.setProfile(newProfile);
-      this.props.appendGachaHistory({ items: processResult.details });
-    }
-
-    this.setState({
-      isPlaying: true,
-      hasNewItem: hasNewItem, // Save to pass to GachaAnimation
-      currentRarity: maxRarity,
-      rewards: processResult.details, // Use details which include conversion info
-      // Store pending updates but don't show yet
-      pendingRolls: {
-        pity5: tempPity5,
-        pity4: tempPity4,
-        guaranteedSSR: tempGuaranteed,
-        totalRolls: this.state.totalRolls + count,
-        inventory: inventoryManager.getItems(),
-        history: inventoryManager.getHistory()
-      }
-    });
   };
 
   render() {
-    const { isPlaying, currentRarity, rewards, pity5, pity4, activeBanner, timeLeftStr, inventoryItems } = this.state;
+    const { isPlaying, isSubmitting, currentRarity, rewards, pity5, pity4, activeBanner, timeLeftStr, inventoryItems } = this.state;
     const knowledgeCore = this.getBudgetValue(['knowledgeCore', 'knowledge_core']);
     const knowledgePoints = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
 
@@ -246,12 +281,12 @@ class GachaApp extends Component {
         <div className="banner-tag upper-left">{activeBanner.type.toUpperCase()} {this.props.t('gacha.event')}</div>
         <div className="gacha-balance-panel" aria-label="Gacha balances">
           <div className="gacha-balance-item core" title="knowledge_core">
-            <IonIcon icon={cubeOutline} />
+            <img className="currency-icon-image" src={currencyAssets.knowledgeCore} alt={this.props.t('common.knowledge_core')} />
             <span className="balance-label">{this.props.t('common.knowledge_core')}</span>
             <span className="balance-value">{knowledgeCore.toLocaleString()}</span>
           </div>
           <div className="gacha-balance-item points" title="knowledge_points">
-            <IonIcon icon={schoolOutline} />
+            <img className="currency-icon-image" src={currencyAssets.knowledgePoint} alt={this.props.t('common.knowledge_points')} />
             <span className="balance-label">{this.props.t('common.knowledge_points')}</span>
             <span className="balance-value">{knowledgePoints.toLocaleString()}</span>
           </div>
@@ -267,15 +302,15 @@ class GachaApp extends Component {
             <div className="banner-description">
               <p dangerouslySetInnerHTML={{ __html: this.props.t('gacha.rate_up_desc') }} />
               <div className="featured-list">
-                <div className="featured-item gold">★ SSR: {ITEMS[activeBanner.featured.SSR[0]]?.name}</div>
+                <div className="featured-item gold">{this.props.t('gacha.featured_ssr')}: {ITEMS[activeBanner.featured.SSR[0]]?.name}</div>
                 {activeBanner.featured.SR.map(id => (
-                  <div key={id} className="featured-item purple">★ SR: {ITEMS[id]?.name}</div>
+                  <div key={id} className="featured-item purple">{this.props.t('gacha.featured_sr')}: {ITEMS[id]?.name}</div>
                 ))}
               </div>
             </div>
 
             <div className="rotation-timer">
-              <IonIcon icon={timeOutline} /> {this.props.t('gacha.remaining')}: {timeLeftStr}
+              <IonIcon icon={timeOutline} /> {this.props.t('gacha.remaining')}: {bannerManager.isAutoRotationEnabled() ? timeLeftStr : this.props.t('gacha.infinite_time')}
             </div>
           </div>
         </div>
@@ -298,19 +333,15 @@ class GachaApp extends Component {
           <div className="bottom-right">
             <div className="roll-actions">
               <div className="roll-btn-group">
-                <div className="cost-tag">
-                  {this.renderRollCost(1)}
-                </div>
-                <button className="btn-roll x1" onClick={() => this.handleRoll(1)} disabled={isPlaying}>
-                  {this.props.t('gacha.single_roll')}
+                <button className="btn-roll x1" onClick={() => this.openRollConfirm(1)} disabled={isPlaying || isSubmitting}>
+                  <span className="roll-label">{this.props.t('gacha.single_roll')}</span>
+                  <span className="roll-core-cost"><img src={currencyAssets.knowledgeCore} alt={this.props.t('common.knowledge_core')} /> x 1</span>
                 </button>
               </div>
               <div className="roll-btn-group">
-                <div className="cost-tag">
-                  {this.renderRollCost(10)}
-                </div>
-                <button className="btn-roll x10" onClick={() => this.handleRoll(10)} disabled={isPlaying}>
-                  {this.props.t('gacha.ten_rolls')}
+                <button className="btn-roll x10" onClick={() => this.openRollConfirm(10)} disabled={isPlaying || isSubmitting}>
+                  <span className="roll-label">{this.props.t('gacha.ten_rolls')}</span>
+                  <span className="roll-core-cost"><img src={currencyAssets.knowledgeCore} alt={this.props.t('common.knowledge_core')} /> x 10</span>
                 </button>
               </div>
             </div>
@@ -319,12 +350,14 @@ class GachaApp extends Component {
 
 
 
+        {this.renderRollConfirmModal()}
+
         {this.state.showDetails && (
           <div className="gacha-details-modal">
             <div className="modal-overlay" onClick={() => this.setState({ showDetails: false })} />
             <div className="modal-content">
               <div className="modal-header">
-                <h3><IonIcon icon={cubeOutline} /> {this.props.t('gacha.details')}</h3>
+                <h3><img className="details-currency-icon" src={currencyAssets.knowledgeCore} alt="" /> {this.props.t('gacha.details')}</h3>
                 <button className="close-btn" onClick={() => this.setState({ showDetails: false })}>&times;</button>
               </div>
 
@@ -353,9 +386,10 @@ class GachaApp extends Component {
                   if (list.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
 
                   return pageItems.map((item, idx) => {
-                    const meta = ITEMS[item.id] || { name: item.id, icon: '📦', rarity: 'R' };
+                    const itemId = item.id || item.SK;
+                    const meta = ITEMS[itemId] || { name: item.name || itemId, icon: item.imageUrl || 'Package', rarity: item.rarity || 'R' };
                     return (
-                      <div key={item.id + idx} className={`detail-item ${meta.rarity}`}>
+                      <div key={`${itemId || item.name || 'item'}-${idx}`} className={`detail-item ${meta.rarity}`}>
                         <div className="item-main">
                           <div className="item-info">
                             <span className="name">{meta.name}</span>
@@ -366,12 +400,12 @@ class GachaApp extends Component {
                         {isHistory && (
                           <div className="item-footer">
                             <span className="timestamp">
-                              {new Date(item.timestamp).toLocaleString('vi-VN', {
+                              {new Date(item.timestamp || item.SK || item.acquiredAt).toLocaleString('vi-VN', {
                                 day: '2-digit', month: '2-digit', year: 'numeric',
                                 hour: '2-digit', minute: '2-digit', second: '2-digit'
                               })}
                             </span>
-                            {item.isDuplicate && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
+                            {(item.isDuplicate || item.sanityAmount > 0) && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
                           </div>
                         )}
                       </div>
@@ -404,6 +438,7 @@ class GachaApp extends Component {
           hasNewItem={this.state.hasNewItem}
           rarity={currentRarity}
           rewards={rewards}
+          t={this.props.t}
           onComplete={() => {
             const { pendingRolls } = this.state;
             if (!pendingRolls) {
@@ -412,12 +447,9 @@ class GachaApp extends Component {
             }
             this.setState({
               isPlaying: false,
-              pity5: pendingRolls.pity5,
-              pity4: pendingRolls.pity4,
-              guaranteedSSR: pendingRolls.guaranteedSSR,
               totalRolls: pendingRolls.totalRolls,
-              inventoryItems: pendingRolls.inventory,
-              historyItems: pendingRolls.history
+              inventoryItems: this.props.inventory || [],
+              historyItems: this.props.gachaHistory || [],
             });
           }}
         />
@@ -429,13 +461,18 @@ class GachaApp extends Component {
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
   inventory: state.inventory.items,
-  gachaHistory: state.gacha.items,
+  gachaHistory: state.gacha.gachaHistory,
 });
 
 const mapDispatchToProps = (dispatch) => ({
-  setProfile: (data) => dispatch(setProfile(data)),
-  appendGachaHistory: (data) => dispatch(appendGachaHistory(data)),
   dispatch,
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(GachaApp));
+
+
+
+
+
+
+

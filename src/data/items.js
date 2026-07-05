@@ -1,72 +1,39 @@
-/**
+﻿/**
  * Item Database
  * Mapping IDs to metadata
- * Updated: Only Avatar Frames and Titles
+ * Updated: Gacha items mirror AWSServerless sample ItemData
  */
 
 export const ITEMS = {
-  // SSR - Titles
-  item_title_legend: {
-    id: 'item_title_legend',
-    name: 'Huyền Thoại (Title)',
+  // SSR - Backgrounds
+  bg_crimson_void: {
+    id: 'bg_crimson_void',
+    name: 'Crimson Void Background',
     rarity: 'SSR',
-    type: 'title',
-    cosmeticId: 'title_legend',
-    icon: '👑'
+    type: 'background',
+    cosmeticId: 'bg_crimson_void',
+    icon: '/src/assets/gacha/OR7cQ.jpg'
   },
-  item_title_admin: {
-    id: 'item_title_admin',
-    name: 'Admin (Title)',
-    rarity: 'SSR',
-    type: 'title',
-    cosmeticId: 'title_admin',
-    icon: '🛡️'
-  },
-  // SSR - Frames
-  item_frame_galactic: {
-    id: 'item_frame_galactic',
-    name: 'Galactic Horizon (Frame)',
-    rarity: 'SSR',
-    type: 'frame',
-    cosmeticId: 'frame_galactic',
-    icon: '🌌'
-  },
-  item_frame_gold: {
-    id: 'item_frame_gold',
-    name: 'Golden Royalty (Frame)',
-    rarity: 'SSR',
-    type: 'frame',
-    cosmeticId: 'frame_gold',
-    icon: '🔱'
-  },
-  // SR - Titles
-  item_title_scholar: {
-    id: 'item_title_scholar',
-    name: 'Học Giả (Title)',
+
+  // SR - Backgrounds
+  bg_dark: {
+    id: 'bg_dark',
+    name: 'Dark Background',
     rarity: 'SR',
-    type: 'title',
-    cosmeticId: 'title_scholar',
-    icon: '📚'
+    type: 'background',
+    cosmeticId: 'bg_dark',
+    icon: '/src/assets/gacha/OR7cQ.jpg'
   },
-  // SR - Frames
-  item_frame_neon: {
-    id: 'item_frame_neon',
-    name: 'Neon Pulse (Frame)',
+  bg_light: {
+    id: 'bg_light',
+    name: 'Light Background',
     rarity: 'SR',
-    type: 'frame',
-    cosmeticId: 'frame_neon',
-    icon: '💠'
+    type: 'background',
+    cosmeticId: 'bg_light',
+    icon: '/src/assets/gacha/OR7cQ.jpg'
   },
-  // R - Default (Just for filling pool if needed, or coins as R if allowed, but user said only frame/title)
-  // Let's create some R titles
-  item_title_newbie: {
-    id: 'item_title_newbie',
-    name: 'Tân Thủ (Title)',
-    rarity: 'R',
-    type: 'title',
-    cosmeticId: 'title_newbie',
-    icon: '🌱'
-  },
+
+  // R - Currency
   item_sanity: {
     id: 'item_sanity',
     name: 'Sanity',
@@ -75,4 +42,3 @@ export const ITEMS = {
     icon: '/src/assets/Sanity.png'
   }
 };
-

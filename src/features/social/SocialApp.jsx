@@ -10,8 +10,6 @@ import {
   checkmarkCircleOutline,
   closeCircleOutline,
   trashOutline,
-  paperPlaneOutline,
-  refreshOutline,
   closeOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
@@ -23,8 +21,22 @@ import {
   handleRemoveFriendApi,
   handleSearchUsersApi
 } from '../../services/socialServices';
-import { setSocial, appendSocial } from '../../store/actions';
+import { setSocial, appendSocial, mergeSocialFriends } from '../../store/actions';
 import './SocialApp.scss';
+
+const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
+const DEFAULT_AVATAR = `${S3_ASSETS_BASE}avatars/default_avatar.jpg`;
+
+const isAbsoluteAssetUrl = (url = '') => /^(https?:|data:|blob:)/i.test(url);
+
+const resolveAvatarUrl = (avatarUrl) => {
+  const value = typeof avatarUrl === 'string' ? avatarUrl.trim() : '';
+  if (!value) return DEFAULT_AVATAR;
+  if (isAbsoluteAssetUrl(value)) return value;
+  return `${S3_ASSETS_BASE}${value.replace(/^\/+/, '')}`;
+};
+
+const getFriendUserId = (friend) => friend?.SK || friend?.userId || friend?.friendId;
 
 class SocialApp extends Component {
   constructor(props) {
@@ -35,9 +47,11 @@ class SocialApp extends Component {
       searchResults: [],
       isSearching: false,
       isLoading: false,
-      isActionLoading: null, // targetUserId
-      apiNotConfigured: false, // true khi VITE_API_URL chưa được cấu hình
-      lastSearchTime: 0, // Cooldown tìm kiếm
+      isActionLoading: null,
+      apiNotConfigured: false,
+      lastSearchTime: 0,
+      searchHasRun: false,
+      visibleSearchCount: 5,
     };
     this.searchTimeout = null;
     this.listRef = React.createRef();
@@ -73,7 +87,6 @@ class SocialApp extends Component {
         appendSocial({ items: res.friends, lastKey: res.lastEvaluatedKey });
       }
     } else if (res?.errMessage === 'API_NOT_CONFIGURED') {
-      // Chưa cấu hình API URL — hiện trạng thái tĩnh, không spam toast
       this.setState({ apiNotConfigured: true });
     } else {
       toast.error(this.props.t('social.load_failed'));
@@ -92,10 +105,13 @@ class SocialApp extends Component {
 
   onSearchChange = (e) => {
     const val = e.target.value;
-    this.setState({ searchQuery: val });
-    if (val.trim() === '') {
-      this.setState({ searchResults: [], isSearching: false });
-    }
+    this.setState({
+      searchQuery: val,
+      searchResults: [],
+      isSearching: false,
+      searchHasRun: false,
+      visibleSearchCount: 5,
+    });
   };
 
   handleKeyDown = (e) => {
@@ -104,14 +120,19 @@ class SocialApp extends Component {
       if (searchQuery.trim().length >= 2) {
         this.performSearch(searchQuery.trim());
       } else {
-        this.setState({ searchResults: [], isSearching: false });
+        this.setState({ searchResults: [], isSearching: false, searchHasRun: false, visibleSearchCount: 5 });
       }
     }
   };
 
   performSearch = async (query) => {
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length < 2) {
+      this.setState({ searchResults: [], isSearching: false, searchHasRun: false, visibleSearchCount: 5 });
+      return;
+    }
     const now = Date.now();
-    const cooldown = 10000; // 10 giây
+    const cooldown = 10000;
 
     if (now - this.state.lastSearchTime < cooldown) {
       const remaining = Math.ceil((cooldown - (now - this.state.lastSearchTime)) / 1000);
@@ -120,14 +141,15 @@ class SocialApp extends Component {
     }
 
     this.setState({ isSearching: true, apiNotConfigured: false, lastSearchTime: now });
-    const res = await handleSearchUsersApi(query);
+    const res = await handleSearchUsersApi(normalizedQuery);
 
     if (res && res.users) {
+      this.mergeFriendInfoFromUsers(res.users);
       const filtered = res.users.filter(u =>
         u.userId !== (this.props.userProfile?.PK || this.props.userProfile?.userId || this.props.userProfile?.UserId) &&
-        !this.props.friends.some(f => f.SK === u.userId)
+        !this.props.friends.some(f => getFriendUserId(f) === u.userId)
       );
-      this.setState({ searchResults: filtered });
+      this.setState({ searchResults: filtered, searchHasRun: true, visibleSearchCount: 5 });
     } else if (res?.errMessage === 'API_NOT_CONFIGURED') {
       this.setState({ apiNotConfigured: true });
     } else {
@@ -143,6 +165,32 @@ class SocialApp extends Component {
 
     this.setState({ isSearching: false });
   };
+
+  mergeFriendInfoFromUsers = (users = []) => {
+    const loadedFriendIds = new Set(this.props.friends.map(getFriendUserId).filter(Boolean));
+    const updates = users
+      .filter((user) => loadedFriendIds.has(user.userId))
+      .map((user) => ({
+        SK: user.userId,
+        friendName: user.name,
+        friendAvatarUrl: user.avatarUrl,
+        level: user.level,
+      }));
+
+    if (updates.length) {
+      this.props.mergeSocialFriends({ items: updates });
+    }
+  };
+
+  handleAvatarError = (event) => {
+    if (event.currentTarget.src !== DEFAULT_AVATAR) {
+      event.currentTarget.src = DEFAULT_AVATAR;
+    }
+  };
+
+  renderAvatar = (avatarUrl, alt = 'avatar') => (
+    <img src={resolveAvatarUrl(avatarUrl)} alt={alt} onError={this.handleAvatarError} />
+  );
 
   handleSocialAction = async (type, targetUserId) => {
     this.setState({ isActionLoading: targetUserId });
@@ -193,21 +241,13 @@ class SocialApp extends Component {
     <div className="social-tab-content friends-list">
       <div className="tab-header">
         <h3>{this.props.t('social.friends_list')}</h3>
-        <button className="reload-btn" onClick={() => this.fetchFriends(true)} disabled={this.state.isLoading}>
-          <IonIcon icon={refreshOutline} className={this.state.isLoading ? 'spinning' : ''} />
-          <span>{this.props.t('common.reload')}</span>
-        </button>
       </div>
       <div className="list-container" onScroll={this.handleScroll}>
         {friends.length > 0 ? friends.map(friend => (
           <div key={friend.SK} className="friend-card">
             <div className="avatar-container">
               <div className="avatar-placeholder">
-                {friend.friendAvatarUrl ? (
-                  <img src={friend.friendAvatarUrl} alt="avatar" />
-                ) : (
-                  <IonIcon icon={peopleOutline} />
-                )}
+                {this.renderAvatar(friend.friendAvatarUrl, friend.friendName || 'avatar')}
               </div>
             </div>
             <div className="friend-info">
@@ -244,14 +284,14 @@ class SocialApp extends Component {
       <div className="social-tab-content requests-list">
         <div className="tab-header mb-2">
           <h3>{t('social.friend_requests')}</h3>
-          <button className="reload-btn" onClick={() => this.fetchFriends(true)} disabled={this.state.isLoading}>
-            <IonIcon icon={refreshOutline} className={this.state.isLoading ? 'spinning' : ''} />
-          </button>
         </div>
         <div className="tab-section-header">{t('social.requests')} ({requestsIn.length})</div>
         <div className="list-container">
           {requestsIn.length > 0 ? requestsIn.map(req => (
             <div key={req.SK} className="request-card">
+              <div className="request-avatar">
+                {this.renderAvatar(req.friendAvatarUrl, req.friendName || 'avatar')}
+              </div>
               <div className="request-info">
                 <span className="request-name">{req.friendName}</span>
                 <span className="request-level">{t('social.incoming_desc')}</span>
@@ -282,6 +322,9 @@ class SocialApp extends Component {
         <div className="list-container">
           {requestsOut.map(req => (
             <div key={req.SK} className="request-card outgoing">
+              <div className="request-avatar">
+                {this.renderAvatar(req.friendAvatarUrl, req.friendName || 'avatar')}
+              </div>
               <div className="request-info">
                 <span className="request-name">{req.friendName}</span>
                 <span className="request-level">{t('social.waiting_desc')}</span>
@@ -293,7 +336,7 @@ class SocialApp extends Component {
                   disabled={this.state.isActionLoading === req.SK}
                   title={t('social.cancel_request')}
                 >
-                  <IonIcon icon={paperPlaneOutline} />
+                  <IonIcon icon={trashOutline} />
                 </button>
               </div>
             </div>
@@ -305,6 +348,9 @@ class SocialApp extends Component {
 
   renderAddFriendTab = () => {
     const { t } = this.props;
+    const visibleResults = this.state.searchResults.slice(0, this.state.visibleSearchCount);
+    const hasMoreResults = this.state.searchResults.length > this.state.visibleSearchCount;
+
     return (
       <div className="social-tab-content add-friend">
         <div className="search-bar">
@@ -324,32 +370,45 @@ class SocialApp extends Component {
           <button className="search-btn-trigger" onClick={() => this.performSearch(this.state.searchQuery)}>
             <IonIcon icon={searchOutline} />
           </button>
-          {this.state.isSearching && <div className="search-spinner" />}
         </div>
 
         <div className="search-results">
+          {this.state.isSearching && (
+            <div className="search-spinner" aria-hidden="true" />
+          )}
           {this.state.searchResults.length > 0 ? (
-            this.state.searchResults.map(user => (
-              <div key={user.userId} className="search-result-card">
-                <div className="user-avatar">
-                  {user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : <IonIcon icon={peopleOutline} />}
+            <>
+              {visibleResults.map(user => (
+                <div key={user.userId} className="search-result-card">
+                  <div className="user-avatar">
+                    {this.renderAvatar(user.avatarUrl, user.name || 'avatar')}
+                  </div>
+                  <div className="user-details">
+                    <span className="user-name">{user.name}</span>
+                    <span className="user-meta">{t('common.streak')}: {user.streak || 0} - {user.titles?.[0] || t('titles.newbie.name')}</span>
+                  </div>
+                  <button
+                    className="add-btn"
+                    onClick={() => this.handleSocialAction('request', user.userId)}
+                    disabled={this.state.isActionLoading === user.userId}
+                  >
+                    <IonIcon icon={personAddOutline} />
+                    <span>{t('social.add_friend')}</span>
+                  </button>
                 </div>
-                <div className="user-details">
-                  <span className="user-name">{user.name}</span>
-                  <span className="user-meta">{t('common.streak')}: {user.streak || 0} • {user.titles?.[0] || t('titles.newbie.name')}</span>
-                </div>
+              ))}
+              {hasMoreResults && (
                 <button
-                  className="add-btn"
-                  onClick={() => this.handleSocialAction('request', user.userId)}
-                  disabled={this.state.isActionLoading === user.userId}
+                  type="button"
+                  className="show-more-btn"
+                  onClick={() => this.setState((prev) => ({ visibleSearchCount: prev.visibleSearchCount + 5 }))}
                 >
-                  <IonIcon icon={personAddOutline} />
-                  <span>{t('social.add_friend')}</span>
+                  {t('common.show_more')}
                 </button>
-              </div>
-            ))
+              )}
+            </>
           ) : (
-            this.state.searchQuery.length >= 2 && !this.state.isSearching && (
+            this.state.searchHasRun && this.state.searchQuery.trim().length >= 2 && !this.state.isSearching && (
               <div className="empty-search">
                 {t('social.no_username_found', { query: this.state.searchQuery })}
               </div>
@@ -394,22 +453,13 @@ class SocialApp extends Component {
             <IonIcon icon={personAddOutline} />
             <span>{t('social.find_friends')}</span>
           </button>
-
-          <div className="sidebar-footer">
-            <button className="sync-btn" onClick={() => this.fetchFriends(true)} title={t('social.sync_friends')}>
-              <IonIcon icon={refreshOutline} className={this.state.isLoading ? 'spinning' : ''} />
-            </button>
-          </div>
         </div>
 
         <div className="social-main">
           {this.state.apiNotConfigured ? (
             <div className="empty-state api-error">
-              <IonIcon icon={refreshOutline} />
+              <IonIcon icon={closeCircleOutline} />
               <p>{t('social.api_not_configured')}</p>
-              <button className="reload-btn mt-4" onClick={() => this.fetchFriends(true)}>
-                {t('common.retry')}
-              </button>
             </div>
           ) : (
             <>
@@ -433,6 +483,7 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => ({
   setSocial: (data) => dispatch(setSocial(data)),
   appendSocial: (data) => dispatch(appendSocial(data)),
+  mergeSocialFriends: (data) => dispatch(mergeSocialFriends(data)),
 });
 
 export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(SocialApp));
