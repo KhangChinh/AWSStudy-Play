@@ -1,14 +1,13 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withTranslation } from 'react-i18next';
-import { IonIcon } from '@ionic/react';
-import { cubeOutline } from 'ionicons/icons';
 
+import currencyAssets from '../../data/currencyAssets';
 import './Inventory.scss';
 
 class Inventory extends Component {
   render() {
-    const { inventory } = this.props;
+    const { inventory, t } = this.props;
     const budget = this.props.userProfile?.budget || {};
 
     // Giả lập item từ inventory (hiện tại schema là {})
@@ -24,15 +23,15 @@ class Inventory extends Component {
       <div className="app-container inventory-app">
         <h2 className="app-title">{t('inventory.title')}</h2>
         <div className="balance-card">
-          <span style={{ fontSize: 32 }}>🪙</span>
+          <img className="balance-currency-icon" src={currencyAssets.eCoin} alt={t('common.ecoin')} />
           <div>
             <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>{t('inventory.virtual_balance')}</div>
-            <div>{(budget.eCoin || 0).toLocaleString()} P-Coins</div>
+            <div className="balance-currency-value"><img src={currencyAssets.eCoin} alt={t('common.ecoin')} /> {(budget.eCoin || 0).toLocaleString()} {t('common.ecoin')}</div>
           </div>
         </div>
 
         <h3 style={{ fontSize: 18, marginBottom: 16, color: '#e2e8f0' }}>
-          <IonIcon icon={cubeOutline} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+          <img className="section-currency-icon" src={currencyAssets.knowledgeCore} alt="" />
           {t('inventory.gacha_rewards')}
         </h3>
 

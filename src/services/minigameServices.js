@@ -1,5 +1,7 @@
 import { getValidAccessToken } from './tokenService';
 import { store } from '../store';
+
+const API_URL = import.meta.env.VITE_API_URL;
 const handleSyncSudokuLevels = async () => {
     try {
         const { sudokuLevels, sudokuLevelsLastEvaluatedKey, sudokuLevelsHasMore } = store.getState().sudokuLevels;
@@ -52,4 +54,35 @@ const handleSyncSudokuLevels = async () => {
         return null;
     }
 };
-export { handleSyncSudokuLevels };
+
+const handleSyncGameResultApi = async (payload) => {
+    try {
+        const token = await getValidAccessToken();
+        if (!token) throw new Error('No auth token');
+
+        const response = await fetch(`${API_URL}/minigame/end`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                gameId: payload.gameId || payload.minigame,
+                gameToken: payload.gameToken,
+                finalGrid: payload.finalGrid,
+                actionLog: payload.actionLog || [],
+            }),
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.errCode) {
+            throw new Error(result.errMessage || result.message || `API Error: ${response.status}`);
+        }
+
+        return { errCode: 0, ...result };
+    } catch (e) {
+        console.warn('[minigameServices] FAIL handleSyncGameResultApi:', e.message);
+        return { errCode: -1, errMessage: e.message };
+    }
+};
+export { handleSyncSudokuLevels, handleSyncGameResultApi };

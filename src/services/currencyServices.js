@@ -4,6 +4,8 @@ import { ingestServerData } from './syncService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+export const KNOWLEDGE_POINTS_PER_CORE = 150;
+
 export const handleConvertPointsAction = async (targetCores) => {
   try {
     let profile = store.getState().profile?.userProfile;
@@ -11,7 +13,7 @@ export const handleConvertPointsAction = async (targetCores) => {
       profile = await window.api?.invoke('store:loadProfile');
     }
     if (profile?.budget) {
-      const requiredPoints = targetCores * 150;
+      const requiredPoints = targetCores * KNOWLEDGE_POINTS_PER_CORE;
       if ((profile.budget.knowledgePoint || 0) < requiredPoints) {
         throw new Error(`Bạn cần ${requiredPoints} Knowledge Point để quy đổi!`);
       }

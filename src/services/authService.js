@@ -2,6 +2,7 @@ import { signOut } from 'aws-amplify/auth';
 import { store } from '../store';
 import { logoutClearData } from '../store/actions';
 import { handleSyncProfileApi } from './syncService';
+import { clearCachedAccessToken } from './tokenService';
 let handleLoginApi = async () => {
   try {
     const syncResult = await handleSyncProfileApi();
@@ -16,14 +17,19 @@ let handleLoginApi = async () => {
   }
 };
 
-let handleLogoutApi = async () => {
+let handleLogoutApi = async ({ resizeWindow = true } = {}) => {
   try {
-    await signOut();
-    await window.api?.invoke('store:clearLoginData');
+    await signOut().catch((err) => {
+      console.warn('[AuthService] signOut failed, clearing local session anyway:', err?.message || err);
+    });
+  } finally {
+    clearCachedAccessToken();
+    localStorage.setItem('manualLogoutAt', String(Date.now()));
+    await window.api?.invoke('store:clearLoginData').catch((err) => {
+      console.warn('[AuthService] clearLoginData failed:', err?.message || err);
+    });
     store.dispatch(logoutClearData());
-    window.api?.send('logout');
-  } catch (err) {
-    console.error('[AuthService] Lỗi khi logout:', err);
+    if (resizeWindow) window.api?.send('logout');
   }
 }
 

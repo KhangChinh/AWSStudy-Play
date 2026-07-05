@@ -26,10 +26,10 @@ import MinigameHub from '../minihub/MinigameHub';
 import Shop from '../shop/Shop';
 import SettingsApp from '../settings/SettingsApp';
 import SocialApp from '../social/SocialApp';
-import sanityIcon from '../../assets/Sanity.png';
+import currencyAssets from '../../data/currencyAssets';
 import RankFrame from '../../components/RankFrame';
 import { handleLogoutApi } from '../../services/authService';
-import { handleGetMasterDataApi } from '../../services/cosmeticServices';
+import { handleGetMasterDataApi, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
@@ -689,9 +689,7 @@ class Dashboard extends Component {
     if (isConfirmed) {
       try {
         await handleLogoutApi();
-        if (window.api?.send) window.api.send('logout');
         toast.success(this.props.t('dashboard.logout_success'));
-        this.props.navigate('/login');
       } catch (e) {
         console.log(e);
         toast.error(this.props.t('dashboard.logout_failed'));
@@ -788,7 +786,7 @@ class Dashboard extends Component {
         <div className="dashboard-currency-panel">
           <div className="currency-item sanity" title={t('common.sanity')}>
             <div className="currency-icon">
-              <img src={sanityIcon} alt={t('common.sanity')} />
+              <img src={currencyAssets.sanity} alt={t('common.sanity')} />
             </div>
             <div className="currency-info">
               <span className="currency-label">{t('common.sanity')}</span>
@@ -797,7 +795,7 @@ class Dashboard extends Component {
           </div>
           <div className="currency-item ecoin" title={t('common.ecoin')}>
             <div className="currency-icon">
-              <IonIcon icon={cashOutline} />
+              <img src={currencyAssets.eCoin} alt={t('common.ecoin')} />
             </div>
             <div className="currency-info">
               <span className="currency-label">{t('common.ecoin')}</span>
@@ -806,7 +804,7 @@ class Dashboard extends Component {
           </div>
           <div className="currency-item knowledge" title={t('common.knowledge_points')}>
             <div className="currency-icon">
-              <IonIcon icon={cubeOutline} />
+              <img src={currencyAssets.knowledgePoint} alt={t('common.knowledge_points')} />
             </div>
             <div className="currency-info">
               <span className="currency-label">{t('common.knowledge_points')}</span>

@@ -1,19 +1,26 @@
-import { BANNERS } from '../data/banners';
+﻿import { AUTO_ROTATE_BANNERS, BANNERS } from '../data/banners';
+
+const BANNER_ROTATION_MS = 20000;
 
 class BannerManager {
   constructor() {
     this.banners = BANNERS;
   }
 
+  isAutoRotationEnabled() {
+    return AUTO_ROTATE_BANNERS && this.banners.length > 1;
+  }
+
   getActiveBanner() {
-    // For testing: cycle through banners every 20 seconds
-    const cycleIndex = Math.floor(Date.now() / 20000) % this.banners.length;
+    if (!this.isAutoRotationEnabled()) return this.banners[0];
+
+    const cycleIndex = Math.floor(Date.now() / BANNER_ROTATION_MS) % this.banners.length;
     return this.banners[cycleIndex];
   }
 
   getTimeRemaining() {
-    // For testing: time remaining in the current 20s cycle
-    return 20000 - (Date.now() % 20000);
+    if (!this.isAutoRotationEnabled()) return 0;
+    return BANNER_ROTATION_MS - (Date.now() % BANNER_ROTATION_MS);
   }
 }
 

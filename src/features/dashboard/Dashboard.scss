@@ -913,9 +913,10 @@
   }
 
   .currency-icon img {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     object-fit: contain;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.28));
   }
 
   .currency-icon ion-icon {

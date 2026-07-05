@@ -9,7 +9,7 @@ import {
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
 import { setProfile } from '../../../../store/actions';
-import { handleSyncGameResultApi } from '../../../../services/economyServices';
+import { handleSyncGameResultApi } from '../../../../services/minigameServices';
 import './SudokuGame.scss';
 
 // ═══ Sudoku Solver & Generator Helpers ═══
@@ -330,9 +330,6 @@ const SudokuGame = ({ onClose }) => {
     try {
       const previousSudokuScore = minigameHighscores.sudoku || 0;
       const nextSudokuScore = Math.max(previousSudokuScore, earnedPoints);
-
-      // Update highscores in Redux
-      dispatch(setHighscores({ sudoku: nextSudokuScore }));
 
       // Sync with Cloud API
       const syncResponse = await handleSyncGameResultApi({

@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+﻿import React, { Component } from 'react';
 import './GachaAnimation.scss';
 
 const PARTICLE_COUNT = 72;
@@ -140,9 +140,9 @@ class GachaAnimation extends Component {
   };
 
   renderIcon = (icon) => {
-    if (!icon) return '📦';
+    if (!icon) return '□';
     if (typeof icon === 'string' && (icon.startsWith('/') || icon.startsWith('http'))) {
-      return <img src={icon} alt="item-icon" className="img-icon-render" />;
+      return <img src={icon} alt={this.props.t?.('gacha_animation.item_icon_alt') || 'Item icon'} className="img-icon-render" />;
     }
     return icon;
   };
@@ -162,7 +162,7 @@ class GachaAnimation extends Component {
         </div>
         <div className="summon-sigil" />
       </div>
-      <div className="summon-title">SIGNAL ACQUIRED</div>
+      <div className="summon-title">{this.props.t?.('gacha_animation.signal_acquired') || 'Signal Acquired'}</div>
     </div>
   );
 
@@ -267,14 +267,14 @@ class GachaAnimation extends Component {
               <div className="item-card-shine" />
               <div className="item-icon">{this.renderIcon(primaryReward.icon)}</div>
             </div>
-            <div className="item-name">{primaryReward.name || 'Mystery Item'}</div>
-            <div className="item-subtitle">{primaryReward.isConverted ? 'Converted Reward' : 'New Acquisition'}</div>
+            <div className="item-name">{primaryReward.name || this.props.t?.('gacha_animation.mystery_item') || 'Mystery Item'}</div>
+            <div className="item-subtitle">{primaryReward.isConverted ? (this.props.t?.('gacha_animation.converted_reward') || 'Converted Reward') : (this.props.t?.('gacha_animation.new_acquisition') || 'New Acquisition')}</div>
           </div>
         )}
 
         {isMulti && (
           <div className={`reveal-container multi-grid ${isInstantReveal ? 'instant' : ''}`}>
-            <div className="multi-title">RESULTS</div>
+            <div className="multi-title">{this.props.t?.('gacha_animation.results') || 'Results'}</div>
             <div className="result-grid">
               {rewards.map((reward, index) => {
                 const classMap = { SSR: 'ssr', SR: 'sr', R: 'r' };
@@ -288,7 +288,7 @@ class GachaAnimation extends Component {
                   >
                     <div className="grid-shine" />
                     <div className="grid-icon">{this.renderIcon(reward.icon)}</div>
-                    <div className="grid-name">{reward.name || 'Item'}</div>
+                    <div className="grid-name">{reward.name || this.props.t?.('gacha_animation.item') || 'Item'}</div>
                     <div className="grid-rarity">{reward.rarity || 'R'}</div>
                   </div>
                 );
@@ -297,7 +297,7 @@ class GachaAnimation extends Component {
           </div>
         )}
 
-        <p className="click-hint">Click anywhere to continue</p>
+        <p className="click-hint">{this.props.t?.('gacha_animation.click_continue') || 'Click anywhere to continue'}</p>
       </>
     );
   };
@@ -317,7 +317,7 @@ class GachaAnimation extends Component {
 
         {showSkip && (
           <button className="gacha-skip-btn" onClick={this.handleSkip}>
-            SKIP
+            {this.props.t?.('gacha_animation.skip') || 'Skip'}
           </button>
         )}
 

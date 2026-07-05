@@ -52,10 +52,14 @@ class App extends Component {
   }
 
   bootstrapSession = async () => {
+    if (localStorage.getItem('manualLogoutAt')) {
+      return;
+    }
+
     const hasValidSession = await initializeAuth();
     if (!hasValidSession) {
       console.log('[App] Không có phiên Cognito hợp lệ hoặc đã hết hạn.');
-      await handleLogoutApi();
+      await handleLogoutApi({ resizeWindow: false });
       return;
     }
     try {
@@ -64,7 +68,7 @@ class App extends Component {
       if (window.api?.send) window.api.send('login-success');
     } catch (error) {
       console.warn('[App] Đồng bộ profile thất bại, đăng xuất...', error.message);
-      await handleLogoutApi();
+      await handleLogoutApi({ resizeWindow: false });
     }
   };
 
