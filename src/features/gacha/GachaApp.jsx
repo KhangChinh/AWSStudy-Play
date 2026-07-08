@@ -7,8 +7,8 @@ import { timeOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons
 import { toast } from 'react-toastify';
 import './GachaApp.scss';
 
-// Import System Managers
-import bannerManager from '../../managers/bannerManager';
+// Import System Banners Data
+import { BANNERS } from '../../data/banners';
 import { ITEMS } from '../../data/items';
 import { S3_ASSETS_BASE } from '../../data/cosmetics';
 import { handleGachaApi } from '../../services/gachaServices';
@@ -29,7 +29,7 @@ class GachaApp extends Component {
       pity4: 0,
       guaranteedSSR: false, // 50/50 state
       totalRolls: 0,
-      activeBanner: bannerManager.getActiveBanner(),
+      activeBanner: BANNERS[0],
       timeLeftStr: '',
       historyItems: [],
       pendingRolls: null,
@@ -151,10 +151,10 @@ class GachaApp extends Component {
 
   componentDidMount() {
     this.syncGachaStateFromProfile(this.props.userProfile);
-    this.updateTimeDisplay();
-    this.timer = setInterval(() => {
-      this.updateTimeDisplay();
-    }, 1000);
+    this.setState({
+      activeBanner: BANNERS[0],
+      historyItems: this.props.gachaHistory || [],
+    });
   }
 
   componentDidUpdate(prevProps) {
@@ -165,10 +165,6 @@ class GachaApp extends Component {
     if (prevProps.gachaHistory !== this.props.gachaHistory) {
       this.updateLocalListsFromRedux();
     }
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.timer);
   }
 
   syncGachaStateFromProfile = (profile) => {
@@ -184,22 +180,6 @@ class GachaApp extends Component {
 
   updateLocalListsFromRedux = () => {
     this.setState({
-      historyItems: this.props.gachaHistory || [],
-    });
-  };
-
-  updateTimeDisplay = () => {
-    const banner = bannerManager.getActiveBanner();
-    const ms = bannerManager.getTimeRemaining(banner.id);
-
-    // Format ms to HH:mm:ss
-    const totalSecs = Math.floor(ms / 1000);
-    const m = Math.floor(totalSecs / 60);
-    const s = totalSecs % 60;
-
-    this.setState({
-      activeBanner: banner,
-      timeLeftStr: `${m}m ${s}s`,
       historyItems: this.props.gachaHistory || [],
     });
   };
@@ -313,7 +293,7 @@ class GachaApp extends Component {
             </div>
 
             <div className="rotation-timer">
-              <IonIcon icon={timeOutline} /> {this.props.t('gacha.remaining')}: {bannerManager.isAutoRotationEnabled() ? timeLeftStr : this.props.t('gacha.infinite_time')}
+              <IonIcon icon={timeOutline} /> {this.props.t('gacha.remaining')}: {this.props.t('gacha.infinite_time')}
             </div>
           </div>
         </div>

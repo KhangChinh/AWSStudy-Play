@@ -6,10 +6,8 @@ import {
   personCircleOutline, starOutline, cubeOutline, imageOutline
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
-import cosmeticManager from '../../managers/cosmeticManager';
-import inventoryManager from '../../managers/inventoryManager';
-import { setProfile } from '../../store/actions';
-import { toast } from 'react-toastify';
+import { cosmeticManager } from '../../services/cosmeticServices';
+import { getInventoryItem } from '../../services/profileService';
 import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
@@ -34,9 +32,11 @@ const translateCosmeticName = (item, t) => {
   return item.name || '';
 };
 
-const backgroundId = (background) => (
-  typeof background === 'string' ? background : background?.id
+const cosmeticId = (item) => (
+  typeof item === 'string' ? item : item?.id || item?.SK || null
 );
+
+const backgroundId = (background) => cosmeticId(background);
 
 const resolveBackground = (background) => {
   if (background && typeof background === 'object') return background;
@@ -47,23 +47,137 @@ const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
 const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
 const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
+const normalizeBase = (base) => (base || '').replace(/\/+$/, '');
+const normalizeAssetPath = (path) => (path || '').replace(/^\/+/, '').replace(/\\/g, '/');
+const assetUrl = (path) => {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+
+  const normalizedPath = normalizeAssetPath(path).replace(/^public-assets\//, '');
+  const s3Path = normalizedPath.startsWith('items/')
+    ? normalizedPath
+    : `items/${normalizedPath}`;
+
+  return `${normalizeBase(S3_ASSETS_BASE)}/${s3Path}`;
+};
+
+const normalizeInventoryItemId = (item) => {
+  if (item?.itemType === 'background' && item?.SK === 'bd_default') return 'bg_default';
+  return cosmeticId(item);
+};
+
+const formatCosmeticName = (id) => (
+  (id || '')
+    .replace(/^bg_/, '')
+    .replace(/^frame_/, '')
+    .replace(/^title_/, '')
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+);
+
+const imageBackgroundStyles = (imageUrl) => {
+  if (!imageUrl) return {};
+  const imageLayer = `url("${imageUrl}") center / cover no-repeat`;
+  return {
+    preview: imageLayer,
+    profileBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.38) 0%, rgba(2, 6, 23, 0.84) 100%), ${imageLayer}`,
+    desktopBackground: imageLayer,
+  };
+};
+
+const inventoryItemToCosmetic = (item) => {
+  const id = normalizeInventoryItemId(item);
+  if (!id) return null;
+
+  const folderId = item?.SK || id;
+  const imageUrl = item?.imageUrl
+    ? assetUrl(item.imageUrl)
+    : item?.itemType === 'background'
+      ? assetUrl(`items/background/${folderId}/${id}.jpg`)
+      : '';
+
+  return {
+    ...item,
+    SK: id,
+    id,
+    name: item?.name || formatCosmeticName(id),
+    imageUrl,
+    ...imageBackgroundStyles(imageUrl),
+  };
+};
+
 class Profile extends Component {
   constructor(props) {
     super(props);
     this.state = {
       activeTab: 'backgrounds',
+      inventoryByType: {},
+      loadingInventoryType: null,
     };
   }
 
-  getBackgrounds = () => {
-    return cosmeticManager.getAllInCategory('backgrounds');
+  componentDidMount() {
+    this.loadInventoryForTab(this.state.activeTab);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.activeTab !== this.state.activeTab) {
+      this.loadInventoryForTab(this.state.activeTab);
+    }
+  }
+
+  inventoryTypeForTab = (tab) => ({
+    backgrounds: 'background',
+    frames: 'frame',
+    titles: 'title',
+  })[tab] || null;
+
+  loadInventoryForTab = async (tab) => {
+    const itemType = this.inventoryTypeForTab(tab);
+    if (!itemType || this.state.inventoryByType[itemType]) return;
+
+    this.setState({ loadingInventoryType: itemType });
+    const result = await getInventoryItem(itemType);
+    this.setState(prev => ({
+      inventoryByType: {
+        ...prev.inventoryByType,
+        [itemType]: result?.success ? (result.inventory || []) : [],
+      },
+      loadingInventoryType: prev.loadingInventoryType === itemType ? null : prev.loadingInventoryType,
+    }));
   };
 
-  hasInventoryItem = (itemId) => {
-    const inventoryItems = this.props.inventoryItems || [];
-    return inventoryItems.some(item => (
-      (item.id === itemId || item.SK === itemId) && (item.amount ?? 1) > 0
-    )) || inventoryManager.hasItem(itemId);
+  getOwnedItems = (itemType) => {
+    const loadedItems = this.state.inventoryByType[itemType] || [];
+    const reduxItems = (this.props.inventoryItems || []).filter(item => item?.itemType === itemType || item?.type === itemType);
+    const byId = new Map();
+
+    [...loadedItems, ...reduxItems].forEach(item => {
+      const id = cosmeticId(item);
+      if (id && (item.amount ?? 1) > 0) byId.set(id, item);
+    });
+
+    return Array.from(byId.values());
+  };
+
+  getEquippableCosmetics = (category, itemType, defaultIds = [], activeId = null) => {
+    const ownedItems = this.getOwnedItems(itemType);
+    const ownedIds = new Set(ownedItems.map(normalizeInventoryItemId).filter(Boolean));
+    defaultIds.forEach(id => ownedIds.add(id));
+    if (activeId) ownedIds.add(activeId);
+
+    const byId = new Map();
+    cosmeticManager.getAllInCategory(category)
+      .filter(item => ownedIds.has(cosmeticId(item)))
+      .forEach(item => byId.set(cosmeticId(item), item));
+
+    ownedItems.forEach(item => {
+      const mappedItem = inventoryItemToCosmetic(item);
+      if (mappedItem && !byId.has(mappedItem.id)) byId.set(mappedItem.id, mappedItem);
+    });
+
+    return Array.from(byId.values());
   };
 
   handleCoverEdit = () => {
@@ -92,23 +206,19 @@ class Profile extends Component {
     const translate = typeof t === 'function' ? t : (key) => key;
 
     if (activeTab === 'backgrounds') {
-      const backgrounds = this.getBackgrounds();
       const activeBackgroundId = backgroundId(currentBackground);
+      const backgrounds = this.getEquippableCosmetics('backgrounds', 'background', ['studyplant', 'bg_default'], activeBackgroundId);
 
       return (
         <div className="backgrounds-grid">
           {backgrounds.map(background => {
-            const isUnlocked = this.hasInventoryItem(background.id)
-              || background.id === 'bg_default'
-              || background.custom
-              || !background.SK;
             const isActive = activeBackgroundId === background.id;
 
             return (
               <div
                 key={background.id}
-                className={`bg-item-card ${isActive ? 'active' : ''} ${!isUnlocked ? 'locked' : ''}`}
-                onClick={() => isUnlocked && onBackgroundChange?.(background.custom ? background : background.id)}
+                className={`bg-item-card ${isActive ? 'active' : ''}`}
+                onClick={() => onBackgroundChange?.(background.custom ? background : background.id)}
               >
                 <div
                   className="bg-preview"
@@ -124,34 +234,30 @@ class Profile extends Component {
     }
 
     if (activeTab === 'titles') {
-      const titles = cosmeticManager.getAllInCategory('titles');
+      const titles = this.getEquippableCosmetics('titles', 'title', ['title_newbie'], currentTitle);
 
       return (
         <div className="titles-list">
           {titles.map(item => {
-            const isUnlocked = this.hasInventoryItem(item.id) || item.id === 'title_newbie';
             const isActive = currentTitle === item.id;
             const titleName = translateCosmeticName(item, translate);
-            const obtainText = item.i18nKey ? translate(`${item.i18nKey}.obtain`) : translate('profile.unlock_hint');
 
             return (
               <div
                 key={item.id}
-                className={`profile-title-item ${isActive ? 'active' : ''} ${!isUnlocked ? 'locked' : ''}`}
-                onClick={() => isUnlocked && onTitleChange?.(item.id)}
+                className={`profile-title-item ${isActive ? 'active' : ''}`}
+                onClick={() => onTitleChange?.(item.id)}
               >
                 <div className="title-info">
-                  <div className="title-preview" style={{ color: isUnlocked ? item.color : '#4b5563' }}>
+                  <div className="title-preview" style={{ color: item.color }}>
                     [{titleName}]
                   </div>
                   <div className="title-desc">
-                    {isUnlocked
-                      ? translate('titles.unlocked')
-                      : `${translate('titles.how_to_obtain')}: ${obtainText}`}
+                    {translate('titles.unlocked')}
                   </div>
                 </div>
                 {isActive && <div className="active-tag">{translate('profile.equipped')}</div>}
-                {!isUnlocked && <div className="lock-icon"><IonIcon icon={cubeOutline} /></div>}
+
               </div>
             );
           })}
@@ -160,17 +266,16 @@ class Profile extends Component {
     }
 
     if (activeTab === 'frames') {
-      const frames = cosmeticManager.getAllInCategory('frames');
+      const frames = this.getEquippableCosmetics('frames', 'frame', ['frame_none'], currentFrame);
 
       return (
         <div className="frames-grid">
           {frames.map(frame => {
-            const isUnlocked = this.hasInventoryItem(frame.id) || frame.id === 'frame_none';
             return (
               <div
                 key={frame.id}
-                className={`frame-item-card ${currentFrame === frame.id ? 'active' : ''} ${!isUnlocked ? 'locked' : ''}`}
-                onClick={() => isUnlocked && onFrameChange?.(frame.id)}
+                className={`frame-item-card ${currentFrame === frame.id ? 'active' : ''}`}
+                onClick={() => onFrameChange?.(frame.id)}
               >
                 <RankFrame tier={frame.tier} size={92}>
                   <IonIcon icon={personCircleOutline} />
@@ -298,8 +403,4 @@ const mapStateToProps = (state) => ({
   inventoryItems: Object.values(state.inventory || {}).flatMap(branch => branch?.items || []),
 });
 
-const mapDispatchToProps = (dispatch) => ({
-  setProfile: (info) => dispatch(setProfile(info)),
-});
-
-export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Profile));
+export default withTranslation()(connect(mapStateToProps)(Profile));

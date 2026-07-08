@@ -16,7 +16,7 @@ import {
 import FocusGuard from '../focus/FocusGuard';
 import Profile from '../profile/Profile';
 import StudyPlanner from '../study-planner/StudyPlanner';
-import cosmeticManager from '../../managers/cosmeticManager';
+import { cosmeticManager } from '../../services/cosmeticServices';
 import GachaTestApp from '../gacha/GachaApp';
 import MinigameHub from '../minihub/MinigameHub';
 import Shop from '../shop/Shop';
@@ -63,6 +63,11 @@ const cosmeticId = (cosmetic) => (
 );
 
 const backgroundId = (background) => cosmeticId(background);
+const LOCAL_DEFAULT_BACKGROUND_ID = 'studyplant';
+const SERVER_DEFAULT_BACKGROUND_ID = 'bg_default';
+const toServerBackgroundId = (id) => (
+  id === LOCAL_DEFAULT_BACKGROUND_ID ? SERVER_DEFAULT_BACKGROUND_ID : id
+);
 
 const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
 const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
@@ -129,7 +134,7 @@ class Dashboard extends Component {
       isDragging: null,
       dragOffset: { x: 0, y: 0 },
       currentRank: 'diamond',
-      currentBackground: 'bg_default',
+      currentBackground: LOCAL_DEFAULT_BACKGROUND_ID,
       currentTitle: 'title_newbie',
       currentFrame: 'frame_none',
       currentSystemIcon: 'icon_default',
@@ -197,7 +202,7 @@ class Dashboard extends Component {
   getEquippedIds = (profile = this.props.userProfile) => {
     const cosmetics = profile?.equippedCosmetics || {};
     return {
-      backgroundId: cosmeticId(cosmetics.equippedBackground) || 'bg_default',
+      backgroundId: cosmeticId(cosmetics.equippedBackground) || LOCAL_DEFAULT_BACKGROUND_ID,
       frameId: cosmeticId(cosmetics.equippedFrame) || 'frame_none',
       titleId: cosmeticId(cosmetics.equippedTitles?.[0]) || 'title_newbie',
     };
@@ -339,7 +344,7 @@ class Dashboard extends Component {
 
   handleTitleChange = async (newTitleId) => {
     const previousTitle = this.state.currentTitle;
-    const backgroundIdToSave = backgroundId(this.state.currentBackground) || 'bg_default';
+    const backgroundIdToSave = toServerBackgroundId(backgroundId(this.state.currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID);
     const frameIdToSave = cosmeticId(this.state.currentFrame);
 
     this.setState({ currentTitle: newTitleId });
@@ -358,7 +363,7 @@ class Dashboard extends Component {
 
   handleFrameChange = async (newFrameId) => {
     const previousFrame = this.state.currentFrame;
-    const backgroundIdToSave = backgroundId(this.state.currentBackground) || 'bg_default';
+    const backgroundIdToSave = toServerBackgroundId(backgroundId(this.state.currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID);
     const titleIdToSave = cosmeticId(this.state.currentTitle);
 
     this.setState({ currentFrame: newFrameId });
@@ -381,14 +386,14 @@ class Dashboard extends Component {
 
   handleBackgroundChange = async (newBackground) => {
     const previousBackground = this.state.currentBackground;
-    const bgId = backgroundId(newBackground) || 'bg_default';
+    const bgId = backgroundId(newBackground) || LOCAL_DEFAULT_BACKGROUND_ID;
     const frameIdToSave = cosmeticId(this.state.currentFrame);
     const titleIdToSave = cosmeticId(this.state.currentTitle);
 
     this.setState({ currentBackground: bgId });
     try {
       const result = await handleEquipCosmeticsApi({
-        backgroundId: bgId,
+        backgroundId: toServerBackgroundId(bgId),
         frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
         titles: titleIdToSave === 'title_newbie' ? [] : [titleIdToSave]
       });
@@ -711,7 +716,7 @@ class Dashboard extends Component {
     }
   };
 
-  renderDesktopLineBackground = (bgId = 'bg_default') => (
+  renderDesktopLineBackground = (bgId = LOCAL_DEFAULT_BACKGROUND_ID) => (
     <div className={`desktop-line-bg bg-${bgId}`} aria-hidden="true">
       <div className="aurora-field aurora-cyan"></div>
       <div className="aurora-field aurora-magenta"></div>
@@ -764,8 +769,8 @@ class Dashboard extends Component {
       || { type: 'outline' };
     const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
     const userBudget = this.props.userProfile?.budget || {};
-    const activeBgId = backgroundId(currentBackground) || 'bg_default';
-    const shouldRenderDesktopEffects = animationsEnabled && activeBgId === 'bg_default' && !selectedBackground?.imageUrl;
+    const activeBgId = backgroundId(currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID;
+    const shouldRenderDesktopEffects = animationsEnabled && [LOCAL_DEFAULT_BACKGROUND_ID, SERVER_DEFAULT_BACKGROUND_ID].includes(activeBgId) && !selectedBackground?.imageUrl;
     const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
     const desktopStyle = desktopBackground
       ? {
@@ -781,7 +786,7 @@ class Dashboard extends Component {
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
-        {shouldRenderDesktopEffects && this.renderDesktopLineBackground('bg_default')}
+        {shouldRenderDesktopEffects && this.renderDesktopLineBackground(activeBgId)}
         {this.state.isDragging && <div className="drag-overlay"></div>}
 
         <UserProfileWidget

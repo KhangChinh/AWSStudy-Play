@@ -5,7 +5,7 @@ import {
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
 import ImageCropper from '../../components/ImageCropper';
-import cosmeticManager from '../../managers/cosmeticManager';
+import { cosmeticManager } from '../../services/cosmeticServices';
 import { handleUpdateNameApi } from '../../services/cosmeticServices';
 import { getValidAccessToken } from '../../services/tokenService';
 import { connect } from 'react-redux';
