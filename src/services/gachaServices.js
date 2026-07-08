@@ -45,7 +45,6 @@ export const handleGachaApi = async (isx10) => {
       await ingestServerData({
         profile: result.profile,
         inventory: result.inventory,
-        inventoryLastKey: result.inventoryLastKey,
         gachaHistory: result.gachaHistory,
         gachaHistoryLastKey: result.gachaHistoryLastKey,
       });
