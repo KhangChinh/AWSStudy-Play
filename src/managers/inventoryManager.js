@@ -56,24 +56,13 @@ class InventoryManager {
   }
 
   async save() {
-    console.log('Inventory saving...', this.inventory.length);
-    if (window.api?.invoke) {
-      await window.api.invoke('inventory:save', {
-        inventory: this.inventory,
-        history: this.history
-      });
-    }
+    // Persistence handled by Redux + electron store (store:saveInventory)
+    // inventoryManager is an in-memory cache only
   }
 
   async load() {
-    if (window.api?.invoke) {
-      const res = await window.api.invoke('inventory:load');
-      if (res?.success && res.data) {
-        this.inventory = res.data.inventory || [];
-        this.history = res.data.history || [];
-        console.log('Inventory loaded:', this.inventory.length);
-      }
-    }
+    // Persistence handled by Redux + electron store (store:loadInventory)
+    // inventoryManager is an in-memory cache only
   }
 }
 

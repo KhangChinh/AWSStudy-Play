@@ -6,6 +6,11 @@ const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;
 const SYNC_COOLDOWN = 5 * 60 * 1000; // 5 phút
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 5f19586a26d8dc442755e525449d516754ce9ccb
 const ingestServerData = async (payload) => {
   if (!payload) return;
   const {
@@ -145,12 +150,20 @@ const handleSyncAllApi = async () => {
               type: 'SET_INVENTORY',
               payload: { itemType: type, items: typeData.items, lastKey: typeData.lastEvaluatedKey }
             });
+<<<<<<< HEAD
           await window.api?.invoke('store:saveInventory', {
+=======
+            await window.api?.invoke('store:saveInventory', {
+>>>>>>> 5f19586a26d8dc442755e525449d516754ce9ccb
               itemType: type,
               inventory: typeData.items,
               lastEvaluatedKey: typeData.lastEvaluatedKey,
               isAppend: false
+<<<<<<< HEAD
           }).catch(() => { });
+=======
+            }).catch(() => { });
+>>>>>>> 5f19586a26d8dc442755e525449d516754ce9ccb
           }
         }
         if (gachaHistory) {
@@ -250,7 +263,11 @@ const handleSyncInventoryApi = async (itemType) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
+<<<<<<< HEAD
       },
+=======
+      }
+>>>>>>> 5f19586a26d8dc442755e525449d516754ce9ccb
     });
     if (!response.ok) throw new Error(`API Error: ${response.status}`);
     const syncResult = await response.json();

@@ -146,11 +146,14 @@ class Shop extends Component {
     this.setState({ buyingKey: item.itemId });
     const result = await buyShopItemApi({ shopId: SHOP_ID, itemId: item.itemId });
     if (result && !result.errCode && result.item) {
+      const itemType = result.item.itemType || result.itemType || 'frame';
+      const branch = this.props.inventory?.[itemType] || {};
       await this.updateProfileBudget({ [result.currency || 'eCoin']: result.newBalance });
-      this.props.appendInventory({ items: [result.item], lastKey: this.props.inventory?.lastKey || null });
+      this.props.appendInventory({ itemType, items: [result.item], lastKey: branch.lastKey || null });
       await window.api?.invoke('store:saveInventory', {
+        itemType,
         inventory: [result.item],
-        lastEvaluatedKey: this.props.inventory?.lastKey || null,
+        lastEvaluatedKey: branch.lastKey || null,
         isAppend: true,
       }).catch(() => {});
       this.setState((prev) => ({

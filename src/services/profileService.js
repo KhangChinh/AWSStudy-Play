@@ -1,6 +1,10 @@
 import { getValidAccessToken } from './tokenService';
 import { ingestServerData, handleSyncInventoryApi } from './syncService';
 import { store } from '../store';
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5f19586a26d8dc442755e525449d516754ce9ccb
 const API_URL = import.meta.env.VITE_API_URL;
 
 const normalizeInventoryType = (itemType) => {
