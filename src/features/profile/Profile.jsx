@@ -60,6 +60,13 @@ class Profile extends Component {
     return cosmeticManager.getAllInCategory('backgrounds');
   };
 
+  hasInventoryItem = (itemId) => {
+    const inventoryItems = this.props.inventoryItems || [];
+    return inventoryItems.some(item => (
+      (item.id === itemId || item.SK === itemId) && (item.amount ?? 1) > 0
+    )) || inventoryManager.hasItem(itemId);
+  };
+
   handleCoverEdit = () => {
     this.setState({ activeTab: 'backgrounds' });
   };
@@ -92,7 +99,7 @@ class Profile extends Component {
       return (
         <div className="backgrounds-grid">
           {backgrounds.map(background => {
-            const isUnlocked = inventoryManager.hasItem(background.id)
+            const isUnlocked = this.hasInventoryItem(background.id)
               || background.id === 'bg_default'
               || background.custom
               || !background.SK;
@@ -123,7 +130,7 @@ class Profile extends Component {
       return (
         <div className="titles-list">
           {titles.map(item => {
-            const isUnlocked = inventoryManager.hasItem(item.id) || item.id === 'title_newbie';
+            const isUnlocked = this.hasInventoryItem(item.id) || item.id === 'title_newbie';
             const isActive = currentTitle === item.id;
             const titleName = translateCosmeticName(item, translate);
             const obtainText = item.i18nKey ? translate(`${item.i18nKey}.obtain`) : translate('profile.unlock_hint');
@@ -159,7 +166,7 @@ class Profile extends Component {
       return (
         <div className="frames-grid">
           {frames.map(frame => {
-            const isUnlocked = inventoryManager.hasItem(frame.id) || frame.id === 'frame_none';
+            const isUnlocked = this.hasInventoryItem(frame.id) || frame.id === 'frame_none';
             return (
               <div
                 key={frame.id}
@@ -289,6 +296,7 @@ class Profile extends Component {
 
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
+  inventoryItems: state.inventory.items,
 });
 
 const mapDispatchToProps = (dispatch) => ({

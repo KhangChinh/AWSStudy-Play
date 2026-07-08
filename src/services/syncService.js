@@ -1,10 +1,20 @@
 import { getValidAccessToken } from './tokenService';
 import { store } from '../store';
 import { setProfile, setInventory, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll } from '../store/actions';
+import inventoryManager from '../managers/inventoryManager';
 
 const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;
 const SYNC_COOLDOWN = 5 * 60 * 1000; // 5 phút
+
+const syncInventoryManager = (items = []) => {
+  inventoryManager.inventory = items.map(item => ({
+    ...item,
+    id: item.id || item.SK,
+    SK: item.SK || item.id,
+    amount: item.amount || 1,
+  }));
+};
 
 const ingestServerData = async (payload) => {
   if (!payload) return;
@@ -135,6 +145,7 @@ const handleSyncAllApi = async () => {
         }
         if (inventory) {
           store.dispatch(setInventory({ items: inventory, lastKey: inventoryLastKey }));
+          syncInventoryManager(inventory);
           await window.api?.invoke('store:saveInventory', {
             inventory, lastEvaluatedKey: inventoryLastKey, isAppend: false
           }).catch(() => { });
@@ -244,7 +255,6 @@ const handleSyncInventoryApi = async (itemType) => {
 
       if (typeState.lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
       else store.dispatch({ type: 'SET_INVENTORY', payload });
-
       await window.api?.invoke('store:saveInventory', {
         itemType,
         inventory: syncResult.inventory,
