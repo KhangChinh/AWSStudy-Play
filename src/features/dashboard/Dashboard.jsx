@@ -33,8 +33,7 @@ import { handleGetMasterDataApi, handleEquipCosmeticsApi } from '../../services/
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
-import { setProfile, setInventory, setDailyQuests } from '../../store/actions';
-import inventoryManager from '../../managers/inventoryManager';
+import { setProfile, setDailyQuests } from '../../store/actions';
 import './Dashboard.scss';
 
 const RANK_KEYS = {
@@ -253,16 +252,8 @@ class Dashboard extends Component {
     try {
       const syncResponse = await handleSyncAllApi();
       if (syncResponse && syncResponse.profile) {
-        const { profile, inventory } = syncResponse;
-        // Cập nhật Inventory Manager
-        if (inventory) {
-          inventoryManager.inventory = inventory.map(item => ({
-            id: item.SK,
-            SK: item.SK,
-            amount: item.amount || 1
-          }));
-          this.props.setInventory({ items: inventory });
-        }
+        const { profile } = syncResponse;
+        // handleSyncAllApi đã dispatch inventory + save electron store rồi
 
         this.props.setProfile(profile);
 
@@ -1054,7 +1045,6 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => ({
   dispatch,
   setProfile: (info) => dispatch(setProfile(info)),
-  setInventory: (data) => dispatch(setInventory(data)),
 });
 
 export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Dashboard));

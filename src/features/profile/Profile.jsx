@@ -296,7 +296,7 @@ class Profile extends Component {
 
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
-  inventoryItems: state.inventory.items,
+  inventoryItems: Object.values(state.inventory || {}).flatMap(branch => branch?.items || []),
 });
 
 const mapDispatchToProps = (dispatch) => ({

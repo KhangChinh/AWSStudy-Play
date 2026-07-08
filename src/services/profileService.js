@@ -1,5 +1,6 @@
 import { getValidAccessToken } from './tokenService';
 import { ingestServerData, handleSyncInventoryApi } from './syncService';
+import { store } from '../store';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
