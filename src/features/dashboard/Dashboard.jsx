@@ -228,10 +228,6 @@ class Dashboard extends Component {
       if (syncResponse && syncResponse.profile) {
         const { profile } = syncResponse;
         // handleSyncAllApi đã dispatch inventory + save electron store rồi
-<<<<<<< HEAD
-=======
-
->>>>>>> 5f19586a26d8dc442755e525449d516754ce9ccb
         this.props.setProfile(profile);
 
         // Cập nhật State Dashboard theo Cloud
