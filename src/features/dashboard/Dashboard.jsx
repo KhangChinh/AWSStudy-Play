@@ -5,14 +5,10 @@ import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import {
   settingsOutline, ticketOutline, gameControllerOutline,
-  cartOutline, cashOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
-  personOutline, planetOutline, copyOutline, lockClosedOutline,
-  bookOutline, schoolOutline, calculatorOutline, pencilOutline,
-  bulbOutline, libraryOutline, readerOutline, documentTextOutline,
-  journalOutline, newspaperOutline, createOutline, flaskOutline,
-  telescopeOutline, easelOutline, statsChartOutline, ribbonOutline,
-  medalOutline, trophyOutline, hourglassOutline, clipboardOutline,
-  peopleOutline, cubeOutline, checkmarkDoneOutline,
+  cartOutline, closeOutline, removeOutline, squareOutline, logOutOutline,
+  personOutline, planetOutline, copyOutline,
+  schoolOutline,
+  peopleOutline,
   chevronBackOutline, chevronForwardOutline,
   shieldCheckmarkOutline
 } from 'ionicons/icons';
@@ -27,14 +23,14 @@ import Shop from '../shop/Shop';
 import SettingsApp from '../settings/SettingsApp';
 import SocialApp from '../social/SocialApp';
 import currencyAssets from '../../data/currencyAssets';
+import studyFloatIcons from '../../data/studyFloatIcons';
 import RankFrame from '../../components/RankFrame';
 import { handleLogoutApi } from '../../services/authService';
 import { handleGetMasterDataApi, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
-import { setProfile, setInventory, setDailyQuests } from '../../store/actions';
-import inventoryManager from '../../managers/inventoryManager';
+import { setProfile, setDailyQuests } from '../../store/actions';
 import './Dashboard.scss';
 
 const RANK_KEYS = {
@@ -117,29 +113,6 @@ const APPS = [
   { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
   { id: 'focus', nameKey: 'common.focus', className: 'focus', icon: shieldCheckmarkOutline, content: <FocusGuard /> },
   { id: 'study-planner', nameKey: 'common.study_planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> }
-];
-
-const STUDY_FLOAT_ICONS = [
-  { icon: bookOutline, top: '9%', color: '#67e8f9', duration: '24s', delay: '-3s', direction: 'right' },
-  { icon: schoolOutline, top: '18%', color: '#f0abfc', duration: '28s', delay: '-15s', direction: 'left' },
-  { icon: calculatorOutline, top: '29%', color: '#fde68a', duration: '31s', delay: '-8s', direction: 'right' },
-  { icon: pencilOutline, top: '40%', color: '#a7f3d0', duration: '26s', delay: '-5s', direction: 'left' },
-  { icon: bulbOutline, top: '51%', color: '#fda4af', duration: '34s', delay: '-20s', direction: 'right' },
-  { icon: libraryOutline, top: '63%', color: '#bfdbfe', duration: '36s', delay: '-22s', direction: 'left' },
-  { icon: readerOutline, top: '75%', color: '#c4b5fd', duration: '29s', delay: '-17s', direction: 'right' },
-  { icon: documentTextOutline, top: '14%', color: '#99f6e4', duration: '33s', delay: '-11s', direction: 'right' },
-  { icon: journalOutline, top: '23%', color: '#f9a8d4', duration: '30s', delay: '-24s', direction: 'left' },
-  { icon: newspaperOutline, top: '35%', color: '#bae6fd', duration: '38s', delay: '-13s', direction: 'right' },
-  { icon: createOutline, top: '47%', color: '#fed7aa', duration: '27s', delay: '-19s', direction: 'left' },
-  { icon: flaskOutline, top: '58%', color: '#86efac', duration: '35s', delay: '-27s', direction: 'right' },
-  { icon: telescopeOutline, top: '69%', color: '#ddd6fe', duration: '32s', delay: '-9s', direction: 'left' },
-  { icon: easelOutline, top: '82%', color: '#fef08a', duration: '40s', delay: '-30s', direction: 'right' },
-  { icon: statsChartOutline, top: '6%', color: '#93c5fd', duration: '37s', delay: '-26s', direction: 'left' },
-  { icon: ribbonOutline, top: '88%', color: '#fb7185', duration: '29s', delay: '-6s', direction: 'left' },
-  { icon: medalOutline, top: '32%', color: '#fcd34d', duration: '42s', delay: '-33s', direction: 'right' },
-  { icon: trophyOutline, top: '55%', color: '#fdba74', duration: '39s', delay: '-16s', direction: 'left' },
-  { icon: hourglassOutline, top: '78%', color: '#7dd3fc', duration: '44s', delay: '-35s', direction: 'right' },
-  { icon: clipboardOutline, top: '66%', color: '#d8b4fe', duration: '41s', delay: '-28s', direction: 'left' },
 ];
 
 class Dashboard extends Component {
@@ -253,17 +226,8 @@ class Dashboard extends Component {
     try {
       const syncResponse = await handleSyncAllApi();
       if (syncResponse && syncResponse.profile) {
-        const { profile, inventory } = syncResponse;
-        // Cập nhật Inventory Manager
-        if (inventory) {
-          inventoryManager.inventory = inventory.map(item => ({
-            id: item.SK,
-            SK: item.SK,
-            amount: item.amount || 1
-          }));
-          this.props.setInventory({ items: inventory });
-        }
-
+        const { profile } = syncResponse;
+        // handleSyncAllApi đã dispatch inventory + save electron store rồi
         this.props.setProfile(profile);
 
         // Cập nhật State Dashboard theo Cloud
@@ -760,7 +724,7 @@ class Dashboard extends Component {
       <div className="holo-panel holo-panel-one"></div>
       <div className="holo-panel holo-panel-two"></div>
       <div className="study-float-icons">
-        {STUDY_FLOAT_ICONS.map((item, index) => (
+        {studyFloatIcons.map((item, index) => (
           <div
             className={`study-float-icon float-${item.direction}`}
             key={index}
@@ -804,15 +768,12 @@ class Dashboard extends Component {
     const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
     const userBudget = this.props.userProfile?.budget || {};
     const activeBgId = backgroundId(currentBackground) || 'bg_default';
-    const presetBgIds = ['bg_default', 'bg_purple', 'bg_black', 'bg_white'];
-    const bgThemeId = selectedBackground?.custom || !presetBgIds.includes(activeBgId)
-      ? 'bg_default'
-      : activeBgId;
+    const shouldRenderDesktopEffects = animationsEnabled && activeBgId === 'bg_default' && !selectedBackground?.imageUrl;
     const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
     const desktopStyle = desktopBackground
       ? {
         '--desktop-user-background': desktopBackground,
-        ...(animationsEnabled ? {} : { background: desktopBackground }),
+        background: desktopBackground,
       }
       : undefined;
     const desktopClassName = [
@@ -823,8 +784,7 @@ class Dashboard extends Component {
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
-        {animationsEnabled && this.renderDesktopLineBackground(bgThemeId)}
-        <div className="desktop-bg-dim"></div>
+        {shouldRenderDesktopEffects && this.renderDesktopLineBackground('bg_default')}
         {this.state.isDragging && <div className="drag-overlay"></div>}
 
         <UserProfileWidget
@@ -1054,7 +1014,6 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => ({
   dispatch,
   setProfile: (info) => dispatch(setProfile(info)),
-  setInventory: (data) => dispatch(setInventory(data)),
 });
 
 export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Dashboard));

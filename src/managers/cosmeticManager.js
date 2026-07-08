@@ -1,30 +1,31 @@
 import { COSMETICS, S3_ASSETS_BASE } from '../data/cosmetics';
 
-/**
- * Tự động tạo URL tài nguyên dựa trên QUY CHUẨN:
- * Folder = SK, File = SK.extension (trong folder assets)
- */
-const resolveAutoAssets = (item) => {
-  const { SK, itemType } = item;
-  const base = S3_ASSETS_BASE || '';
-  
-  // Đường dẫn thư mục gốc của item: items/background/SK/
-  const itemRoot = `items/${itemType}/${SK}`;
+const normalizeBase = (base) => (base || '').replace(/\/+$/, '');
+const normalizeAssetPath = (path) => (path || '').replace(/^\/+/, '').replace(/\\/g, '/');
+const assetUrl = (path) => {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
 
-  // Kiểm tra trường hợp đặc biệt cho tên file CSS (có cái tên là SK, có cái tên là galactic_nebula...)
-  // Theo quy chuẩn mới của bạn: File chính phải trùng tên SK
-  let cssName = SK;
-  if (SK === 'bg_galactic_nebula') cssName = 'galactic_nebula'; // Fallback cho folder cũ bạn đang có
+  const normalizedPath = normalizeAssetPath(path).replace(/^public-assets\//, '');
+  const s3Path = normalizedPath.startsWith('items/')
+    ? normalizedPath
+    : `items/${normalizedPath}`;
 
-  return {
-    css: `${base}/${itemRoot}/assets/${cssName}.css`,
-    image: `${base}/${itemRoot}/${SK}.jpg` // Theo cấu trúc thực tế tôi thấy trong folder của bạn
-  };
+  return `${normalizeBase(S3_ASSETS_BASE)}/${s3Path}`;
 };
 
-/** Chuyển "bg_dark_void" thành "Dark Void" */
+const normalizeItemId = (item) => {
+  if (item?.itemType === 'background' && item?.SK === 'bd_default') return 'bg_default';
+  return item?.SK;
+};
+
+const resolveAutoImage = (item) => {
+  const itemId = normalizeItemId(item);
+  return assetUrl(`items/${item.itemType}/${itemId}/${itemId}.jpg`);
+};
+
 const formatName = (sk) => {
-  return sk.replace(/^bg_/, '').split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  return (sk || '').replace(/^bg_/, '').split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
 const imageBackgroundStyles = (imageUrl) => {
@@ -32,14 +33,13 @@ const imageBackgroundStyles = (imageUrl) => {
   return {
     preview: imageLayer,
     profileBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.38) 0%, rgba(2, 6, 23, 0.84) 100%), ${imageLayer}`,
-    desktopBackground: `linear-gradient(180deg, rgba(2, 6, 23, 0.34) 0%, rgba(2, 6, 23, 0.68) 100%), ${imageLayer}`,
+    desktopBackground: imageLayer,
   };
 };
 
 class CosmeticManager {
   constructor() {
     this.data = JSON.parse(JSON.stringify(COSMETICS));
-    this.activeStyleElement = null;
   }
 
   loadFromMasterData(items) {
@@ -47,35 +47,32 @@ class CosmeticManager {
 
     const categoryMap = {
       background: 'backgrounds',
-      frame:      'frames',
-      title:      'titles',
+      frame: 'frames',
+      title: 'titles',
     };
 
     items.forEach(item => {
       const category = categoryMap[item.itemType];
       if (!category || !this.data[category]) return;
 
-      const autoUrls = resolveAutoAssets(item);
-      const resolvedImageUrl = item.imageUrl
-        ? `${S3_ASSETS_BASE}/${item.imageUrl}`
-        : autoUrls.image;
-      const imageStyles = imageBackgroundStyles(resolvedImageUrl);
-      const idx = this.data[category].findIndex(i => i.id === item.SK);
+      const itemId = normalizeItemId(item);
+      if (!itemId) return;
+
+      const resolvedImageUrl = item.imageUrl ? assetUrl(item.imageUrl) : resolveAutoImage(item);
+      const imageStyles = resolvedImageUrl ? imageBackgroundStyles(resolvedImageUrl) : null;
+      const idx = this.data[category].findIndex(i => i.id === itemId || i.SK === itemId);
       const existing = idx > -1 ? this.data[category][idx] : null;
 
       const mappedItem = {
         ...existing,
-        name: item.name || existing?.name || formatName(item.SK),
         ...item,
-        id: item.SK,
-        assets: {
-          css: item.assets?.css ? `${S3_ASSETS_BASE}/${item.assets.css}` : autoUrls.css,
-          ...(existing?.assets || {}),
-        },
+        SK: itemId,
+        id: itemId,
+        name: item.name || existing?.name || formatName(itemId),
         imageUrl: resolvedImageUrl,
-        preview: existing?.preview || imageStyles.preview,
-        profileBackground: existing?.profileBackground || imageStyles.profileBackground,
-        desktopBackground: existing?.desktopBackground || imageStyles.desktopBackground,
+        preview: imageStyles?.preview || existing?.preview,
+        profileBackground: imageStyles?.profileBackground || existing?.profileBackground,
+        desktopBackground: imageStyles?.desktopBackground || existing?.desktopBackground,
       };
 
       if (idx > -1) {
@@ -85,43 +82,15 @@ class CosmeticManager {
       }
     });
 
-    console.log('[CosmeticManager] Đã nạp danh sách nền từ Cloud:', this.data.backgrounds.map(b => b.id));
+    console.log('[CosmeticManager] Loaded cloud backgrounds:', this.data.backgrounds.map(b => b.id));
   }
 
   getCosmeticInfo(category, id) {
     return this.data[category]?.find(i => i.id === id || i.SK === id) || null;
   }
 
-  applyAssets(category, id) {
-    const item = this.getCosmeticInfo(category, id);
-    if (!item) {
-      this.removeExternalCSS();
-      return;
-    }
-    
-    // Nếu là default thì dùng CSS gốc của App, không inject external
-    if (id === 'bg_default') {
-      this.removeExternalCSS();
-      return;
-    }
-
-    if (item.assets?.css) {
-      this.injectExternalCSS(item.assets.css);
-    }
-  }
-
-  applyBackgroundAssets(bgId) {
-    this.applyAssets('backgrounds', bgId);
-  }
-
-  injectExternalCSS(url) {
+  applyBackgroundAssets() {
     this.removeExternalCSS();
-    const link = document.createElement('link');
-    link.id = 'dynamic-theme-style';
-    link.rel = 'stylesheet';
-    link.href = url;
-    document.head.appendChild(link);
-    this.activeStyleElement = link;
   }
 
   removeExternalCSS() {

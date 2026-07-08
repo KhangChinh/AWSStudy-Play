@@ -1,7 +1,24 @@
 import { getValidAccessToken } from './tokenService';
 import { ingestServerData, handleSyncInventoryApi } from './syncService';
-
+import { store } from '../store';
 const API_URL = import.meta.env.VITE_API_URL;
+
+const normalizeInventoryType = (itemType) => {
+    const aliases = {
+        backgrounds: 'background',
+        frames: 'frame',
+        titles: 'title',
+        buttons: 'button',
+        themes: 'theme',
+        systemIcons: 'systemIcon',
+        system_icons: 'systemIcon',
+    };
+    return aliases[itemType] || itemType;
+};
+
+const itemMatchesType = (item, itemType) => (
+    normalizeInventoryType(item?.itemType || item?.type) === normalizeInventoryType(itemType)
+);
 
 const updateProfileNameApi = async (newName) => {
     try {
@@ -32,27 +49,33 @@ const updateProfileNameApi = async (newName) => {
 };
 
 const getInventoryItem = async (itemType) => {
-    if (!itemType) return { success: false, message: "Missing itemType" };
-    try {
-        await handleSyncInventoryApi(itemType);
-        const typeState = store.getState().inventory[itemType];
+    const normalizedType = normalizeInventoryType(itemType);
+    if (!normalizedType) return { success: false, message: 'Missing itemType' };
 
-        if (!typeState || !typeState.items || typeState.items.length === 0) {
-            return { success: true, inventory: [], lastEvaluatedKey: typeState?.lastKey || null, hasMore: typeState?.hasMore || false };
-        }
+    try {
+        await handleSyncInventoryApi(normalizedType);
+
+        const inventoryState = store.getState().inventory || {};
+        const typeState = inventoryState[normalizedType];
+        const typeItems = Array.isArray(typeState?.items) ? typeState.items : [];
+        const fallbackItems = Array.isArray(inventoryState.items)
+            ? inventoryState.items.filter(item => itemMatchesType(item, normalizedType))
+            : [];
+        const inventory = typeItems.length > 0 ? typeItems : fallbackItems;
+
         return {
             success: true,
-            inventory: typeState.items,
-            lastEvaluatedKey: typeState.lastKey,
-            hasMore: typeState.hasMore
+            inventory,
+            lastEvaluatedKey: typeState?.lastKey || inventoryState.lastKey || null,
+            hasMore: typeState?.hasMore ?? inventoryState.hasMore ?? false,
         };
     } catch (error) {
-        console.warn(`[profileService] FAIL getInventoryItem (${itemType}):`, error.message);
-        return null;
+        console.warn(`[profileService] FAIL getInventoryItem (${normalizedType}):`, error.message);
+        return { success: false, inventory: [], lastEvaluatedKey: null, hasMore: false, message: error.message };
     }
 };
 
 export {
     updateProfileNameApi,
     getInventoryItem
-}
+};

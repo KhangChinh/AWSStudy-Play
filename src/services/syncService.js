@@ -1,26 +1,16 @@
 import { getValidAccessToken } from './tokenService';
 import { store } from '../store';
-import { setProfile, setInventory, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll } from '../store/actions';
-import inventoryManager from '../managers/inventoryManager';
+import { setProfile, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll } from '../store/actions';
 
 const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;
 const SYNC_COOLDOWN = 5 * 60 * 1000; // 5 phút
 
-const syncInventoryManager = (items = []) => {
-  inventoryManager.inventory = items.map(item => ({
-    ...item,
-    id: item.id || item.SK,
-    SK: item.SK || item.id,
-    amount: item.amount || 1,
-  }));
-};
-
 const ingestServerData = async (payload) => {
   if (!payload) return;
   const {
     profile,
-    inventory, inventoryLastKey,
+    inventory,
     gachaHistory, gachaHistoryLastKey,
     social, friendsLastKey,
     daily
@@ -101,7 +91,10 @@ const handleSyncAllApi = async () => {
       const getProfile = true;
       const getDaily = true;
       // Phân trang: Lấy nếu mảng đang rỗng hoặc chưa tồn tại (true), bỏ qua nếu đã có data (false)
-      const getInventory = Boolean(!currentState.inventory?.items?.length);
+      const invState = currentState.inventory || {};
+      const getInventory = Boolean(
+        Object.values(invState).every(branch => !branch?.items?.length)
+      );
       const getGachaHistory = Boolean(!currentState.gacha?.gachaHistory?.length);
       const getSocial = Boolean(!currentState.social?.items?.length);
       const token = await getValidAccessToken();
@@ -129,7 +122,7 @@ const handleSyncAllApi = async () => {
       if (syncResult && syncResult.success) {
         const {
           profile,
-          inventory, inventoryLastKey,
+          inventory,
           gachaHistory, gachaHistoryLastKey,
           social, socialLastKey,
           daily
@@ -144,11 +137,21 @@ const handleSyncAllApi = async () => {
           await window.api?.invoke('store:saveDaily', daily).catch(() => { });
         }
         if (inventory) {
-          store.dispatch(setInventory({ items: inventory, lastKey: inventoryLastKey }));
-          syncInventoryManager(inventory);
+          // inventory = { background: {items, lastEvaluatedKey}, frame: {...}, ... }
+          const types = Object.keys(inventory);
+          for (const type of types) {
+            const typeData = inventory[type];
+            store.dispatch({
+              type: 'SET_INVENTORY',
+              payload: { itemType: type, items: typeData.items, lastKey: typeData.lastEvaluatedKey }
+            });
           await window.api?.invoke('store:saveInventory', {
-            inventory, lastEvaluatedKey: inventoryLastKey, isAppend: false
+              itemType: type,
+              inventory: typeData.items,
+              lastEvaluatedKey: typeData.lastEvaluatedKey,
+              isAppend: false
           }).catch(() => { });
+          }
         }
         if (gachaHistory) {
           store.dispatch(setGachaHistory({ gachaHistory, lastEvaluatedKey: gachaHistoryLastKey }));
@@ -242,7 +245,13 @@ const handleSyncInventoryApi = async (itemType) => {
       url += `&lastKey=${encodeURIComponent(JSON.stringify(typeState.lastKey))}`;
     }
 
-    const response = await fetch(url, { /*...headers...*/ });
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
     if (!response.ok) throw new Error(`API Error: ${response.status}`);
     const syncResult = await response.json();
 

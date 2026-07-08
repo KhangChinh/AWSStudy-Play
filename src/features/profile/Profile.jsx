@@ -3,8 +3,7 @@ import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
-  personCircleOutline, starOutline, cubeOutline,
-  cashOutline, imageOutline, addOutline
+  personCircleOutline, starOutline, cubeOutline, imageOutline
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
 import cosmeticManager from '../../managers/cosmeticManager';
@@ -296,7 +295,7 @@ class Profile extends Component {
 
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
-  inventoryItems: state.inventory.items,
+  inventoryItems: Object.values(state.inventory || {}).flatMap(branch => branch?.items || []),
 });
 
 const mapDispatchToProps = (dispatch) => ({
