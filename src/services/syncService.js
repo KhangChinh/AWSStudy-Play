@@ -12,7 +12,7 @@ const ingestServerData = async (payload) => {
   if (!payload) return;
   const {
     profile,
-    inventory, inventoryLastKey,
+    inventory,
     gachaHistory, gachaHistoryLastKey,
     social, friendsLastKey,
     daily
@@ -124,7 +124,7 @@ const handleSyncAllApi = async () => {
       if (syncResult && syncResult.success) {
         const {
           profile,
-          inventory, inventoryLastKey,
+          inventory,
           gachaHistory, gachaHistoryLastKey,
           social, socialLastKey,
           daily
