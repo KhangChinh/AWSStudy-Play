@@ -62,9 +62,11 @@ const resolveBackground = (background) => {
   return cosmeticManager.getCosmeticInfo('backgrounds', background);
 };
 
-const backgroundId = (background) => (
-  typeof background === 'string' ? background : background?.id
+const cosmeticId = (cosmetic) => (
+  typeof cosmetic === 'string' ? cosmetic : cosmetic?.id || cosmetic?.SK || null
 );
+
+const backgroundId = (background) => cosmeticId(background);
 
 const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
 const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
@@ -181,6 +183,10 @@ class Dashboard extends Component {
     document.addEventListener('mousedown', this.handleClickOutside);
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
+    if (this.props.userProfile) {
+      this.setEquippedStateFromProfile(this.props.userProfile);
+    }
+
     // Apply background ban đầu (dùng data local từ cosmetics.js)
     cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
 
@@ -218,13 +224,36 @@ class Dashboard extends Component {
   };
 
   // Gọi handleSyncAllApi (cooldown 5 phút được check trong syncService)
+  getEquippedIds = (profile = this.props.userProfile) => {
+    const cosmetics = profile?.equippedCosmetics || {};
+    return {
+      backgroundId: cosmeticId(cosmetics.equippedBackground) || 'bg_default',
+      frameId: cosmeticId(cosmetics.equippedFrame) || 'frame_none',
+      titleId: cosmeticId(cosmetics.equippedTitles?.[0]) || 'title_newbie',
+    };
+  };
+
+  setEquippedStateFromProfile = (profile) => {
+    const equipped = this.getEquippedIds(profile);
+    this.setState({
+      currentBackground: equipped.backgroundId,
+      currentFrame: equipped.frameId,
+      currentTitle: equipped.titleId,
+    });
+  };
+
+  saveEquippedProfile = async (profile) => {
+    if (!profile) return;
+    this.props.setProfile(profile);
+    await window.api?.invoke('store:saveProfile', profile).catch(() => { });
+    this.setEquippedStateFromProfile(profile);
+  };
+
   performSyncAll = async () => {
     try {
       const syncResponse = await handleSyncAllApi();
       if (syncResponse && syncResponse.profile) {
         const { profile, inventory } = syncResponse;
-        const cosmetics = profile.equippedCosmetics || {};
-
         // Cập nhật Inventory Manager
         if (inventory) {
           inventoryManager.inventory = inventory.map(item => ({
@@ -238,11 +267,7 @@ class Dashboard extends Component {
         this.props.setProfile(profile);
 
         // Cập nhật State Dashboard theo Cloud
-        this.setState({
-          currentBackground: cosmetics.equippedBackground || 'bg_default',
-          currentFrame: cosmetics.equippedFrame || 'frame_none',
-          currentTitle: (cosmetics.equippedTitles && cosmetics.equippedTitles[0]) || 'title_newbie',
-        });
+        this.setEquippedStateFromProfile(profile);
 
         console.log('[Dashboard] Cloud Sync hoàn tất:', profile);
       }
@@ -311,6 +336,10 @@ class Dashboard extends Component {
 
 
   componentDidUpdate(prevProps, prevState) {
+    if (prevProps.userProfile !== this.props.userProfile && this.props.userProfile) {
+      this.setEquippedStateFromProfile(this.props.userProfile);
+    }
+
     if (prevState.currentBackground !== this.state.currentBackground) {
       cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
     }
@@ -348,25 +377,41 @@ class Dashboard extends Component {
   };
 
   handleTitleChange = async (newTitleId) => {
+    const previousTitle = this.state.currentTitle;
+    const backgroundIdToSave = backgroundId(this.state.currentBackground) || 'bg_default';
+    const frameIdToSave = cosmeticId(this.state.currentFrame);
+
     this.setState({ currentTitle: newTitleId });
     try {
-      await handleEquipCosmeticsApi({
-        backgroundId: this.state.currentBackground,
-        frameId: this.state.currentFrame,
-        titles: [newTitleId]
+      const result = await handleEquipCosmeticsApi({
+        backgroundId: backgroundIdToSave,
+        frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
+        titles: newTitleId === 'title_newbie' ? [] : [newTitleId]
       });
-    } catch (e) { console.warn('Sync Title fail:', e); }
+      await this.saveEquippedProfile(result?.profile);
+    } catch (e) {
+      this.setState({ currentTitle: previousTitle });
+      console.warn('Sync Title fail:', e);
+    }
   };
 
   handleFrameChange = async (newFrameId) => {
+    const previousFrame = this.state.currentFrame;
+    const backgroundIdToSave = backgroundId(this.state.currentBackground) || 'bg_default';
+    const titleIdToSave = cosmeticId(this.state.currentTitle);
+
     this.setState({ currentFrame: newFrameId });
     try {
-      await handleEquipCosmeticsApi({
-        backgroundId: this.state.currentBackground,
-        frameId: newFrameId,
-        titles: [this.state.currentTitle]
+      const result = await handleEquipCosmeticsApi({
+        backgroundId: backgroundIdToSave,
+        frameId: newFrameId === 'frame_none' ? null : newFrameId,
+        titles: titleIdToSave === 'title_newbie' ? [] : [titleIdToSave]
       });
-    } catch (e) { console.warn('Sync Frame fail:', e); }
+      await this.saveEquippedProfile(result?.profile);
+    } catch (e) {
+      this.setState({ currentFrame: previousFrame });
+      console.warn('Sync Frame fail:', e);
+    }
   };
 
   handleToggleAnimations = () => {
@@ -374,15 +419,23 @@ class Dashboard extends Component {
   };
 
   handleBackgroundChange = async (newBackground) => {
-    const bgId = typeof newBackground === 'string' ? newBackground : newBackground.id;
+    const previousBackground = this.state.currentBackground;
+    const bgId = backgroundId(newBackground) || 'bg_default';
+    const frameIdToSave = cosmeticId(this.state.currentFrame);
+    const titleIdToSave = cosmeticId(this.state.currentTitle);
+
     this.setState({ currentBackground: bgId });
     try {
-      await handleEquipCosmeticsApi({
+      const result = await handleEquipCosmeticsApi({
         backgroundId: bgId,
-        frameId: this.state.currentFrame,
-        titles: [this.state.currentTitle]
+        frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
+        titles: titleIdToSave === 'title_newbie' ? [] : [titleIdToSave]
       });
-    } catch (e) { console.warn('Sync Background fail:', e); }
+      await this.saveEquippedProfile(result?.profile);
+    } catch (e) {
+      this.setState({ currentBackground: previousBackground });
+      console.warn('Sync Background fail:', e);
+    }
   };
 
   handleSystemIconChange = (id) => {

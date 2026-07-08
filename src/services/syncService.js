@@ -1,10 +1,20 @@
 import { getValidAccessToken } from './tokenService';
 import { store } from '../store';
 import { setProfile, setInventory, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll } from '../store/actions';
+import inventoryManager from '../managers/inventoryManager';
 
 const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;
 const SYNC_COOLDOWN = 5 * 60 * 1000; // 5 phút
+
+const syncInventoryManager = (items = []) => {
+  inventoryManager.inventory = items.map(item => ({
+    ...item,
+    id: item.id || item.SK,
+    SK: item.SK || item.id,
+    amount: item.amount || 1,
+  }));
+};
 
 const ingestServerData = async (payload) => {
   if (!payload) return;
@@ -32,6 +42,7 @@ const ingestServerData = async (payload) => {
       type: 'SET_INVENTORY',
       payload: { items: inventory, lastKey: inventoryLastKey || null }
     });
+    syncInventoryManager(inventory);
     promises.push(window.api?.invoke('store:saveInventory', {
       inventory,
       lastEvaluatedKey: inventoryLastKey || null,
@@ -130,6 +141,7 @@ const handleSyncAllApi = async () => {
         }
         if (inventory) {
           store.dispatch(setInventory({ items: inventory, lastKey: inventoryLastKey }));
+          syncInventoryManager(inventory);
           await window.api?.invoke('store:saveInventory', {
             inventory, lastEvaluatedKey: inventoryLastKey, isAppend: false
           }).catch(() => { });
@@ -210,6 +222,7 @@ const handleSyncInventoryApi = async () => {
             lastKey: localData.lastEvaluatedKey
           }
         });
+        syncInventoryManager(localData.inventory);
         return {
           success: true,
           inventory: localData.inventory,
@@ -236,6 +249,7 @@ const handleSyncInventoryApi = async () => {
       const payload = { items: syncResult.inventory, lastKey: syncResult.lastEvaluatedKey };
       if (lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
       else store.dispatch({ type: 'SET_INVENTORY', payload });
+      syncInventoryManager(store.getState().inventory.items);
       await window.api?.invoke('store:saveInventory', {
         inventory: syncResult.inventory,
         lastEvaluatedKey: syncResult.lastEvaluatedKey,

@@ -31,12 +31,10 @@ class GachaApp extends Component {
       totalRolls: 0,
       activeBanner: bannerManager.getActiveBanner(),
       timeLeftStr: '',
-      inventoryItems: [],
       historyItems: [],
       pendingRolls: null,
       showDetails: false,
       detailPage: 0,
-      activeDetailTab: 'history', // 'history' or 'inventory'
       isSubmitting: false,
       pendingConfirmRollCount: null,
     };
@@ -164,7 +162,7 @@ class GachaApp extends Component {
       this.syncGachaStateFromProfile(this.props.userProfile);
     }
 
-    if (prevProps.inventory !== this.props.inventory || prevProps.gachaHistory !== this.props.gachaHistory) {
+    if (prevProps.gachaHistory !== this.props.gachaHistory) {
       this.updateLocalListsFromRedux();
     }
   }
@@ -186,7 +184,6 @@ class GachaApp extends Component {
 
   updateLocalListsFromRedux = () => {
     this.setState({
-      inventoryItems: this.props.inventory || [],
       historyItems: this.props.gachaHistory || [],
     });
   };
@@ -203,7 +200,6 @@ class GachaApp extends Component {
     this.setState({
       activeBanner: banner,
       timeLeftStr: `${m}m ${s}s`,
-      inventoryItems: this.props.inventory || [],
       historyItems: this.props.gachaHistory || [],
     });
   };
@@ -241,6 +237,13 @@ class GachaApp extends Component {
     ), 'R');
   };
 
+
+  getHistoryRarityClass = (rarity) => {
+    const value = String(rarity || '').toUpperCase();
+    if (value === 'SSR' || value === '5' || value === '5L') return 'SSR';
+    if (value === 'SR' || value === '4' || value === '4L') return 'SR';
+    return 'R';
+  };
   handleRoll = async (count) => {
     if (this.state.isPlaying || this.state.isSubmitting) return;
 
@@ -272,7 +275,7 @@ class GachaApp extends Component {
   };
 
   render() {
-    const { isPlaying, isSubmitting, currentRarity, rewards, pity5, pity4, activeBanner, timeLeftStr, inventoryItems } = this.state;
+    const { isPlaying, isSubmitting, currentRarity, rewards, pity5, pity4, activeBanner, timeLeftStr } = this.state;
     const knowledgeCore = this.getBudgetValue(['knowledgeCore', 'knowledge_core']);
     const knowledgePoints = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
 
@@ -361,53 +364,40 @@ class GachaApp extends Component {
                 <button className="close-btn" onClick={() => this.setState({ showDetails: false })}>&times;</button>
               </div>
 
-              <div className="modal-tabs">
-                <button
-                  className={this.state.activeDetailTab === 'history' ? 'active' : ''}
-                  onClick={() => this.setState({ activeDetailTab: 'history', detailPage: 0 })}
-                >
-                  {this.props.t('gacha.history')}
-                </button>
-                <button
-                  className={this.state.activeDetailTab === 'inventory' ? 'active' : ''}
-                  onClick={() => this.setState({ activeDetailTab: 'inventory', detailPage: 0 })}
-                >
-                  {this.props.t('gacha.inventory')}
-                </button>
-              </div>
-
               <div className="detail-list">
                 {(() => {
-                  const isHistory = this.state.activeDetailTab === 'history';
-                  const list = isHistory ? this.state.historyItems : inventoryItems;
+                  const list = this.state.historyItems;
                   const start = this.state.detailPage * 5;
                   const pageItems = list.slice(start, start + 5);
 
                   if (list.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
 
                   return pageItems.map((item, idx) => {
-                    const itemId = item.id || item.SK;
-                    const meta = ITEMS[itemId] || { name: item.name || itemId, icon: item.imageUrl || 'Package', rarity: item.rarity || 'R' };
+                    const itemId = item.itemId || item.id;
+                    const meta = ITEMS[itemId] || {
+                      name: item.name || itemId || 'Reward',
+                      icon: item.imageUrl || 'Package',
+                      rarity: this.getHistoryRarityClass(item.rarity),
+                    };
+                    const rarityClass = this.getHistoryRarityClass(meta.rarity);
+
                     return (
-                      <div key={`${itemId || item.name || 'item'}-${idx}`} className={`detail-item ${meta.rarity}`}>
+                      <div key={`${item.SK || item.timestamp || itemId || item.name || 'item'}-${idx}`} className={`detail-item ${rarityClass}`}>
                         <div className="item-main">
                           <div className="item-info">
                             <span className="name">{meta.name}</span>
-                            <span className="rarity-tag">{meta.rarity}</span>
+                            <span className="rarity-tag">{rarityClass}</span>
                           </div>
-                          {!isHistory && <span className="qty">x{item.amount}</span>}
                         </div>
-                        {isHistory && (
-                          <div className="item-footer">
-                            <span className="timestamp">
-                              {new Date(item.timestamp || item.SK || item.acquiredAt).toLocaleString('vi-VN', {
-                                day: '2-digit', month: '2-digit', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit', second: '2-digit'
-                              })}
-                            </span>
-                            {(item.isDuplicate || item.sanityAmount > 0) && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
-                          </div>
-                        )}
+                        <div className="item-footer">
+                          <span className="timestamp">
+                            {new Date(item.timestamp || item.SK || item.acquiredAt).toLocaleString('vi-VN', {
+                              day: '2-digit', month: '2-digit', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit', second: '2-digit'
+                            })}
+                          </span>
+                          {(item.isDuplicate || item.sanityAmount > 0) && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
+                        </div>
                       </div>
                     );
                   });
@@ -421,9 +411,9 @@ class GachaApp extends Component {
                 >
                   <IonIcon icon={chevronBackOutline} />
                 </button>
-                <span>{this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil((this.state.activeDetailTab === 'history' ? this.state.historyItems.length : inventoryItems.length) / 5) || 1}</span>
+                <span>{this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil(this.state.historyItems.length / 5) || 1}</span>
                 <button
-                  disabled={this.state.detailPage >= Math.ceil((this.state.activeDetailTab === 'history' ? this.state.historyItems.length : inventoryItems.length) / 5) - 1}
+                  disabled={this.state.detailPage >= Math.ceil(this.state.historyItems.length / 5) - 1}
                   onClick={() => this.setState({ detailPage: this.state.detailPage + 1 })}
                 >
                   <IonIcon icon={chevronForwardOutline} />
@@ -448,7 +438,6 @@ class GachaApp extends Component {
             this.setState({
               isPlaying: false,
               totalRolls: pendingRolls.totalRolls,
-              inventoryItems: this.props.inventory || [],
               historyItems: this.props.gachaHistory || [],
             });
           }}
@@ -460,7 +449,6 @@ class GachaApp extends Component {
 
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
-  inventory: state.inventory.items,
   gachaHistory: state.gacha.gachaHistory,
 });
 
@@ -469,7 +457,6 @@ const mapDispatchToProps = (dispatch) => ({
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(GachaApp));
-
 
 
 
