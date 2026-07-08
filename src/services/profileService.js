@@ -17,10 +17,6 @@ const normalizeInventoryType = (itemType) => {
     return aliases[itemType] || itemType;
 };
 
-const itemMatchesType = (item, itemType) => (
-    normalizeInventoryType(item?.itemType || item?.type) === normalizeInventoryType(itemType)
-);
-
 const updateProfileNameApi = async (newName) => {
     try {
         const token = await getValidAccessToken();
@@ -56,19 +52,14 @@ const getInventoryItem = async (itemType) => {
     try {
         await handleSyncInventoryApi(normalizedType);
 
-        const inventoryState = store.getState().inventory || {};
-        const typeState = inventoryState[normalizedType];
-        const typeItems = Array.isArray(typeState?.items) ? typeState.items : [];
-        const fallbackItems = Array.isArray(inventoryState.items)
-            ? inventoryState.items.filter(item => itemMatchesType(item, normalizedType))
-            : [];
-        const inventory = typeItems.length > 0 ? typeItems : fallbackItems;
+        const typeState = (store.getState().inventory || {})[normalizedType];
+        const inventory = Array.isArray(typeState?.items) ? typeState.items : [];
 
         return {
             success: true,
             inventory,
-            lastEvaluatedKey: typeState?.lastKey || inventoryState.lastKey || null,
-            hasMore: typeState?.hasMore ?? inventoryState.hasMore ?? false,
+            lastEvaluatedKey: typeState?.lastKey || null,
+            hasMore: typeState?.hasMore ?? false,
         };
     } catch (error) {
         console.warn(`[profileService] FAIL getInventoryItem (${normalizedType}):`, error.message);

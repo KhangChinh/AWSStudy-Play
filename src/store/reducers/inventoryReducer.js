@@ -37,23 +37,11 @@ const mergeUniqueItems = (current = [], incoming = []) => {
   return merged;
 };
 
-const itemsByType = (items = [], itemType) => {
-  const normalizedType = normalizeType(itemType);
-  return (items || []).filter(item => normalizeType(item?.itemType || item?.type) === normalizedType);
-};
-
-const createEmptyState = () => types.reduce((acc, type) => {
+const initialState = types.reduce((acc, type) => {
   const normalizedType = normalizeType(type);
   acc[normalizedType] = { items: [], lastKey: null, hasMore: true, isLoading: false };
   return acc;
-}, {
-  items: [],
-  lastKey: null,
-  hasMore: true,
-  isLoading: false,
-});
-
-const initialState = createEmptyState();
+}, {});
 
 const inventoryReducer = (state = initialState, action) => {
   const { itemType, items = [], lastKey } = action.payload || {};
@@ -61,35 +49,11 @@ const inventoryReducer = (state = initialState, action) => {
 
   switch (action.type) {
     case SET_INVENTORY: {
-      if (!normalizedType) {
-        const nextState = {
-          ...state,
-          items: items || [],
-          lastKey: lastKey || null,
-          hasMore: lastKey !== null,
-          isLoading: false,
-        };
-
-        for (const type of Object.keys(nextState)) {
-          if (!nextState[type] || !Array.isArray(nextState[type].items)) continue;
-          nextState[type] = {
-            ...nextState[type],
-            items: itemsByType(items, type),
-            lastKey: lastKey || null,
-            hasMore: lastKey !== null,
-            isLoading: false,
-          };
-        }
-
-        return nextState;
-      }
-
-      const typedItems = itemsByType(items, normalizedType);
+      if (!normalizedType || !state[normalizedType]) return state;
       return {
         ...state,
-        items: mergeUniqueItems(state.items, items),
         [normalizedType]: {
-          items: typedItems,
+          items: items || [],
           lastKey: lastKey || null,
           hasMore: lastKey !== null,
           isLoading: false,
@@ -98,23 +62,11 @@ const inventoryReducer = (state = initialState, action) => {
     }
 
     case APPEND_INVENTORY: {
-      if (!normalizedType) {
-        const mergedItems = mergeUniqueItems(state.items, items);
-        return {
-          ...state,
-          items: mergedItems,
-          lastKey: lastKey || null,
-          hasMore: lastKey !== null,
-          isLoading: false,
-        };
-      }
-
-      const typedItems = itemsByType(items, normalizedType);
+      if (!normalizedType || !state[normalizedType]) return state;
       return {
         ...state,
-        items: mergeUniqueItems(state.items, items),
         [normalizedType]: {
-          items: mergeUniqueItems(state[normalizedType]?.items || [], typedItems),
+          items: mergeUniqueItems(state[normalizedType]?.items || [], items),
           lastKey: lastKey || null,
           hasMore: lastKey !== null,
           isLoading: false,
@@ -123,11 +75,11 @@ const inventoryReducer = (state = initialState, action) => {
     }
 
     case CLEAR_INVENTORY:
-      return createEmptyState();
+      return { ...initialState };
 
     default:
       return state;
   }
 };
 
-export default inventoryReducer;
+export default inventoryReducer;
