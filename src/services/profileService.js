@@ -1,5 +1,5 @@
 import { getValidAccessToken } from './tokenService';
-import { ingestServerData } from './syncService';
+import { ingestServerData, handleSyncInventoryApi } from './syncService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -31,6 +31,28 @@ const updateProfileNameApi = async (newName) => {
     }
 };
 
+const getInventoryItem = async (itemType) => {
+    if (!itemType) return { success: false, message: "Missing itemType" };
+    try {
+        await handleSyncInventoryApi(itemType);
+        const typeState = store.getState().inventory[itemType];
+
+        if (!typeState || !typeState.items || typeState.items.length === 0) {
+            return { success: true, inventory: [], lastEvaluatedKey: typeState?.lastKey || null, hasMore: typeState?.hasMore || false };
+        }
+        return {
+            success: true,
+            inventory: typeState.items,
+            lastEvaluatedKey: typeState.lastKey,
+            hasMore: typeState.hasMore
+        };
+    } catch (error) {
+        console.warn(`[profileService] FAIL getInventoryItem (${itemType}):`, error.message);
+        return null;
+    }
+};
+
 export {
-    updateProfileNameApi
+    updateProfileNameApi,
+    getInventoryItem
 }

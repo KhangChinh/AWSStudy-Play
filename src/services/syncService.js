@@ -27,16 +27,21 @@ const ingestServerData = async (payload) => {
     promises.push(window.api?.invoke('store:saveDaily', daily).catch(() => { }));
   }
   // 3. Xử lý Inventory (Ghi đè trang 1)
-  if (inventory) {
-    store.dispatch({
-      type: 'SET_INVENTORY',
-      payload: { items: inventory, lastKey: inventoryLastKey || null }
-    });
-    promises.push(window.api?.invoke('store:saveInventory', {
-      inventory,
-      lastEvaluatedKey: inventoryLastKey || null,
-      isAppend: false
-    }).catch(() => { }));
+  if (inventory) { // inventory giờ là object: { background: {items, lastEvaluatedKey}, frame: {...} }
+    const types = Object.keys(inventory);
+    for (const type of types) {
+      const typeData = inventory[type];
+      store.dispatch({
+        type: 'SET_INVENTORY',
+        payload: { itemType: type, items: typeData.items, lastKey: typeData.lastEvaluatedKey }
+      });
+      await window.api?.invoke('store:saveInventory', {
+        itemType: type,
+        inventory: typeData.items,
+        lastEvaluatedKey: typeData.lastEvaluatedKey,
+        isAppend: false
+      }).catch(() => { });
+    }
   }
   // 4. Xử lý Gacha History (Ghi đè trang 1)
   if (gachaHistory) {
@@ -196,55 +201,60 @@ const handleSyncProfileApi = async () => {
   }
 };
 
-const handleSyncInventoryApi = async () => {
+const handleSyncInventoryApi = async (itemType) => {
+  if (!itemType) return null;
   try {
-    const { items, lastKey, hasMore } = store.getState().inventory;
-    if (!hasMore) return null;
-    if (items.length === 0) {
+    const typeState = store.getState().inventory[itemType];
+    if (!typeState || !typeState.hasMore) return null;
+
+    if (typeState.items.length === 0) {
       const localData = await window.api?.invoke('store:loadInventory');
-      if (localData && localData.inventory && localData.inventory.length > 0) {
+      // localData giờ là object chứa các nhánh
+      if (localData && localData[itemType] && localData[itemType].items.length > 0) {
         store.dispatch({
           type: 'SET_INVENTORY',
           payload: {
-            items: localData.inventory,
-            lastKey: localData.lastEvaluatedKey
+            itemType,
+            items: localData[itemType].items,
+            lastKey: localData[itemType].lastEvaluatedKey
           }
         });
-        return {
-          success: true,
-          inventory: localData.inventory,
-          lastEvaluatedKey: localData.lastEvaluatedKey,
-        };
+        return { success: true, ...localData[itemType] };
       }
     }
+
     const token = await getValidAccessToken();
     if (!token) throw new Error('No auth token');
-    let url = `${API_URL}/sync-inventory`;
-    if (lastKey) {
-      url += `?lastKey=${encodeURIComponent(JSON.stringify(lastKey))}`;
+
+    let url = `${API_URL}/sync-inventory?itemType=${itemType}`;
+    if (typeState.lastKey) {
+      url += `&lastKey=${encodeURIComponent(JSON.stringify(typeState.lastKey))}`;
     }
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      }
-    });
+
+    const response = await fetch(url, { /*...headers...*/ });
     if (!response.ok) throw new Error(`API Error: ${response.status}`);
     const syncResult = await response.json();
+
     if (syncResult && syncResult.success && syncResult.inventory) {
-      const payload = { items: syncResult.inventory, lastKey: syncResult.lastEvaluatedKey };
-      if (lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
+      const payload = {
+        itemType,
+        items: syncResult.inventory,
+        lastKey: syncResult.lastEvaluatedKey
+      };
+
+      if (typeState.lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
       else store.dispatch({ type: 'SET_INVENTORY', payload });
+
       await window.api?.invoke('store:saveInventory', {
+        itemType,
         inventory: syncResult.inventory,
         lastEvaluatedKey: syncResult.lastEvaluatedKey,
-        isAppend: !!lastKey
+        isAppend: !!typeState.lastKey
       }).catch(() => { });
     }
     return syncResult;
   } catch (e) {
-    console.warn('[syncService] FAIL handleSyncInventoryApi:', e.message);
+    console.warn(`[syncService] FAIL handleSyncInventoryApi (${itemType}):`, e.message);
     return null;
   }
 };

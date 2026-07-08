@@ -97,21 +97,23 @@ export function registerStoreIPC(ipcMain) {
   // ═══ Inventory ═══
   ipcMain.handle('store:saveInventory', async (_event, payload) => {
     try {
-      let finalInventory = payload.inventory;
-      if (payload.isAppend) {
-        const existingEncrypted = store.get('userInventory');
-        if (existingEncrypted) {
-          const existingData = decodeBase64(existingEncrypted);
-          if (existingData && Array.isArray(existingData.inventory)) {
-            finalInventory = [...existingData.inventory, ...payload.inventory];
-          }
-        }
+      const { itemType, inventory: newItems, lastEvaluatedKey, isAppend } = payload;
+      if (!itemType) throw new Error("Missing itemType in saveInventory");
+      const existingEncrypted = store.get('userInventory');
+      let inventoryData = existingEncrypted ? decodeBase64(existingEncrypted) : {};
+      if (!inventoryData || typeof inventoryData !== 'object') inventoryData = {};
+      if (!inventoryData[itemType]) {
+        inventoryData[itemType] = { items: [], lastEvaluatedKey: null };
       }
-      const dataToSave = {
-        inventory: finalInventory,
-        lastEvaluatedKey: payload.lastEvaluatedKey
+      let finalInventory = newItems;
+      if (isAppend) {
+        finalInventory = [...inventoryData[itemType].items, ...newItems];
+      }
+      inventoryData[itemType] = {
+        items: finalInventory,
+        lastEvaluatedKey: lastEvaluatedKey
       };
-      const encrypted = encodeBase64(dataToSave);
+      const encrypted = encodeBase64(inventoryData);
       store.set('userInventory', encrypted);
       return { success: true };
     } catch (err) {
