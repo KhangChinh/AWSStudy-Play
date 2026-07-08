@@ -13,6 +13,7 @@ import Spinner from './components/Spinner';
 import { handleSyncProfileApi } from './services/syncService';
 import { handleLogoutApi } from './services/authService';
 import { initializeAuth, getValidAccessToken } from './services/tokenService';
+import { syncItemData } from './services/cosmeticServices';
 
 import './index.css';
 
@@ -25,6 +26,12 @@ class App extends Component {
   }
 
   async componentDidMount() {
+    try {
+      await syncItemData();
+    } catch (error) {
+      console.warn('[App] syncItemData failed:', error.message);
+    }
+
     try {
       await this.bootstrapSession();
     } catch (error) {

@@ -2,8 +2,8 @@
  * Cosmetic & Sync Services — Gọi AWS để lấy danh sách vật phẩm và đồng bộ Profile
  */
 
+import cosmeticManager from '../managers/cosmeticManager';
 import { getValidAccessToken } from './tokenService';
-import { CLOUD_BACKGROUND_SKS } from '../data/cosmetics';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -38,18 +38,70 @@ const authFetch = async (endpoint, options = {}) => {
  */
 const handleGetMasterDataApi = async () => {
   if (!API_URL) {
-    return {
-      items: CLOUD_BACKGROUND_SKS.map(sk => ({ SK: sk, itemType: 'background' })),
-    };
+    return { items: [] };
   }
 
   try {
     return await authFetch('/master-data', { method: 'GET' });
   } catch (e) {
     console.warn('[cosmeticServices] FAIL handleGetMasterDataApi:', e.message);
-    return {
-      items: CLOUD_BACKGROUND_SKS.map(sk => ({ SK: sk, itemType: 'background' })),
-    };
+    return { items: [] };
+  }
+};
+
+const MASTER_DATA_COOLDOWN = 12 * 60 * 60 * 1000; // 12 giờ
+
+/**
+ * Đồng bộ danh sách Master Item Data
+ * 1. Đọc cache từ Electron lên trước để ứng dụng có dữ liệu hiển thị ngay lập tức (offline-first).
+ * 2. Kiểm tra cooldown (12 giờ). Nếu chưa hết hạn, bỏ qua gọi API.
+ * 3. Nếu hết hạn, gọi API /master-data từ server để lấy danh sách mới nhất và lưu đè cache local.
+ */
+const syncItemData = async () => {
+  // 1. Đọc từ local cache của Electron trước
+  try {
+    if (window.api?.invoke) {
+      const cachedItems = await window.api.invoke('store:loadMasterData');
+      if (cachedItems && Array.isArray(cachedItems)) {
+        console.log('[Cosmetics] Đã tải danh sách master items từ local cache:', cachedItems.length);
+        cosmeticManager.loadFromMasterData(cachedItems);
+      }
+    }
+  } catch (err) {
+    console.warn('[Cosmetics] Lỗi đọc master items từ cache local:', err.message);
+  }
+
+  // Kiểm tra cooldown trước khi gọi API để tránh spam AWS
+  const lastSync = Number(localStorage.getItem('lastMasterDataSyncTime') || 0);
+  const now = Date.now();
+  if (lastSync && (now - lastSync) < MASTER_DATA_COOLDOWN) {
+    console.log(`[Cosmetics] Bỏ qua gọi API /master-data (cooldown). Lần sync cuối: ${new Date(lastSync).toLocaleString()}`);
+    return;
+  }
+
+  // 2. Fetch từ server trong background nếu đã đăng nhập
+  try {
+    const token = await getValidAccessToken().catch(() => null);
+    if (!token) {
+      console.log('[Cosmetics] Chưa đăng nhập, bỏ qua đồng bộ master data từ server.');
+      return;
+    }
+
+    const response = await handleGetMasterDataApi();
+    if (response && Array.isArray(response.items) && response.items.length > 0) {
+      console.log('[Cosmetics] Đồng bộ master items từ server thành công:', response.items.length);
+      cosmeticManager.loadFromMasterData(response.items);
+
+      // Lưu lại vào Electron cache
+      if (window.api?.invoke) {
+        await window.api.invoke('store:saveMasterData', response.items).catch(() => {});
+      }
+      
+      // Lưu lại thời gian đồng bộ thành công
+      localStorage.setItem('lastMasterDataSyncTime', String(now));
+    }
+  } catch (err) {
+    console.warn('[Cosmetics] Không thể đồng bộ master items từ server:', err.message);
   }
 };
 
@@ -90,4 +142,5 @@ export {
   handleGetMasterDataApi,
   handleEquipCosmeticsApi,
   handleUpdateNameApi,
+  syncItemData,
 };

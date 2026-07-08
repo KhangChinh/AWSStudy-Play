@@ -140,6 +140,27 @@ export function registerStoreIPC(ipcMain) {
       return { success: false, error: err.message };
     }
   });
+  // ═══ Master Data (Item Catalog) ═══
+  ipcMain.handle('store:saveMasterData', async (_event, items) => {
+    try {
+      const encrypted = encodeBase64(items);
+      store.set('masterItemData', encrypted);
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:saveMasterData failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('store:loadMasterData', async () => {
+    try {
+      const encrypted = store.get('masterItemData');
+      if (!encrypted) return null;
+      return decodeBase64(encrypted);
+    } catch (err) {
+      console.error('[storeIpc] store:loadMasterData failed:', err);
+      return null;
+    }
+  });
   // ═══ Gacha History ═══
   ipcMain.handle('store:saveGachaHistory', async (_event, payload) => {
     try {

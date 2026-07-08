@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld('api', {
       'store:saveDaily',
       'store:loadDaily',
       'store:clearDaily',
+      'store:saveMasterData',
+      'store:loadMasterData',
       'store:clearLoginData',
       // Study Planner
       'study:chat',

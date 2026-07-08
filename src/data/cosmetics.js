@@ -4,13 +4,7 @@
 
 export const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL;
 
-// Background IDs on S3 / AWSServerless — loaded via cosmeticManager.loadFromMasterData
-export const CLOUD_BACKGROUND_SKS = [
-  'bg_crimson_void',
-  'bg_dark',
-  'bg_light',
-  'bg_purple',
-];
+
 
 export const COSMETICS = {
   backgrounds: [

@@ -26,7 +26,7 @@ import currencyAssets from '../../data/currencyAssets';
 import studyFloatIcons from '../../data/studyFloatIcons';
 import RankFrame from '../../components/RankFrame';
 import { handleLogoutApi } from '../../services/authService';
-import { handleGetMasterDataApi, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
+import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
@@ -163,14 +163,11 @@ class Dashboard extends Component {
     // Apply background ban đầu (dùng data local từ cosmetics.js)
     cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
 
-    // Load master data từ cloud — sau đó re-render để Profile thấy bg mới
+    // Load/Sync master data (offline-first: load local cache, sync in background)
     try {
-      const response = await handleGetMasterDataApi();
-      if (response && Array.isArray(response.items) && response.items.length > 0) {
-        cosmeticManager.loadFromMasterData(response.items);
-        this.setState({ masterDataLoaded: true });
-        cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
-      }
+      await syncItemData();
+      this.setState({ masterDataLoaded: true });
+      cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
     } catch (e) {
       console.warn('Không thể tải master data:', e);
     }
