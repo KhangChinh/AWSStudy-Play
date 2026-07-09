@@ -1,9 +1,38 @@
 import { store } from '../store';
 import { getValidAccessToken } from './tokenService';
-import { ingestServerData } from './syncService';
+import { ingestServerData, hasInventorySyncServerError } from './syncService';
 import { KNOWLEDGE_POINTS_PER_CORE } from './currencyServices';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+const isDuplicateKeyError = (error) => (
+  /contains duplicates/i.test(error?.message || '')
+);
+
+const isInventoryIndexPermissionError = (error) => {
+  const message = error?.message || '';
+  return message.includes('Inventory/index/ItemTypeIndex') || /not authorized to perform: dynamodb:Query/i.test(message);
+};
+
+const postGacha = async (token, isx10) => {
+  const response = await fetch(`${API_URL}/gacha`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ isx10 })
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    const error = new Error(errData.message || `Server error (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return response.json();
+};
 
 export const handleGachaApi = async (isx10) => {
   try {
@@ -28,19 +57,39 @@ export const handleGachaApi = async (isx10) => {
     }
     const token = await getValidAccessToken();
     if (!token) throw new Error('No auth token. Please sign in again.');
-    const response = await fetch(`${API_URL}/gacha`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ isx10 })
-    });
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.message || `Server error (${response.status})`);
+    let result;
+    try {
+      result = await postGacha(token, isx10);
+    } catch (error) {
+      if (!isx10 || !isDuplicateKeyError(error)) throw error;
+      if (hasInventorySyncServerError()) {
+        throw new Error('Inventory sync is failing on the server. Please fix the Inventory ItemTypeIndex permission before retrying x10 gacha.', { cause: error });
+      }
+
+      console.warn('[GachaService] x10 duplicate-key fallback: running 10 single pulls');
+      const fallbackResults = [];
+      for (let i = 0; i < 10; i += 1) {
+        let singleResult;
+        try {
+          singleResult = await postGacha(token, false);
+        } catch (singleError) {
+          if (isInventoryIndexPermissionError(singleError)) {
+            throw new Error('Gacha succeeded server-side but failed while syncing inventory. Backend Lambda role is missing dynamodb:Query on Inventory/index/ItemTypeIndex.', { cause: singleError });
+          }
+          throw singleError;
+        }
+        if (!singleResult?.success) throw new Error('Gacha failed.', { cause: error });
+        await ingestServerData({
+          profile: singleResult.profile,
+          inventory: singleResult.inventory,
+          gachaHistory: singleResult.gachaHistory,
+          gachaHistoryLastKey: singleResult.gachaHistoryLastKey,
+        });
+        fallbackResults.push(...(singleResult.pulledItems || []));
+      }
+      return fallbackResults;
     }
-    const result = await response.json();
+
     if (result && result.success) {
       await ingestServerData({
         profile: result.profile,

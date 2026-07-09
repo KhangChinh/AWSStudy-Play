@@ -462,42 +462,6 @@
     text-align: center;
   }
 
-  .gacha-confirm-consume {
-    width: fit-content;
-    min-width: 190px;
-    margin: 0 auto 14px;
-    display: grid;
-    justify-items: center;
-    gap: 6px;
-    padding: 12px 18px;
-    border-radius: 10px;
-    background: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.26);
-
-    span {
-      color: #cbd5e1;
-      font-size: 12px;
-      font-weight: 900;
-      text-transform: uppercase;
-    }
-
-    strong {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: #fbbf24;
-      font-size: 18px;
-      font-weight: 900;
-      font-variant-numeric: tabular-nums;
-
-      img {
-        width: 24px;
-        height: 24px;
-        object-fit: contain;
-      }
-    }
-  }
-
   .gacha-confirm-warning {
     margin-bottom: 14px;
     padding: 10px 12px;
@@ -731,6 +695,15 @@
               }
             }
 
+            .rate-value {
+              min-width: 72px;
+              text-align: right;
+              color: #fbbf24;
+              font-size: 18px;
+              font-weight: 900;
+              font-variant-numeric: tabular-nums;
+            }
+
             .conversion-tag {
               display: flex;
               align-items: center;
@@ -857,9 +830,6 @@
     }
   }
 }
-
-
-
 
 .gacha-app .details-currency-icon { width: 22px; height: 22px; object-fit: contain; margin-right: 8px; vertical-align: middle; }
 

@@ -153,6 +153,8 @@ class Dashboard extends Component {
   }
 
   async componentDidMount() {
+    window.api?.send?.('login-success');
+
     this.timerInterval = setInterval(() => {
       this.setState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -198,7 +200,7 @@ class Dashboard extends Component {
     }
   };
 
-  // Gọi handleSyncAllApi (cooldown 5 phút được check trong syncService)
+  // Gọi handleSyncAllApi (cooldown 1 phút được check trong syncService)
   getEquippedIds = (profile = this.props.userProfile) => {
     const cosmetics = profile?.equippedCosmetics || {};
     return {
@@ -254,43 +256,37 @@ class Dashboard extends Component {
    */
   loadDailyQuests = async () => {
     const now = Math.floor(Date.now() / 1000);
+    const isValidDaily = (daily) => daily?.quests && (!daily.expiresAt || daily.expiresAt > now);
 
     try {
+      if (this.props.dailyQuests?.quests) {
+        return;
+      }
 
-      // ──── STEP 1: Ưu tiên đọc từ electron-store (base64 cache) ────
       if (window.api?.invoke) {
-        const stored = await window.api.invoke('quest:load');
-        if (stored?.success && stored.data?.quests && stored.data.expiresAt) {
-          // Kiểm tra expiredAt xem đã qua ngày chưa
-          if (stored.data.expiresAt > now) {
-            console.log('[Quest] Load từ store thành công (còn hạn). Update Redux...');
-            this.props.dispatch(setDailyQuests(stored.data));
-            return;
-          } else {
-            console.log('[Quest] Store có data nhưng hết hạn. Tiến hành refreshDaily...');
-            // Qua ngày -> gọi refreshDaily lại
-            const refreshResult = await refreshDailyQuests();
-            if (refreshResult.success && refreshResult.daily) {
-              this.props.dispatch(setDailyQuests(refreshResult.daily));
-              await window.api.invoke('quest:save', refreshResult.daily);
-              return;
-            }
-          }
+        const stored = await window.api.invoke('quest:load').catch(() => null);
+        const cachedDaily = stored?.success ? stored.data : stored;
+        if (isValidDaily(cachedDaily)) {
+          this.props.dispatch(setDailyQuests(cachedDaily));
+          return;
+        }
+
+        const daily = await window.api.invoke('store:loadDaily').catch(() => null);
+        if (isValidDaily(daily)) {
+          this.props.dispatch(setDailyQuests(daily));
+          await window.api.invoke('quest:save', daily).catch(() => { });
+          return;
         }
       }
 
-      // ──── STEP 2: Nếu không có trong store hoặc refresh thất bại -> Gọi getDailyQuests ────
-      // Đây cũng là logic khi vừa login (nếu store trống)
-      console.log('[Quest] Gọi getDaily lấy dữ liệu từ server...');
+      console.log('[Quest] Daily cache missing/expired, calling API...');
       const result = await getDailyQuests();
 
       if (result.success && result.daily) {
-        console.log('[Quest] GetDaily thành công. Lưu store & update Redux.');
-        // Lưu vào Redux
         this.props.dispatch(setDailyQuests(result.daily));
-        // Lưu vào electron-store (mã hóa base64 đã handle ở main process)
         if (window.api?.invoke) {
-          await window.api.invoke('quest:save', result.daily);
+          await window.api.invoke('quest:save', result.daily).catch(() => { });
+          await window.api.invoke('store:saveDaily', result.daily).catch(() => { });
         }
       } else {
         console.warn('[Quest] API getDaily fail:', result.error);
@@ -299,7 +295,6 @@ class Dashboard extends Component {
       console.error('[Quest] Load error:', err);
     }
   };
-
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.userProfile !== this.props.userProfile && this.props.userProfile) {

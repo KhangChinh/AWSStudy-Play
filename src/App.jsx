@@ -10,7 +10,7 @@ import Dashboard from './features/dashboard/Dashboard';
 import AuthPage from './features/auth/AuthPage';
 import Spinner from './components/Spinner';
 
-import { handleSyncProfileApi } from './services/syncService';
+import { handleSyncAllApi, handleSyncProfileApi } from './services/syncService';
 import { handleLogoutApi } from './services/authService';
 import { initializeAuth, getValidAccessToken } from './services/tokenService';
 import { syncItemData } from './services/cosmeticServices';
@@ -70,7 +70,14 @@ class App extends Component {
       return;
     }
     try {
-      await handleSyncProfileApi();
+      const syncResult = await handleSyncAllApi({ force: true });
+      const profile = syncResult?.profile || this.props.userProfile || store.getState().profile?.userProfile;
+      if (!profile) {
+        const profileResult = await handleSyncProfileApi();
+        if (!profileResult?.profile) {
+          throw new Error(syncResult?.error || 'Failed to sync user data');
+        }
+      }
       // Gửi IPC để main process resize cửa sổ sang kích thước Dashboard
       if (window.api?.send) window.api.send('login-success');
     } catch (error) {
@@ -126,6 +133,7 @@ class App extends Component {
 
 const mapStateToProps = (state) => ({
   isLoggedIn: !!state.profile?.userProfile,
+  userProfile: state.profile?.userProfile,
 });
 
 const ConnectedApp = connect(mapStateToProps)(App);

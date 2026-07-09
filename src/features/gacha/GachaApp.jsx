@@ -34,6 +34,7 @@ class GachaApp extends Component {
       historyItems: [],
       pendingRolls: null,
       showDetails: false,
+      detailTab: 'rates',
       detailPage: 0,
       isSubmitting: false,
       pendingConfirmRollCount: null,
@@ -128,10 +129,6 @@ class GachaApp extends Component {
             Thiếu {missingCore.toLocaleString()} {t('common.knowledge_core')}, có muốn dùng {pointCost.toLocaleString()} {t('common.knowledge_points')} để mua?
           </div>
 
-          <div className="gacha-confirm-consume">
-            <span>Tiêu hao</span>
-            <strong><img src={currencyAssets.knowledgePoint} alt={t('common.knowledge_points')} /> {pointCost.toLocaleString()}</strong>
-          </div>
 
           {!hasEnoughPoints && (
             <div className="gacha-confirm-warning">
@@ -218,6 +215,38 @@ class GachaApp extends Component {
   };
 
 
+  getItemMeta = (item) => {
+    const itemId = item?.itemId || item?.id || item?.SK;
+    if (itemId && ITEMS[itemId]) return ITEMS[itemId];
+
+    const itemName = (item?.name || '').toLowerCase();
+    if (!itemName) return null;
+
+    return Object.values(ITEMS).find(meta => meta.name?.toLowerCase() === itemName) || null;
+  };
+
+  getBannerRateRows = () => {
+    const { activeBanner } = this.state;
+    const rates = activeBanner?.rates || {};
+    const featured = activeBanner?.featured || {};
+    const rows = [];
+
+    const addRows = (rank, ids = []) => {
+      const tierRate = Number(rates[rank] || 0);
+      const itemRate = ids.length ? tierRate / ids.length : tierRate;
+      ids.forEach(id => {
+        const item = ITEMS[id] || { id, name: id, rarity: rank };
+        rows.push({ id, name: item.name || id, rarity: rank, rate: itemRate });
+      });
+    };
+
+    addRows('SSR', featured.SSR || []);
+    addRows('SR', featured.SR || []);
+    rows.push({ id: 'item_sanity', name: ITEMS.item_sanity?.name || 'Sanity', rarity: 'R', rate: Number(rates.R || 0) });
+
+    return rows;
+  };
+
   getHistoryRarityClass = (rarity) => {
     const value = String(rarity || '').toUpperCase();
     if (value === 'SSR' || value === '5' || value === '5L') return 'SSR';
@@ -300,7 +329,7 @@ class GachaApp extends Component {
 
         <div className="bottom-bar">
           <div className="bottom-left">
-            <button className="btn-detail-inv" onClick={() => this.setState({ showDetails: true, detailPage: 0 })}>
+            <button className="btn-detail-inv" onClick={() => this.setState({ showDetails: true, detailTab: 'rates', detailPage: 0 })}>
               {this.props.t('gacha.details')}
             </button>
             <div className="pity-summary">
@@ -344,61 +373,84 @@ class GachaApp extends Component {
                 <button className="close-btn" onClick={() => this.setState({ showDetails: false })}>&times;</button>
               </div>
 
-              <div className="detail-list">
-                {(() => {
-                  const list = this.state.historyItems;
-                  const start = this.state.detailPage * 5;
-                  const pageItems = list.slice(start, start + 5);
+              <div className="modal-tabs">
+                <button className={this.state.detailTab === 'rates' ? 'active' : ''} onClick={() => this.setState({ detailTab: 'rates' })}>Detail</button>
+                <button className={this.state.detailTab === 'history' ? 'active' : ''} onClick={() => this.setState({ detailTab: 'history', detailPage: 0 })}>History</button>
+              </div>
 
-                  if (list.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
-
-                  return pageItems.map((item, idx) => {
-                    const itemId = item.itemId || item.id;
-                    const meta = ITEMS[itemId] || {
-                      name: item.name || itemId || 'Reward',
-                      icon: item.imageUrl || 'Package',
-                      rarity: this.getHistoryRarityClass(item.rarity),
-                    };
-                    const rarityClass = this.getHistoryRarityClass(meta.rarity);
-
-                    return (
-                      <div key={`${item.SK || item.timestamp || itemId || item.name || 'item'}-${idx}`} className={`detail-item ${rarityClass}`}>
-                        <div className="item-main">
-                          <div className="item-info">
-                            <span className="name">{meta.name}</span>
-                            <span className="rarity-tag">{rarityClass}</span>
-                          </div>
+              {this.state.detailTab === 'rates' ? (
+                <div className="detail-list rate-list">
+                  {this.getBannerRateRows().map(row => (
+                    <div key={row.id} className={`detail-item ${row.rarity}`}>
+                      <div className="item-main">
+                        <div className="item-info">
+                          <span className="name">{row.name}</span>
+                          <span className="rarity-tag">{row.rarity}</span>
                         </div>
-                        <div className="item-footer">
-                          <span className="timestamp">
-                            {new Date(item.timestamp || item.SK || item.acquiredAt).toLocaleString('vi-VN', {
-                              day: '2-digit', month: '2-digit', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit', second: '2-digit'
-                            })}
-                          </span>
-                          {(item.isDuplicate || item.sanityAmount > 0) && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
-                        </div>
+                        <span className="rate-value">{(row.rate * 100).toFixed(2)}%</span>
                       </div>
-                    );
-                  });
-                })()}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="detail-list">
+                    {(() => {
+                      const list = this.state.historyItems;
+                      const start = this.state.detailPage * 5;
+                      const pageItems = list.slice(start, start + 5);
 
-              <div className="pagination">
-                <button
-                  disabled={this.state.detailPage === 0}
-                  onClick={() => this.setState({ detailPage: this.state.detailPage - 1 })}
-                >
-                  <IonIcon icon={chevronBackOutline} />
-                </button>
-                <span>{this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil(this.state.historyItems.length / 5) || 1}</span>
-                <button
-                  disabled={this.state.detailPage >= Math.ceil(this.state.historyItems.length / 5) - 1}
-                  onClick={() => this.setState({ detailPage: this.state.detailPage + 1 })}
-                >
-                  <IonIcon icon={chevronForwardOutline} />
-                </button>
-              </div>
+                      if (list.length === 0) return <p className="empty">{this.props.t('gacha.no_items')}</p>;
+
+                      return pageItems.map((item, idx) => {
+                        const itemId = item.itemId || item.id || item.SK;
+                        const meta = this.getItemMeta(item) || {
+                          name: item.name || itemId || 'Reward',
+                          icon: item.imageUrl || 'Package',
+                          rarity: this.getHistoryRarityClass(item.rarity),
+                        };
+                        const rarityClass = this.getHistoryRarityClass(meta.rarity || item.rarity);
+
+                        return (
+                          <div key={`${item.SK || item.timestamp || itemId || item.name || 'item'}-${idx}`} className={`detail-item ${rarityClass}`}>
+                            <div className="item-main">
+                              <div className="item-info">
+                                <span className="name">{meta.name}</span>
+                                <span className="rarity-tag">{rarityClass}</span>
+                              </div>
+                            </div>
+                            <div className="item-footer">
+                              <span className="timestamp">
+                                {new Date(item.timestamp || item.SK || item.acquiredAt).toLocaleString('vi-VN', {
+                                  day: '2-digit', month: '2-digit', year: 'numeric',
+                                  hour: '2-digit', minute: '2-digit', second: '2-digit'
+                                })}
+                              </span>
+                              {(item.isDuplicate || item.sanityAmount > 0) && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  <div className="pagination">
+                    <button
+                      disabled={this.state.detailPage === 0}
+                      onClick={() => this.setState({ detailPage: this.state.detailPage - 1 })}
+                    >
+                      <IonIcon icon={chevronBackOutline} />
+                    </button>
+                    <span>{this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil(this.state.historyItems.length / 5) || 1}</span>
+                    <button
+                      disabled={this.state.detailPage >= Math.ceil(this.state.historyItems.length / 5) - 1}
+                      onClick={() => this.setState({ detailPage: this.state.detailPage + 1 })}
+                    >
+                      <IonIcon icon={chevronForwardOutline} />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
