@@ -25,6 +25,7 @@ import SocialApp from '../social/SocialApp';
 import currencyAssets from '../../data/currencyAssets';
 import studyFloatIcons from '../../data/studyFloatIcons';
 import RankFrame from '../../components/RankFrame';
+import RankBadge from '../../components/RankBadge';
 import { handleLogoutApi } from '../../services/authService';
 import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
 import { handleSyncAllApi } from '../../services/syncService';
@@ -40,6 +41,15 @@ const translateCosmeticName = (item, t) => {
   if (item.i18nKey && typeof t === 'function') return t(`${item.i18nKey}.name`);
   return item.name || '';
 };
+
+const RANK_LIST_DATA = [
+  { tier: 'bronze', name: 'Đồng V', rp: 0 },
+  { tier: 'silver', name: 'Bạc V', rp: 180 },
+  { tier: 'gold', name: 'Vàng V', rp: 510 },
+  { tier: 'platinum', name: 'Bạch Kim V', rp: 990 },
+  { tier: 'diamond', name: 'Kim Cương V', rp: 1620 },
+  { tier: 'master', name: 'Cao Thủ', rp: 2400 }
+];
 
 const resolveBackground = (background) => {
   if (background && typeof background === 'object') return background;
@@ -110,20 +120,7 @@ const UserProfileWidget = ({
           {titleData && titleName && (
             <span className="user-title" style={{ color: titleData.color }}>[{titleName}]</span>
           )}
-          <span className={`user-rank rank-${currentRank}`}>
-            {rankInfo.label}&nbsp;
-            <span className="rp-value">({rp} RP)</span>
-          </span>
         </div>
-        {rankInfo.tier !== 'master' && (
-          <div className="rank-progress-bar">
-            <div
-              className="rank-progress-fill"
-              style={{ width: `${rankInfo.progress}%`, background: getRankProgressColor(currentRank) }}
-            />
-            <span className="rank-progress-label">{rankInfo.rpInDiv}/{rankInfo.rangeRP} RP</span>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -148,7 +145,6 @@ const APPS = [
   { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
   { id: 'shop', nameKey: 'common.shop', className: 'shop', icon: cartOutline, content: <Shop /> },
   { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
-  { id: 'focus', nameKey: 'common.focus', className: 'focus', icon: shieldCheckmarkOutline, content: <FocusGuard /> },
   { id: 'study-planner', nameKey: 'common.study_planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> }
 ];
 
@@ -177,6 +173,10 @@ class Dashboard extends Component {
       stackOrder: [], // Order of windows from bottom to top
       launcherPage: 0,
       appsPerPage: 5,
+      isFocusPanelOpen: false,
+      isFocusRankMode: false,
+      isRankListOpen: false,
+      rankListPage: 0,
     };
     this.timerInterval = null;
     this.syncTimeout = null;
@@ -799,6 +799,8 @@ class Dashboard extends Component {
     const sanity = getBudgetValue(this.props.userProfile, ['sanity']);
     const eCoin = getBudgetValue(this.props.userProfile, ['eCoin']);
     const knowledgePoint = getBudgetValue(this.props.userProfile, ['knowledgePoint']);
+    const rp = this.props.userProfile?.studyStats?.rankScore ?? 0;
+    const rankInfo = getRankInfo(rp);
     const activeBgId = backgroundId(currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID;
     const shouldRenderDesktopEffects = animationsEnabled && [LOCAL_DEFAULT_BACKGROUND_ID, SERVER_DEFAULT_BACKGROUND_ID].includes(activeBgId) && !selectedBackground?.imageUrl;
     const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
@@ -1033,6 +1035,128 @@ class Dashboard extends Component {
             </button>
           </div>
         </div>
+
+        {/* Nút START Focus và Rank ở góc dưới bên phải */}
+        <div className="desktop-focus-control-center">
+          
+          {/* Panel hiển thị danh sách các mốc Rank */}
+          {this.state.isRankListOpen && (
+            <div className="rank-list-popover">
+              <div className="popover-header">
+                <button 
+                  className="popover-nav-btn" 
+                  disabled={this.state.rankListPage === 0}
+                  onClick={(e) => { e.stopPropagation(); this.setState(prev => ({ rankListPage: Math.max(0, prev.rankListPage - 1) })); }}
+                >
+                  <IonIcon icon={chevronBackOutline} />
+                </button>
+                <span className="popover-title">Cột Mốc Rank</span>
+                <button 
+                  className="popover-nav-btn" 
+                  disabled={this.state.rankListPage === 1}
+                  onClick={(e) => { e.stopPropagation(); this.setState(prev => ({ rankListPage: Math.min(1, prev.rankListPage + 1) })); }}
+                >
+                  <IonIcon icon={chevronForwardOutline} />
+                </button>
+              </div>
+              <div className="popover-body">
+                {RANK_LIST_DATA.slice(this.state.rankListPage * 3, (this.state.rankListPage + 1) * 3).map((item) => (
+                  <div key={item.tier} className="popover-rank-item">
+                    <RankBadge tier={item.tier} size={32} />
+                    <div className="popover-rank-info">
+                      <span className="popover-rank-name">{item.name}</span>
+                      <span className="popover-rank-rp">{item.rp} RP</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div 
+            className="rank-display-box" 
+            onClick={() => this.setState(prev => ({ isRankListOpen: !prev.isRankListOpen }))}
+            style={{ cursor: 'pointer' }}
+            title="Xem các cột mốc rank"
+          >
+            <div className="rank-badge-and-info">
+              <RankBadge tier={currentRank} size={48} />
+              <div className="rank-info-column">
+                <div className="rank-display-header">
+                  <div className="rank-title-group">
+                    <span className={`rank-title rank-${currentRank}`}>{rankInfo.label}</span>
+                    <span className="rank-rp-text">({rp} RP)</span>
+                  </div>
+                </div>
+                {rankInfo.tier !== 'master' && (
+                  <div className="rank-mini-progress-container">
+                    <div className="rank-mini-progress">
+                      <div
+                        className="rank-mini-progress-fill"
+                        style={{ width: `${rankInfo.progress}%`, background: getRankProgressColor(currentRank) }}
+                      />
+                    </div>
+                    <span className="rank-mini-progress-text">{rankInfo.rpInDiv}/{rankInfo.rangeRP} RP</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="lq-start-container">
+            {/* Bộ chọn chế độ Casual / Rank ngay trên nút */}
+            <div className="lq-mode-selector">
+              <button 
+                className={`lq-mode-option casual ${!this.state.isFocusRankMode ? 'active' : ''}`}
+                onClick={() => this.setState({ isFocusRankMode: false })}
+              >
+                Casual
+              </button>
+              <button 
+                className={`lq-mode-option rank ${this.state.isFocusRankMode ? 'active' : ''}`}
+                onClick={() => this.setState({ isFocusRankMode: true })}
+              >
+                Rank
+              </button>
+            </div>
+
+            <button 
+              className={`lq-start-button ${this.state.isFocusRankMode ? 'mode-rank' : 'mode-casual'} ${this.state.isFocusPanelOpen ? 'active' : ''}`}
+              onClick={() => this.setState(prev => ({ isFocusPanelOpen: !prev.isFocusPanelOpen }))}
+            >
+              <div className="lq-button-shiny-line"></div>
+              <div className="lq-start-inner">
+                <span className="lq-start-text">
+                  <IonIcon icon={shieldCheckmarkOutline} style={{ marginRight: 6, fontSize: 18, verticalAlign: 'middle' }} />
+                  START
+                </span>
+                <span className="lq-start-sub">{this.state.isFocusRankMode ? 'Ranked Match' : 'Casual Match'}</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Panel Focus nhỏ ở góc phải màn hình */}
+        {this.state.isFocusPanelOpen && (
+          <div className="desktop-focus-sidebar">
+            <div className="focus-sidebar-header">
+              <span className="focus-sidebar-title">
+                <IonIcon icon={shieldCheckmarkOutline} style={{ marginRight: 6 }} />
+                {t('common.focus')}
+              </span>
+              <button 
+                className="close-btn" 
+                onClick={() => this.setState({ isFocusPanelOpen: false })}
+                title={t('common.close')}
+              >
+                <IonIcon icon={closeOutline} />
+              </button>
+            </div>
+            <div className="focus-sidebar-body">
+              <FocusGuard defaultHardMode={this.state.isFocusRankMode} />
+            </div>
+          </div>
+        )}
       </div>
     );
   }

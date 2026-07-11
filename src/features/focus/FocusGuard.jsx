@@ -18,7 +18,7 @@ const formatTime = (seconds) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
-const FocusGuard = () => {
+const FocusGuard = (props) => {
   const { t } = useTranslation();
   const aiSettings = useSelector(state => state.settings?.aiSettings);
   const blockerModel = aiSettings?.blocker?.selectedModel || '';
@@ -26,7 +26,14 @@ const FocusGuard = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [minutes, setMinutes] = useState(25);
-  const [hardMode, setHardMode] = useState(false);
+  const [hardMode, setHardMode] = useState(props.defaultHardMode ?? false);
+
+  useEffect(() => {
+    if (props.defaultHardMode !== undefined) {
+      setHardMode(props.defaultHardMode);
+    }
+  }, [props.defaultHardMode]);
+
   const [aiReady, setAiReady] = useState(false);
   const [aiStat, setAiStat] = useState(null);
   const [isStarting, setIsStarting] = useState(false);

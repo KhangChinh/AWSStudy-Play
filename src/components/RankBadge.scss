@@ -1,0 +1,49 @@
+.rank-badge-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  svg {
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+    transition: filter 0.3s ease;
+  }
+
+  &:hover {
+    transform: scale(1.1) translateY(-2px);
+
+    svg {
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.65));
+    }
+  }
+
+  /* Hiệu ứng thở nhẹ (pulse) của bậc Cao Thủ */
+  &.tier-master {
+    animation: master-pulse 3s ease-in-out infinite alternate;
+  }
+
+  /* Hiệu ứng Diamond lấp lánh nhẹ */
+  &.tier-diamond {
+    animation: diamond-gleam 4s ease-in-out infinite;
+  }
+}
+
+@keyframes master-pulse {
+  from {
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.3));
+  }
+  to {
+    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.6));
+    transform: scale(1.03);
+  }
+}
+
+@keyframes diamond-gleam {
+  0%, 100% {
+    filter: saturate(1) contrast(1);
+  }
+  50% {
+    filter: saturate(1.2) contrast(1.1) drop-shadow(0 0 12px rgba(56, 189, 248, 0.5));
+  }
+}
