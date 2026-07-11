@@ -10,6 +10,7 @@ import {
   schoolOutline,
   peopleOutline,
   chevronBackOutline, chevronForwardOutline,
+  chevronUpOutline, chevronDownOutline,
   shieldCheckmarkOutline
 } from 'ionicons/icons';
 
@@ -31,7 +32,8 @@ import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticSe
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
-import { setProfile, setDailyQuests } from '../../store/actions';
+import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
+import { handleGetFriendsApi } from '../../services/socialServices';
 import { getTierFromRP, getRankInfo } from '../../utils/rankSystem';
 import './Dashboard.scss';
 
@@ -177,6 +179,8 @@ class Dashboard extends Component {
       isFocusRankMode: false,
       isRankListOpen: false,
       rankListPage: 0,
+      isFriendsWidgetCollapsed: false,
+      friendsListPage: 0,
     };
     this.timerInterval = null;
     this.syncTimeout = null;
@@ -207,14 +211,17 @@ class Dashboard extends Component {
       this.setState({ masterDataLoaded: true });
       cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
     } catch (e) {
-      console.warn('KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡ÂºÂ£i master data:', e);
+      console.warn('Không thể tải master data:', e);
     }
 
-    // Ã„ÂÃ¡Â»â€™NG BÃ¡Â»Ëœ CLOUD: LÃ¡ÂºÂ¥y Profile, Inventory, Coin tÃ¡Â»Â« Serverless (sau 5 giÃƒÂ¢y)
+    // ĐỒNG BỘ CLOUD: Lấy Profile, Inventory, Coin từ Serverless (sau 5 giây)
     this.syncTimeout = setTimeout(() => this.performSyncAll(), 5000);
 
     // Load Daily Quests
     this.loadDailyQuests();
+
+    // Tải danh sách bạn bè để hiển thị lên widget nền
+    this.fetchFriends();
   }
 
   componentWillUnmount() {
@@ -223,6 +230,17 @@ class Dashboard extends Component {
     document.removeEventListener('mousedown', this.handleClickOutside);
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
+
+  fetchFriends = async () => {
+    try {
+      const res = await handleGetFriendsApi();
+      if (res && res.friends) {
+        this.props.setSocial({ items: res.friends, lastKey: res.lastEvaluatedKey });
+      }
+    } catch (e) {
+      console.warn('[Dashboard] Không thể tải danh sách bạn bè:', e);
+    }
+  };
 
   // Khi user Alt+Tab/Ctrl+Tab quay lÃ¡ÂºÂ¡i app Ã¢â€ â€™ gÃ¡Â»Âi sync (cooldown check trong syncService)
   handleVisibilityChange = () => {
@@ -1036,9 +1054,79 @@ class Dashboard extends Component {
           </div>
         </div>
 
+        {/* Widget Bạn Bè hình chữ nhật nằm độc lập trên desktop nền */}
+        {(() => {
+          const acceptedFriends = (this.props.friends || []).filter(f => f.status === 'ACCEPTED');
+          const totalPages = Math.ceil(acceptedFriends.length / 6);
+          const currentPage = Math.min(this.state.friendsListPage, Math.max(0, totalPages - 1));
+          const paginatedFriends = acceptedFriends.slice(currentPage * 6, (currentPage + 1) * 6);
+          
+          return (
+            <div className={`desktop-friends-widget ${this.state.isFriendsWidgetCollapsed ? 'collapsed' : ''}`}>
+              <button 
+                className="friends-widget-toggle"
+                onClick={() => this.setState(prev => ({ isFriendsWidgetCollapsed: !prev.isFriendsWidgetCollapsed }))}
+                title={this.state.isFriendsWidgetCollapsed ? "Mở danh sách bạn bè" : "Thu gọn"}
+              >
+                <IonIcon icon={this.state.isFriendsWidgetCollapsed ? chevronBackOutline : chevronForwardOutline} />
+              </button>
+              <div className="friends-widget-header">
+                <span className="friends-widget-title">
+                  <IonIcon icon={peopleOutline} style={{ marginRight: 6, fontSize: 15 }} />
+                  Bạn Bè ({acceptedFriends.length})
+                </span>
+              </div>
+              <div className="friends-widget-body">
+                {paginatedFriends.length > 0 ? (
+                  paginatedFriends.map(friend => (
+                    <div key={friend.SK} className="friends-widget-item">
+                      <div className="friend-avatar-mini">
+                        {friend.friendAvatarUrl ? (
+                          <img src={(import.meta.env.VITE_S3_ASSETS_URL || '') + friend.friendAvatarUrl} alt="avatar" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                        ) : (
+                          <div className="friend-avatar-placeholder">👤</div>
+                        )}
+                      </div>
+                      <span className="friend-name-mini">{friend.friendName || 'Unknown'}</span>
+                      {friend.level && <span className="friend-level-mini">Lv.{friend.level}</span>}
+                    </div>
+                  ))
+                ) : (
+                  <div className="friends-widget-empty">
+                    Chưa có bạn bè
+                  </div>
+                )}
+              </div>
+
+              {/* Phân trang khi có hơn 6 người bạn */}
+              {totalPages > 1 && (
+                <div className="friends-widget-pagination">
+                  <button 
+                    className="pagination-btn"
+                    disabled={currentPage === 0}
+                    onClick={() => this.setState({ friendsListPage: Math.max(0, currentPage - 1) })}
+                    title="Trang trước"
+                  >
+                    <IonIcon icon={chevronUpOutline} />
+                  </button>
+                  <span className="pagination-text">{currentPage + 1} / {totalPages}</span>
+                  <button 
+                    className="pagination-btn"
+                    disabled={currentPage >= totalPages - 1}
+                    onClick={() => this.setState({ friendsListPage: Math.min(totalPages - 1, currentPage + 1) })}
+                    title="Trang sau"
+                  >
+                    <IonIcon icon={chevronDownOutline} />
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Nút START Focus và Rank ở góc dưới bên phải */}
         <div className="desktop-focus-control-center">
-          
+
           {/* Panel hiển thị danh sách các mốc Rank */}
           {this.state.isRankListOpen && (
             <div className="rank-list-popover">
@@ -1165,11 +1253,13 @@ class Dashboard extends Component {
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
   dailyQuests: state.quest.daily,
+  friends: state.social.items || [],
 });
 
 const mapDispatchToProps = (dispatch) => ({
   dispatch,
   setProfile: (info) => dispatch(setProfile(info)),
+  setSocial: (data) => dispatch(setSocial(data)),
 });
 
 export default withTranslation()(connect(mapStateToProps, mapDispatchToProps)(Dashboard));
