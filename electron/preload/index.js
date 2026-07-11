@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld('api', {
       'store:saveMasterData',
       'store:loadMasterData',
       'store:clearLoginData',
+      'store:saveAiSettings',
+      'store:loadAiSettings',
       // Study Planner
       'study:chat',
       'study:generatePlan',

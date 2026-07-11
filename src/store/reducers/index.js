@@ -1,4 +1,5 @@
 import { combineReducers } from 'redux';
+import { LOGOUT_CLEAR_DATA } from '../actions/authActions';
 
 import profileReducer from './profileReducer';
 import inventoryReducer from './inventoryReducer';
@@ -8,6 +9,7 @@ import questReducer from './questReducer';
 import syncReducer from './syncReducer';
 import studyPlannerReducer from './studyPlannerReducer';
 import minigameReducer from './minigameReducer';
+import settingsReducer from './settingsReducer';
 
 const appReducer = combineReducers({
   profile: profileReducer,
@@ -18,16 +20,16 @@ const appReducer = combineReducers({
   sync: syncReducer,
   studyPlanner: studyPlannerReducer,
   minigame: minigameReducer,
+  settings: settingsReducer,
 });
-
-import { LOGOUT_CLEAR_DATA } from '../actions/authActions';
 
 const rootReducer = (state, action) => {
   if (action.type === LOGOUT_CLEAR_DATA) {
-    // Reset Redux state to undefined, causing all child reducers to return their initial states
-    state = undefined;
+    // When logout, reset AI settings to initial values but keep the slice
+    const { settings } = state || {};
+    state = { settings };
   }
   return appReducer(state, action);
 };
 
-export default rootReducer;
+export default rootReducer;

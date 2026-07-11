@@ -355,6 +355,28 @@ export function registerStoreIPC(ipcMain) {
     }
   });
 
+  // ═══ AI Settings ═══
+  ipcMain.handle('store:saveAiSettings', async (_event, settings) => {
+    try {
+      const encrypted = encodeBase64(settings);
+      store.set('aiSettings', encrypted);
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:saveAiSettings failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('store:loadAiSettings', async () => {
+    try {
+      const encrypted = store.get('aiSettings');
+      if (!encrypted) return null;
+      return decodeBase64(encrypted);
+    } catch (err) {
+      console.error('[storeIpc] store:loadAiSettings failed:', err);
+      return null;
+    }
+  });
+
   // ═══ Clear on logout user ═══
   ipcMain.handle('store:clearLoginData', async () => {
     try {
@@ -364,6 +386,7 @@ export function registerStoreIPC(ipcMain) {
       store.delete('userSocial');
       store.delete('userDaily');
       store.delete('userSudokuLevels');
+      // Do NOT delete aiSettings on logout so they persist across users/sessions
       return { success: true };
     } catch (err) {
       console.error('[storeIpc] store:clearLoginData failed:', err);

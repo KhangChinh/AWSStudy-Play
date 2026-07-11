@@ -5,4 +5,6 @@ export * from './gachaActions';
 export * from './questActions';
 export * from './syncActions';
 export * from './studyPlannerActions';
-export * from './minigameActions';export * from './authActions';
+export * from './minigameActions';
+export * from './authActions';
+export * from './settingsActions';

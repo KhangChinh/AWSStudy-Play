@@ -33,6 +33,17 @@ class App extends Component {
     }
 
     try {
+      if (window.api?.invoke) {
+        const loadedAiSettings = await window.api.invoke('store:loadAiSettings');
+        if (loadedAiSettings) {
+          store.dispatch({ type: 'SET_AI_SETTINGS', payload: loadedAiSettings });
+        }
+      }
+    } catch (error) {
+      console.warn('[App] Failed to load AI settings:', error);
+    }
+
+    try {
       await this.bootstrapSession();
     } catch (error) {
       console.log('[App] Bootstrap failed:', error.message);
