@@ -1,11 +1,6 @@
-import Store from 'electron-store';
-import { safeStorage, app } from 'electron';
-const storeOptions = {};
-const locate = process.env.VITE_STORAGE_LOCATE;
-if (locate && locate !== 'DEFAULT') {
-  storeOptions.cwd = locate;
-}
-const store = new Store(storeOptions);
+import { safeStorage, app, ipcMain } from 'electron';
+import { saveStudySettings } from '../services/studyPlannerStore.js';
+import { sharedStore as store, getAiSettingsFromStore } from '../services/sharedStore.js';
 function encryptSafeStorage(data) {
   const text = typeof data === 'string' ? data : JSON.stringify(data);
   try {
@@ -360,6 +355,17 @@ export function registerStoreIPC(ipcMain) {
     try {
       const encrypted = encodeBase64(settings);
       store.set('aiSettings', encrypted);
+      
+      // Also sync to studyPlannerStore so backend services get the updated config immediately
+      if (settings && settings.studyPlanner) {
+        const studyConfig = {
+          aiProvider: settings.studyPlanner.provider || 'ollama',
+          selectedModel: settings.studyPlanner.selectedModel || '',
+          geminiKey: settings.studyPlanner.apiKey || ''
+        };
+        saveStudySettings(studyConfig);
+      }
+      
       return { success: true };
     } catch (err) {
       console.error('[storeIpc] store:saveAiSettings failed:', err);

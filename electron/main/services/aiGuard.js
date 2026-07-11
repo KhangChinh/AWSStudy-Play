@@ -3,17 +3,32 @@
    for Tier 2 video classification.
    Ported from focus-frontend/ai-service.js
 */
-
 import http from 'node:http';
 import https from 'node:https';
+import { geminiRequestWithFallback } from './geminiApi.js';
+import { getAiSettingsFromStore } from './sharedStore.js';
+
+function getBlockerAiSettings() {
+  return getAiSettingsFromStore()?.blocker || null;
+}
 
 const OLLAMA_BASE = 'http://127.0.0.1:11434';
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
-const OLLAMA_MODEL = 'qwen3:14b';
+let OLLAMA_MODEL = 'qwen3:14b'; // can be updated via setBlockerModel()
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+// Allow external code to update the blocker model from AI Settings
+export function setBlockerModel(modelName) {
+  if (modelName && typeof modelName === 'string') {
+    OLLAMA_MODEL = modelName;
+    console.log(`[AI] Blocker model updated to: ${OLLAMA_MODEL}`);
+  }
+}
 
 // ===== In-Memory Settings =====
 let memorySettings = {
+  // Only truly safe categories bypass AI title analysis (Tier 2).
+  // Everything else (Sports, Howto, People & Blogs, etc.) goes to AI to check the actual title.
   allowedCategories: ['Education', 'Science & Technology'],
   groqApiKey: ''
 };
@@ -23,17 +38,16 @@ const cache = new Map();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 // ===== Classification Prompt =====
-const SYSTEM_PROMPT = `You are a strict YouTube content filter for a productivity application. 
-Your primary objective is to classify whether a video is strictly for study/educational purposes or if it contains entertainment elements that would distract a student during a study session.
+const SYSTEM_PROMPT = `You are a YouTube content filter for a productivity application. 
+Your objective is to ALLOW productive, educational, and tutorial content, and BLOCK purely entertainment content.
 
-TASK: Classify the video as "ALLOW" (educational/study content) or "BLOCK" (entertainment/distracting).
+TASK: Classify the video as "ALLOW" or "BLOCK".
 
-STRICT RULES:
-1. ALLOW: Videos that are purely educational, scientific, programming tutorials, academic lectures, TED talks, educational documentaries, or credible news.
-2. BLOCK: Music (including lo-fi, study music, relax music, ambient, etc.), Gaming, Movies, Anime, Comedy, Vlogs, Reaction videos, Mukbang, Drama, Sports, ASMR, and any general entertainment.
-3. EDUTAINMENT: If a video blends education with high entertainment value (e.g., Kurzgesagt, Vsauce, Mark Rober), it is generally ALLOWED, provided the primary focus is learning.
-4. MUSIC EXCEPTION: ALL music videos must be BLOCKED, even if titled "study music", "relaxing sounds", or "concentration mix".
-5. AMBIGUITY: If you are uncertain or the video metadata is vague, default to "BLOCK" for the user's safety.
+RULES:
+1. ALLOW: Academic subjects, coding/software development, project building, DIY, tutorials (including sports, art, cooking, how-to), documentaries, and informative news.
+2. BLOCK: Gaming, Music videos (even "study music"), Movies, Anime, Comedy, Vlogs, Drama, ASMR, and general entertainment (celebrity gossip, memes).
+3. STRICT BLOCK ON FICTION/READING: Videos about novels, fiction, manga, webtoons, or comic summaries MUST BE BLOCKED.
+4. AMBIGUITY: If a video seems to teach a skill or provide useful information, ALLOW it. If it is purely for wasting time, BLOCK it.
 
 OUTPUT FORMAT:
 Respond ONLY with a valid JSON object. Do not include markdown code blocks, explanations, or any extra text.
@@ -109,7 +123,7 @@ async function checkOllama() {
   }
 }
 
-async function classifyWithOllama(metadata) {
+async function classifyWithOllama(metadata, promptTemplate) {
   const userPrompt = buildUserPrompt(metadata);
   const res = await httpRequest(`${OLLAMA_BASE}/api/chat`, {
     method: 'POST',
@@ -118,7 +132,7 @@ async function classifyWithOllama(metadata) {
   }, {
     model: OLLAMA_MODEL,
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: promptTemplate || SYSTEM_PROMPT },
       { role: 'user', content: userPrompt }
     ],
     stream: false,
@@ -129,6 +143,21 @@ async function classifyWithOllama(metadata) {
     return parseAiResponse(res.data.message.content);
   }
   throw new Error(`Ollama error: ${res.status}`);
+}
+
+async function classifyWithGemini(metadata, apiKey, modelName, promptTemplate) {
+  const userPrompt = buildUserPrompt(metadata);
+  const body = {
+    system_instruction: { parts: [{ text: promptTemplate || SYSTEM_PROMPT }] },
+    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.1,
+    }
+  };
+  const responseObj = await geminiRequestWithFallback(apiKey, body, modelName, 60000);
+  const responseText = responseObj.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return parseAiResponse(responseText);
 }
 
 // ===== Groq =====
@@ -218,18 +247,36 @@ export async function classifyContent(metadata) {
   }
 
   let result;
+  const blockerConfig = getBlockerAiSettings() || { provider: 'ollama' };
 
-  // Try Ollama first (free, local)
-  try {
-    const ollama = await checkOllama();
-    if (ollama.available && ollama.hasModel) {
-      console.log('[AI] Classifying with Ollama...');
-      const ollamaResult = await classifyWithOllama(metadata);
-      console.log('[AI] Ollama result:', ollamaResult);
-      result = { ...ollamaResult, provider: 'ollama' };
+  if (blockerConfig.provider === 'gemini' && blockerConfig.apiKey) {
+    // Try Gemini
+    try {
+      let geminiModel = blockerConfig.selectedModel || 'gemini-1.5-flash';
+      // Safety check: if user switched to Gemini but UI retained an Ollama model name (e.g. qwen)
+      if (!geminiModel.startsWith('gemini')) {
+        geminiModel = 'gemini-1.5-flash';
+      }
+      console.log(`[AI] 🔍 Classifying video with Gemini | Model: ${geminiModel} | Title: "${metadata.title || 'N/A'}"`);
+      const geminiResultObj = await classifyWithGemini(metadata, blockerConfig.apiKey, geminiModel, SYSTEM_PROMPT);
+      console.log(`[AI] ✅ Gemini result: ${geminiResultObj.result} — ${geminiResultObj.reason}`);
+      result = { ...geminiResultObj, provider: 'gemini' };
+    } catch (e) {
+      console.warn('[AI] Gemini classification failed:', e.message);
     }
-  } catch (e) {
-    console.warn('[AI] Ollama classification failed:', e.message);
+  } else {
+    // Try Ollama
+    try {
+      const ollama = await checkOllama();
+      if (ollama.available && ollama.hasModel) {
+        console.log(`[AI] 🔍 Classifying video with Ollama | Model: ${OLLAMA_MODEL} | Title: "${metadata.title || 'N/A'}"`);
+        const ollamaResult = await classifyWithOllama(metadata, SYSTEM_PROMPT);
+        console.log(`[AI] ✅ Ollama result: ${ollamaResult.result} — ${ollamaResult.reason}`);
+        result = { ...ollamaResult, provider: 'ollama' };
+      }
+    } catch (e) {
+      console.warn('[AI] Ollama classification failed:', e.message);
+    }
   }
 
   // Fallback to Groq
@@ -237,9 +284,9 @@ export async function classifyContent(metadata) {
     try {
       const groq = await checkGroq();
       if (groq.available) {
-        console.log('[AI] Classifying with Groq...');
+        console.log(`[AI] 🔍 Classifying video with Groq | Model: ${GROQ_MODEL}`);
         const groqResult = await classifyWithGroq(metadata);
-        console.log('[AI] Groq result:', groqResult);
+        console.log(`[AI] ✅ Groq result: ${groqResult.result} — ${groqResult.reason}`);
         result = { ...groqResult, provider: 'groq' };
       }
     } catch (e) {
@@ -260,38 +307,29 @@ export async function classifyContent(metadata) {
 
 // ===== Web Page Classification =====
 const WEB_SYSTEM_PROMPT = `You are a strict web content filter for a student productivity application.
-Your task: determine if a web page is relevant to studying, learning, or productive work — or if it is entertainment/distraction.
+Your ONLY task is to ALLOW strictly educational/work-related websites and BLOCK absolutely everything else.
 
 CLASSIFY as "ALLOW" or "BLOCK" based on the page metadata provided.
 
-ALLOW examples:
-- Educational sites, online courses, tutorials
-- Documentation, reference materials, wikis
+ALLOW ONLY:
+- Educational platforms, online courses, technical tutorials
+- Technical documentation, reference materials, wikis
 - Programming tools, code repositories, IDEs
 - Research papers, academic journals
-- News sites focused on technology, science, or current events
 - Productivity tools (calendar, notes, project management)
-- AI assistants, search engines, translation tools
 
-BLOCK examples:
-- Comic/manga/webtoon reading sites
-- Novel/fiction/light novel reading sites
+BLOCK EVERYTHING ELSE (Examples):
+- Novel, fiction, light novel, and story reading sites (e.g., etruyen, wattpad)
+- Comic, manga, webtoon reading sites
 - Gaming sites, game wikis, game forums
 - Streaming sites (movies, anime, TV shows)
-- Shopping/e-commerce (unless clearly work-related)
-- Social media platforms
-- Celebrity gossip, tabloid news
-- Gambling, betting sites
-- Adult content
-- Meme/humor sites
-- Sports scores/highlights/live streams
+- Social media platforms, forums (unless strictly for coding/tech)
+- Meme, humor, news, sports, shopping sites
 
 IMPORTANT RULES:
-1. Judge by the DOMAIN and PAGE CONTENT, not just the title.
-2. If a site is clearly for leisure reading (comics, novels, manga, webtoon), BLOCK it.
-3. If ambiguous or metadata is insufficient, default to "BLOCK".
-4. Forums are ALLOWED only if they are technical (Stack Overflow, GitHub Issues).
-5. News sites: ALLOW if focused on education/tech/science. BLOCK if tabloid/entertainment.
+1. EXCLUSIVE ALLOW: If the site is NOT clearly teaching a hard skill, academic topic, or providing a productivity tool, you MUST classify it as "BLOCK".
+2. CRITICAL BLOCK - FICTION: Novels, fiction, literature, comics, manga, webtoons are STRICTLY FORBIDDEN. Even if they claim to be "reading" or "literature", they are entertainment and MUST BE BLOCKED.
+3. AMBIGUITY: If ambiguous or metadata is insufficient, default to "BLOCK". Do NOT assume a site is educational without clear proof.
 
 OUTPUT: Respond ONLY with valid JSON. No markdown, no explanation outside JSON.
 {"result": "ALLOW" or "BLOCK", "reason": "Short reason in English (max 15 words)"}`;
@@ -388,18 +426,46 @@ export async function classifyWebPage(metadata) {
   }
 
   let result;
+  const blockerConfig = getBlockerAiSettings() || { provider: 'ollama' };
 
-  // Try Ollama first
-  try {
-    const ollama = await checkOllama();
-    if (ollama.available && ollama.hasModel) {
-      console.log('[AI-Web] Classifying with Ollama:', metadata.domain);
-      const ollamaResult = await classifyWebWithOllama(metadata);
-      console.log('[AI-Web] Ollama result:', ollamaResult);
-      result = { ...ollamaResult, provider: 'ollama' };
+  if (blockerConfig.provider === 'gemini' && blockerConfig.apiKey) {
+    // Try Gemini
+    try {
+      let geminiModel = blockerConfig.selectedModel || 'gemini-1.5-flash';
+      // Safety check: if user switched to Gemini but UI retained an Ollama model name
+      if (!geminiModel.startsWith('gemini')) {
+        geminiModel = 'gemini-1.5-flash';
+      }
+      console.log(`[AI-Web] 🔍 Classifying web page with Gemini | Model: ${geminiModel} | Domain: ${metadata.domain}`);
+      const body = {
+        system_instruction: { parts: [{ text: WEB_SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: buildWebUserPrompt(metadata) }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
+        }
+      };
+      const responseObj = await geminiRequestWithFallback(blockerConfig.apiKey, body, geminiModel, 60000);
+      const responseText = responseObj.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const geminiResultObj = parseAiResponse(responseText);
+      console.log(`[AI-Web] ✅ Gemini result: ${geminiResultObj.result} — ${geminiResultObj.reason}`);
+      result = { ...geminiResultObj, provider: 'gemini' };
+    } catch (e) {
+      console.warn('[AI-Web] Gemini classification failed:', e.message);
     }
-  } catch (e) {
-    console.warn('[AI-Web] Ollama failed:', e.message);
+  } else {
+    // Try Ollama
+    try {
+      const ollama = await checkOllama();
+      if (ollama.available && ollama.hasModel) {
+        console.log(`[AI-Web] 🔍 Classifying web page with Ollama | Model: ${OLLAMA_MODEL} | Domain: ${metadata.domain}`);
+        const ollamaResult = await classifyWebWithOllama(metadata);
+        console.log(`[AI-Web] ✅ Ollama result: ${ollamaResult.result} — ${ollamaResult.reason}`);
+        result = { ...ollamaResult, provider: 'ollama' };
+      }
+    } catch (e) {
+      console.warn('[AI-Web] Ollama failed:', e.message);
+    }
   }
 
   // Fallback to Groq
@@ -407,9 +473,9 @@ export async function classifyWebPage(metadata) {
     try {
       const groq = await checkGroq();
       if (groq.available) {
-        console.log('[AI-Web] Classifying with Groq:', metadata.domain);
+        console.log(`[AI-Web] 🔍 Classifying web page with Groq | Model: ${GROQ_MODEL} | Domain: ${metadata.domain}`);
         const groqResult = await classifyWebWithGroq(metadata);
-        console.log('[AI-Web] Groq result:', groqResult);
+        console.log(`[AI-Web] ✅ Groq result: ${groqResult.result} — ${groqResult.reason}`);
         result = { ...groqResult, provider: 'groq' };
       }
     } catch (e) {
@@ -439,13 +505,28 @@ export function clearCache() {
 
 /**
  * Get current AI provider status.
- * @returns {{ ollama: object, groq: object, activeProvider: string, ready: boolean }}
+ * @returns {{ gemini: object, ollama: object, groq: object, activeProvider: string, ready: boolean }}
  */
 export async function getAiStatus() {
+  const blockerConfig = getBlockerAiSettings();
+  const gemini = {
+    available: !!(blockerConfig?.provider === 'gemini' && blockerConfig?.apiKey),
+    model: blockerConfig?.selectedModel || 'gemini-1.5-flash'
+  };
+
   const [ollama, groq] = await Promise.all([checkOllama(), checkGroq()]);
-  const activeProvider = (ollama.available && ollama.hasModel) ? 'ollama'
-    : groq.available ? 'groq' : 'none';
+  
+  let activeProvider = 'none';
+  if (gemini.available) {
+    activeProvider = 'gemini';
+  } else if (ollama.available && ollama.hasModel) {
+    activeProvider = 'ollama';
+  } else if (groq.available) {
+    activeProvider = 'groq';
+  }
+
   return {
+    gemini,
     ollama,
     groq,
     activeProvider,

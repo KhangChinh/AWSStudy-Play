@@ -11,9 +11,11 @@
   let currentBlockedVideoId = null; // track which video is currently showing overlay
 
   /* ===== CLASSIFICATION CONFIG ===== */
+  // Tier 1 hard-block: only unambiguously entertainment-only categories.
+  // All "gray area" categories (Sports, Howto, People & Blogs, etc.) go to AI Tier 2 for title analysis.
   const BLOCKED_CATEGORIES = [
     'Gaming', 'Music', 'Entertainment', 'Comedy',
-    'Film & Animation', 'Sports', 'Movies', 'Shows', 'Trailers'
+    'Film & Animation', 'Movies', 'Shows', 'Trailers', 'Anime & Animation'
   ];
   let allowedCategories = ['Education', 'Science & Technology'];
 
@@ -265,21 +267,42 @@
 
   function classify(d) {
     // Tier 1: Whitelist check
-    if (d.channelId && channelWhitelist.some(c => c.id === d.channelId)) return 'ALLOW';
+    if (d.channelId && channelWhitelist.some(c => c.id === d.channelId)) {
+      console.log('[FocusGuard] ✅ ALLOW — Channel in whitelist:', d.author);
+      return 'ALLOW';
+    }
     if (d.author) {
       const a = d.author.toLowerCase();
-      if (channelWhitelist.some(c => c.name.toLowerCase() === a)) return 'ALLOW';
+      if (channelWhitelist.some(c => c.name.toLowerCase() === a)) {
+        console.log('[FocusGuard] ✅ ALLOW — Channel name in whitelist:', d.author);
+        return 'ALLOW';
+      }
     }
     // Tier 1: Blacklist check
-    if (d.channelId && channelBlacklist.some(c => c.id === d.channelId)) return 'BLOCK';
+    if (d.channelId && channelBlacklist.some(c => c.id === d.channelId)) {
+      console.log('[FocusGuard] 🚫 BLOCK — Channel in blacklist:', d.author);
+      return 'BLOCK';
+    }
     if (d.author) {
       const a = d.author.toLowerCase();
-      if (channelBlacklist.some(c => c.name.toLowerCase() === a)) return 'BLOCK';
+      if (channelBlacklist.some(c => c.name.toLowerCase() === a)) {
+        console.log('[FocusGuard] 🚫 BLOCK — Channel name in blacklist:', d.author);
+        return 'BLOCK';
+      }
     }
     // Tier 1: Category check
     if (d.category) {
-      if (allowedCategories.includes(d.category)) return 'ALLOW';
-      if (BLOCKED_CATEGORIES.includes(d.category)) return 'BLOCK';
+      if (allowedCategories.includes(d.category)) {
+        console.log('[FocusGuard] ✅ ALLOW — Category in allowed list:', d.category);
+        return 'ALLOW';
+      }
+      if (BLOCKED_CATEGORIES.includes(d.category)) {
+        console.log('[FocusGuard] 🚫 BLOCK — Category in blocked list:', d.category);
+        return 'BLOCK';
+      }
+      console.log('[FocusGuard] ❓ UNCERTAIN — Category not in any list:', d.category, '→ sending to AI for title analysis');
+    } else {
+      console.log('[FocusGuard] ❓ UNCERTAIN — No category detected → sending to AI for title analysis');
     }
 
     // Category is empty or not in either list → UNCERTAIN (needs AI)

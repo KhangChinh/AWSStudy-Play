@@ -5,17 +5,10 @@
 import http from 'node:http';
 import https from 'node:https';
 import { loadStudySettings } from './studyPlannerStore.js';
+import { geminiRequestWithFallback } from './geminiApi.js';
 
-const OLLAMA_BASE = 'http://127.0.0.1:11434';
-const OLLAMA_MODEL = 'qwen3:14b';
-const GEMINI_MODELS = [
-  'gemini-flash-latest', 
-  'gemini-flash-lite-latest', 
-  'gemini-2.5-flash', 
-  'gemini-2.5-flash-lite', 
-  'gemini-2.0-flash', 
-  'gemini-2.0-flash-lite'
-];
+// Models known to be too small to reliably output JSON
+const WEAK_MODELS = ['qwen2.5:1.5b', 'tinyllama', 'phi3:mini', 'phi:mini', 'gemma:2b', 'orca-mini'];
 
 // ===== HTTP Helpers =====
 
@@ -51,73 +44,7 @@ function ollamaRequest(path, body, timeoutMs = 120000) {
   });
 }
 
-async function geminiRequest(apiKey, body, timeoutMs = 120000, modelIndex = 0, retryCount = 0) {
-  if (modelIndex >= GEMINI_MODELS.length) {
-    throw new Error('All Gemini models are currently experiencing high demand. Please try again later.');
-  }
-  
-  const currentModel = GEMINI_MODELS[modelIndex];
-  const urlStr = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey.trim()}`;
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    const response = await fetch(urlStr, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-    
-    // We can parse the text first so we know exactly what we got
-    const textData = await response.text();
-    let parsed;
-    try {
-      parsed = JSON.parse(textData);
-    } catch(err) {
-      throw new Error(`Parse error: ${textData.substring(0, 200)}`);
-    }
-
-    if (parsed.error) {
-      // Check for high demand error, not found, or limit:0
-      const isOverloaded = parsed.error.code === 503 || String(parsed.error.message).includes('high demand');
-      const isNotFound = parsed.error.code === 404 || String(parsed.error.message).includes('is not found');
-      const isLimitZero = String(parsed.error.message).includes('limit: 0');
-
-      if (isOverloaded || isNotFound || isLimitZero) {
-        console.log(`[AIStudy] Model ${currentModel} is unavailable (Overloaded/NotFound/Limit 0), falling back to next...`);
-        return await geminiRequest(apiKey, body, timeoutMs, modelIndex + 1, 0);
-      }
-
-      // Check for Rate Limit (Quota exceeded)
-      if (parsed.error.code === 429 || String(parsed.error.message).includes('Quota exceeded')) {
-        if (retryCount < 2) { // Max 2 retries per model
-          const match = String(parsed.error.message).match(/retry in ([\d\.]+)s/);
-          let waitSecs = 15; // Default 15 seconds wait
-          if (match && match[1]) {
-            waitSecs = parseFloat(match[1]) + 1; // Add 1 second buffer
-          }
-          console.log(`[AIStudy] Rate limit hit on ${currentModel}. Retrying in ${waitSecs.toFixed(1)}s (Retry ${retryCount + 1}/2)...`);
-          await new Promise(r => setTimeout(r, waitSecs * 1000));
-          return await geminiRequest(apiKey, body, timeoutMs, modelIndex, retryCount + 1);
-        } else {
-          console.log(`[AIStudy] Model ${currentModel} rate limited after retries, falling back to next...`);
-          return await geminiRequest(apiKey, body, timeoutMs, modelIndex + 1, 0);
-        }
-      }
-    }
-    
-    return parsed;
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Request timeout');
-    }
-    throw error;
-  }
-}
 
 // ===== System Prompts =====
 
@@ -136,13 +63,28 @@ const QUIZ_SYSTEM_PROMPT = `Tao 10 cau hoi trac nghiem JSON. KHONG giai thich, C
 Format: {"questions":[{"id":1,"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correctAnswer":"A"}]}
 10 cau, 4 dap an A/B/C/D.`;
 
-// ===== Helpers =====
-async function getConfig() {
-  const settingsResult = loadStudySettings();
-  if (settingsResult.success && settingsResult.data) {
-    return settingsResult.data; // { aiProvider, geminiKey }
+// Load AI settings from the main electron-store (saved by storeIpc aiSettings)
+async function getAiSettings() {
+  try {
+    // studyPlannerStore settings (legacy: aiProvider + geminiKey)
+    const settingsResult = loadStudySettings();
+    const legacy = (settingsResult.success && settingsResult.data) ? settingsResult.data : {};
+    return {
+      aiProvider: legacy.aiProvider || 'ollama',
+      geminiKey: legacy.geminiKey || '',
+      selectedModel: legacy.selectedModel || OLLAMA_MODEL_DEFAULT,
+    };
+  } catch {
+    return { aiProvider: 'ollama', geminiKey: '', selectedModel: OLLAMA_MODEL_DEFAULT };
   }
-  return { aiProvider: 'ollama', geminiKey: '' };
+}
+
+function warnIfWeakModel(model) {
+  const isWeak = WEAK_MODELS.some(w => model.toLowerCase().startsWith(w));
+  if (isWeak) {
+    console.warn(`[AIStudy] ⚠️  Model "${model}" is very small and may NOT produce valid JSON.`);
+    console.warn('[AIStudy] ⚠️  For study plan/quiz generation, use at least qwen2.5:7b or qwen3:8b.');
+  }
 }
 
 // Format messages for Gemini (requires alternating roles, systemInstruction separately)
@@ -169,9 +111,12 @@ function parseResponse(content) {
 
 export async function chatWithAI(messages) {
   try {
-    const config = await getConfig();
+    const config = await getAiSettings();
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
+      let geminiModel = config.selectedModel || 'gemini-1.5-flash';
+      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-1.5-flash';
+      console.log(`[AIStudy] 🤖 Chat → Provider: Gemini (Cloud) | Preferred Model: ${geminiModel}`);
       // --- GEMINI FLOW ---
       const geminiBody = {
         system_instruction: { parts: [{ text: CHAT_SYSTEM_PROMPT }] },
@@ -182,7 +127,7 @@ export async function chatWithAI(messages) {
         }
       };
 
-      const result = await geminiRequest(config.geminiKey, geminiBody);
+      const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 120000);
       if (result.error) throw new Error(result.error.message || 'Gemini API Error');
       
       const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -198,6 +143,9 @@ export async function chatWithAI(messages) {
       return { success: true, reply: content, collectedInfo: {}, readyToGenerate: false };
 
     } else {
+      const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
+      console.log(`[AIStudy] 🤖 Chat → Provider: Ollama (Local) | Model: ${ollamaModel}`);
+      warnIfWeakModel(ollamaModel);
       // --- OLLAMA FLOW ---
       const ollamaMessages = [
         { role: 'system', content: CHAT_SYSTEM_PROMPT },
@@ -205,7 +153,7 @@ export async function chatWithAI(messages) {
       ];
 
       const result = await ollamaRequest('/api/chat', {
-        model: OLLAMA_MODEL,
+        model: ollamaModel,
         messages: ollamaMessages,
         stream: false,
         options: { temperature: 0.7, num_predict: 512 },
@@ -233,7 +181,7 @@ export async function chatWithAI(messages) {
 
 export async function generateStudyPlan(collectedInfo) {
   try {
-    const config = await getConfig();
+    const config = await getAiSettings();
     const userPrompt = `Tao ke hoach hoc tap:
 - Linh vuc: ${collectedInfo.subject || 'Chua ro'}
 - Chu de: ${collectedInfo.topic || 'Chua ro'}
@@ -244,6 +192,9 @@ export async function generateStudyPlan(collectedInfo) {
 CHI TRA VE JSON.`;
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
+      let geminiModel = config.selectedModel || 'gemini-1.5-flash';
+      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-1.5-flash';
+      console.log(`[AIStudy] 📋 Generate Plan → Provider: Gemini (Cloud) | Preferred Model: ${geminiModel}`);
       // --- GEMINI FLOW ---
       const geminiBody = {
         system_instruction: { parts: [{ text: PLAN_SYSTEM_PROMPT }] },
@@ -254,7 +205,7 @@ CHI TRA VE JSON.`;
         }
       };
 
-      const result = await geminiRequest(config.geminiKey, geminiBody, 60000); // 1m for Gemini
+      const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000); // 1m for Gemini
       if (result.error) throw new Error(result.error.message || 'Gemini API Error');
       
       const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -263,9 +214,12 @@ CHI TRA VE JSON.`;
       return { success: false, error: 'Khong the parse ke hoach tu Gemini' };
 
     } else {
+      const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
+      console.log(`[AIStudy] 📋 Generate Plan → Provider: Ollama (Local) | Model: ${ollamaModel}`);
+      warnIfWeakModel(ollamaModel);
       // --- OLLAMA FLOW ---
       const result = await ollamaRequest('/api/chat', {
-        model: OLLAMA_MODEL,
+        model: ollamaModel,
         messages: [
           { role: 'system', content: PLAN_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
@@ -275,8 +229,10 @@ CHI TRA VE JSON.`;
       }, 600000); // 10 min timeout
 
       const content = result.message?.content || '';
+      console.log('[AIStudy] 📋 Raw plan response (first 200 chars):', content.substring(0, 200));
       const plan = parseResponse(content);
       if (plan) return { success: true, plan };
+      console.error('[AIStudy] ❌ Could not parse plan JSON from model output.');
       return { success: false, error: 'Khong the parse ke hoach tu Ollama' };
     }
   } catch (error) {
@@ -289,12 +245,15 @@ CHI TRA VE JSON.`;
 
 export async function generateQuiz(phase, planTitle) {
   try {
-    const config = await getConfig();
+    const config = await getAiSettings();
     const userPrompt = `Tao 10 cau hoi trac nghiem ve: ${phase.name}
 Chu de: ${(phase.topics || []).join(', ')}
 CHI TRA VE JSON.`;
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
+      let geminiModel = config.selectedModel || 'gemini-1.5-flash';
+      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-1.5-flash';
+      console.log(`[AIStudy] 📝 Generate Quiz → Provider: Gemini (Cloud) | Preferred Model: ${geminiModel}`);
       // --- GEMINI FLOW ---
       const geminiBody = {
         system_instruction: { parts: [{ text: QUIZ_SYSTEM_PROMPT }] },
@@ -305,7 +264,7 @@ CHI TRA VE JSON.`;
         }
       };
 
-      const result = await geminiRequest(config.geminiKey, geminiBody, 60000);
+      const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000);
       if (result.error) throw new Error(result.error.message || 'Gemini API Error');
       
       const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -314,9 +273,12 @@ CHI TRA VE JSON.`;
       return { success: false, error: 'Khong the parse quiz tu Gemini' };
 
     } else {
+      const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
+      console.log(`[AIStudy] 📝 Generate Quiz → Provider: Ollama (Local) | Model: ${ollamaModel}`);
+      warnIfWeakModel(ollamaModel);
       // --- OLLAMA FLOW ---
       const result = await ollamaRequest('/api/chat', {
-        model: OLLAMA_MODEL,
+        model: ollamaModel,
         messages: [
           { role: 'system', content: QUIZ_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
@@ -326,8 +288,10 @@ CHI TRA VE JSON.`;
       }, 600000);
 
       const content = result.message?.content || '';
+      console.log('[AIStudy] 📝 Raw quiz response (first 200 chars):', content.substring(0, 200));
       const parsed = parseResponse(content);
       if (parsed && parsed.questions) return { success: true, questions: parsed.questions };
+      console.error('[AIStudy] ❌ Could not parse quiz JSON from model output.');
       return { success: false, error: 'Khong the parse quiz tu Ollama' };
     }
   } catch (error) {

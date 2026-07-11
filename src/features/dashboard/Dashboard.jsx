@@ -31,21 +31,9 @@ import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
 import { setProfile, setDailyQuests } from '../../store/actions';
+import { getTierFromRP, getRankInfo } from '../../utils/rankSystem';
 import './Dashboard.scss';
 
-const RANK_KEYS = {
-  bronze: 'rank.bronze',
-  silver: 'rank.silver',
-  gold: 'rank.gold',
-  platinum: 'rank.platinum',
-  diamond: 'rank.diamond',
-  master: 'rank.master',
-};
-
-const translateRank = (rank, t) => {
-  const translate = typeof t === 'function' ? t : (key) => key;
-  return translate(RANK_KEYS[rank] || RANK_KEYS.diamond);
-};
 
 const translateCosmeticName = (item, t) => {
   if (!item) return '';
@@ -100,7 +88,8 @@ const UserProfileWidget = ({
     || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
   const displayName = userProfile?.information?.name || 'Unde_user';
-  const rankLabel = translateRank(currentRank, t);
+  const rp = userProfile?.studyStats?.rankScore ?? 0;
+  const rankInfo = getRankInfo(rp);
   const titleName = translateCosmeticName(titleData, t);
 
   return (
@@ -118,12 +107,36 @@ const UserProfileWidget = ({
         </div>
         <div className="title-rank-line">
           <span className="user-title" style={{ color: titleData.color }}>[{titleName}]</span>
-          <span className={`user-rank rank-${currentRank}`}>{t('dashboard.rank')}: {rankLabel} ({userProfile?.studyStats?.rankScore || 0} RP)</span>
+          <span className={`user-rank rank-${currentRank}`}>
+            {rankInfo.label} &nbsp;
+            <span className="rp-value">({rp} RP)</span>
+          </span>
         </div>
+        {rankInfo.tier !== 'master' && (
+          <div className="rank-progress-bar">
+            <div
+              className="rank-progress-fill"
+              style={{ width: `${rankInfo.progress}%`, background: getRankProgressColor(currentRank) }}
+            />
+            <span className="rank-progress-label">{rankInfo.rpInDiv}/{rankInfo.rangeRP} RP</span>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+function getRankProgressColor(tier) {
+  const colors = {
+    bronze: '#cd7f32',
+    silver: '#a8c0d6',
+    gold: '#f5c542',
+    platinum: '#5dc8c8',
+    diamond: '#a78bfa',
+    master: '#f97316',
+  };
+  return colors[tier] || colors.diamond;
+}
 
 const APPS = [
   { id: 'settings', nameKey: 'common.settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
@@ -227,10 +240,12 @@ class Dashboard extends Component {
 
   setEquippedStateFromProfile = (profile) => {
     const equipped = this.getEquippedIds(profile);
+    const rp = profile?.studyStats?.rankScore ?? 0;
     this.setState({
       currentBackground: equipped.backgroundId,
       currentFrame: equipped.frameId,
       currentTitle: equipped.titleId,
+      currentRank: getTierFromRP(rp),
     });
   };
 

@@ -570,15 +570,50 @@
       .user-rank {
         font-size: 11px;
         color: #94a3b8;
-        font-weight: 500;
+        font-weight: 600;
         letter-spacing: 0.3px;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.07);
         padding: 2px 8px;
         border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .rp-value {
+          font-size: 10px;
+          opacity: 0.7;
+          font-weight: 400;
+        }
+      }
+    }
+
+    .rank-progress-bar {
+      position: relative;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: visible;
+      margin-top: 4px;
+
+      .rank-progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.4s ease;
+        box-shadow: 0 0 6px currentColor;
+      }
+
+      .rank-progress-label {
+        position: absolute;
+        right: 0;
+        top: -16px;
+        font-size: 9px;
+        color: rgba(255,255,255,0.4);
+        white-space: nowrap;
       }
     }
   }
 }
+
 
 /* OS App Window */
 .os-window {

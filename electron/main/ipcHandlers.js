@@ -11,7 +11,7 @@
 import { app } from 'electron';
 
 import { startFocus, stopFocus, getSessionStatus, setFocusWin, setUserId, setAuthToken } from './services/focusEngine.js';
-import { classifyContent, clearCache, getAiStatus, getAllowedCategories, saveAllowedCategories, getGroqKey, saveGroqKey } from './services/aiGuard.js';
+import { classifyContent, clearCache, getAiStatus, getAllowedCategories, saveAllowedCategories, getGroqKey, saveGroqKey, setBlockerModel } from './services/aiGuard.js';
 import { setApiUrl } from './services/sessionApi.js';
 import { chatWithAI, generateStudyPlan, generateQuiz } from './services/aiStudyService.js';
 import { 
@@ -29,6 +29,12 @@ export function registerIpcHandlers(ipcMain, win) {
   //  FOCUS ENGINE — Giám sát & chặn ứng dụng
   // ═══════════════════════════════════════════
   ipcMain.handle('focus:start', async (_event, data) => {
+    // Log face tracking model on start
+    console.log('[FocusEngine] 📷 Face Tracking → Model: MediaPipe BlazeFace Short-Range (TFLite, local)');
+    // Apply AI Blocker model from settings if provided
+    if (data?.blockerModel) {
+      setBlockerModel(data.blockerModel);
+    }
     return startFocus(data);
   });
 

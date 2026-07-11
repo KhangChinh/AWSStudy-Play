@@ -303,7 +303,7 @@
     padding: 2px 8px;
     border-radius: 12px;
 
-    &.ok {
+    &.ok, &.on {
       background: rgba(16, 185, 129, 0.15);
       color: #34d399;
     }

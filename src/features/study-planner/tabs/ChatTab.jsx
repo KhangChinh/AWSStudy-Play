@@ -5,7 +5,7 @@ import {
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { loadChatSessions, saveChatSession, deleteChatSession } from '../../../services/studyPlannerService';
+import { loadChatSessions, saveChatSession, deleteChatSession, saveStudyPlan } from '../../../services/studyPlannerService';
 
 const ChatTab = ({ onPlanCreated }) => {
   const { t, i18n } = useTranslation();
@@ -165,7 +165,8 @@ const ChatTab = ({ onPlanCreated }) => {
           fromChatId: activeChatId,
           createdAt: Date.now(),
         };
-        await window.api.invoke('study:savePlan', plan);
+        // Use service function so Redux is updated → PlanTab sees the plan immediately
+        await saveStudyPlan(plan);
         toast.success(t('study.plan_created'));
         onPlanCreated?.(planId);
       } else {

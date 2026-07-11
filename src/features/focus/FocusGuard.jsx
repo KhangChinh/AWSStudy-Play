@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useSelector } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import { shieldCheckmarkOutline, closeOutline, lockClosedOutline, videocamOutline } from 'ionicons/icons';
 
@@ -19,11 +20,15 @@ const formatTime = (seconds) => {
 
 const FocusGuard = () => {
   const { t } = useTranslation();
+  const aiSettings = useSelector(state => state.settings?.aiSettings);
+  const blockerModel = aiSettings?.blocker?.selectedModel || '';
+  const faceTrackModel = aiSettings?.faceTracking?.selectedModel || 'MediaPipe BlazeFace (TFLite, local)';
   const [isOpen, setIsOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [minutes, setMinutes] = useState(25);
   const [hardMode, setHardMode] = useState(false);
   const [aiReady, setAiReady] = useState(false);
+  const [aiStat, setAiStat] = useState(null);
   const [isStarting, setIsStarting] = useState(false);
 
   // Webcam state
@@ -98,9 +103,10 @@ const FocusGuard = () => {
               strikeCount: status.strikeCount || 0,
             });
           }
-          const aiStat = await window.api.invoke('ai:status');
-          if (aiStat) {
-            setAiReady(!!aiStat.ready);
+          const aiStatResult = await window.api.invoke('ai:status');
+          if (aiStatResult) {
+            setAiReady(!!aiStatResult.ready);
+            setAiStat(aiStatResult);
           }
         }
       } catch (err) {
@@ -301,9 +307,13 @@ const FocusGuard = () => {
 
   const handleStart = useCallback(async () => {
     setIsStarting(true);
+    console.log(`[FocusGuard] 📷 Starting Face Tracking | Model: ${faceTrackModel}`);
+    if (blockerModel) {
+      console.log(`[FocusGuard] 🔎 AI Blocker will use model: ${blockerModel}`);
+    }
     try {
       if (window.api?.invoke) {
-        await window.api.invoke('focus:start', { minutes, hardMode });
+        await window.api.invoke('focus:start', { minutes, hardMode, blockerModel });
       }
     } catch (err) {
       toast.error(t('focus_guard.start_failed'));
@@ -311,7 +321,7 @@ const FocusGuard = () => {
     } finally {
       setIsStarting(false);
     }
-  }, [minutes, hardMode]);
+  }, [minutes, hardMode, blockerModel, faceTrackModel]);
 
   const handleStop = useCallback(async () => {
     try {
@@ -364,12 +374,34 @@ const FocusGuard = () => {
               {!aiReady && !isActive && (
                 <div className="fg-ai-hint required">
                   <div className="fg-ai-providers">
-                    <div className="fg-ai-item">
-                      <span>{t('focus_guard.ollama_local')}</span>
-                      <span className="fg-ai-badge off">{t('focus_guard.not_enabled')}</span>
-                    </div>
+                    {aiStat?.gemini?.available ? (
+                      <div className="fg-ai-item">
+                        <span>Gemini (Cloud)</span>
+                        <span className="fg-ai-badge on">Ready</span>
+                      </div>
+                    ) : aiStat?.ollama?.available ? (
+                      <div className="fg-ai-item">
+                        <span>{t('focus_guard.ollama_local')}</span>
+                        <span className="fg-ai-badge on">Ready</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="fg-ai-item">
+                          <span>{t('focus_guard.ollama_local')}</span>
+                          <span className="fg-ai-badge off">{t('focus_guard.not_enabled')}</span>
+                        </div>
+                        <div className="fg-ai-item">
+                          <span>Gemini (Cloud)</span>
+                          <span className="fg-ai-badge off">No API Key</span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <p className="fg-ai-note" dangerouslySetInnerHTML={{ __html: t('focus_guard.ai_required_note') }} />
+                  <p className="fg-ai-note" dangerouslySetInnerHTML={{ __html:
+                    aiStat?.gemini?.available || aiStat?.ollama?.available
+                      ? 'AI is initializing, please wait...'
+                      : t('focus_guard.ai_required_note')
+                  }} />
                 </div>
               )}
 

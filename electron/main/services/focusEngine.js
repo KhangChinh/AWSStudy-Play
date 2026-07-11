@@ -327,9 +327,15 @@ setInterval(async () => {
     const status = await getAiStatus();
     isAiReady = status.ready;
     if (!status.ready) {
+      console.log(`[AI] ⚠️ AI provider check: activeProvider=${status.activeProvider} | ready=${status.ready}`);
       console.log('[AI] AI connection lost during active timer! Force stopping timer.');
       stopTimerForcefully();
       sendToRenderer('ai-status-lost');
+    } else {
+      // Log which provider is keeping the session alive
+      if (status.activeProvider !== 'ollama') {
+        console.log(`[AI] ✅ AI health check OK — Provider: ${status.activeProvider}`);
+      }
     }
   }
 }, 5000);
