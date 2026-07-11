@@ -541,24 +541,7 @@
       object-fit: cover;
       font-size: 28px;
       color: rgba(255, 255, 255, 0.7);
-    }
-
-    /* Frame mappings */
-    &.frame_neon {
-      border-color: #c084fc;
-      box-shadow: 0 0 10px #c084fc;
-    }
-
-    &.frame_gold {
-      border-color: #fbbf24;
-      box-shadow: 0 0 10px #fbbf24;
-    }
-
-    &.frame_galactic {
-      border-color: #3b82f6;
-      box-shadow: 0 0 10px #3b82f6;
-    }
-  }
+    }}
 
   .user-info {
     display: flex;

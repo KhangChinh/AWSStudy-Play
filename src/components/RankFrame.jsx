@@ -1,24 +1,15 @@
 import React, { useId } from 'react';
 import './RankFrame.scss';
 
-const TIERS = {
-  // Khung theo tên gốc
-  none: {
-    light: '#eef2f7', mid: '#94a3b8', dark: '#475569',
-    glow: 'rgba(148, 163, 184, 0.4)', gem: '#e2e8f0', wings: false, crown: false,
-  },
-  neon: {
-    light: '#f5d0fe', mid: '#d946ef', dark: '#86198f',
-    glow: 'rgba(217, 70, 239, 0.6)', gem: '#f0abfc', wings: false,
-  },
-  gold: {
-    light: '#fff5c2', mid: '#f7c33a', dark: '#a9760f',
-    glow: 'rgba(251, 191, 36, 0.55)', gem: '#fff7d6', wings: true,
-  },
-  galactic: {
-    light: '#c7d2fe', mid: '#6366f1', dark: '#1e1b4b',
-    glow: 'rgba(99, 102, 241, 0.65)', gem: '#67e8f9', wings: true, deluxe: true,
-  },
+const FRAME_STYLE = {
+  light: 'var(--rf-light)',
+  mid: 'var(--rf-mid)',
+  dark: 'var(--rf-dark)',
+  glow: 'var(--rf-glow)',
+  gem: 'var(--rf-gem)',
+  wings: true,
+  crown: true,
+  deluxe: true,
 };
 
 const Wing = ({ side }) => {
@@ -50,7 +41,7 @@ const BigWing = ({ side }) => {
 
 const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
   const uid = useId().replace(/:/g, '');
-  const t = TIERS[tier] || TIERS.none;
+  const t = FRAME_STYLE;
   const metal = `metal-${uid}`;
   const sheen = `sheen-${uid}`;
   const glow = `glow-${uid}`;
@@ -58,7 +49,7 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
   return (
     <div
       className={`rank-frame-badge rank-frame-${tier} ${className}`}
-      style={{ width: size, '--rf-glow': t.glow, '--rf-icon': `${Math.round(size * 0.38)}px` }}
+      style={{ width: size, '--rf-icon': `${Math.round(size * 0.38)}px` }}
     >
       <div className="rf-window">
         {children}

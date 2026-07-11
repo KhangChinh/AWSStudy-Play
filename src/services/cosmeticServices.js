@@ -19,6 +19,25 @@ const assetUrl = (path) => {
   return `${normalizeBase(S3_ASSETS_BASE)}/${s3Path}`;
 };
 
+const ensureItemStylesheet = (item) => {
+  if (typeof document === 'undefined' || !['frame', 'title'].includes(item?.itemType)) return;
+
+  const cssPath = item.assets?.css;
+  if (!cssPath) return;
+
+  const id = `cosmetic-style-${item.SK}`;
+  const href = assetUrl(cssPath);
+  const existing = document.getElementById(id);
+  if (existing?.getAttribute('href') === href) return;
+  if (existing) existing.remove();
+
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = href;
+  document.head.appendChild(link);
+};
+
 const normalizeItemId = (item) => {
   if (item?.itemType === 'background' && item?.SK === 'bd_default') return 'bg_default';
   return item?.SK;
@@ -58,6 +77,7 @@ class CosmeticManager {
     };
 
     items.forEach(item => {
+      ensureItemStylesheet(item);
       const category = categoryMap[item.itemType];
       if (!category || !this.data[category]) return;
 

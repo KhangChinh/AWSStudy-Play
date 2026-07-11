@@ -37,7 +37,13 @@ const FALLBACK_SHOP_ITEMS = [
 
 const getBudgetValue = (profile, keys) => {
   const budget = profile?.budget || {};
-  for (const key of keys) {
+  const aliases = {
+    eCoin: ['eCoin', 'ecoin', 'e_coin', 'ECoin'],
+    knowledgePoint: ['knowledgePoint', 'knowledge_points'],
+    knowledgeCore: ['knowledgeCore', 'knowledge_core'],
+  };
+  const expandedKeys = keys.flatMap((key) => aliases[key] || [key]);
+  for (const key of expandedKeys) {
     const value = budget[key] ?? profile?.[key];
     if (value !== undefined && value !== null) return Number(value) || 0;
   }
@@ -148,7 +154,12 @@ class Shop extends Component {
     if (result && !result.errCode && result.item) {
       const itemType = result.item.itemType || result.itemType || 'frame';
       const branch = this.props.inventory?.[itemType] || {};
-      await this.updateProfileBudget({ [result.currency || 'eCoin']: result.newBalance });
+      if (result.profile) {
+        this.props.setProfile(result.profile);
+        await window.api?.invoke('store:saveProfile', result.profile).catch(() => {});
+      } else {
+        await this.updateProfileBudget({ [result.currency || 'eCoin']: result.newBalance });
+      }
       this.props.appendInventory({ itemType, items: [result.item], lastKey: branch.lastKey || null });
       await window.api?.invoke('store:saveInventory', {
         itemType,

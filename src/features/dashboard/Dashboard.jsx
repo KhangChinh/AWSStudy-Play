@@ -69,6 +69,22 @@ const toServerBackgroundId = (id) => (
   id === LOCAL_DEFAULT_BACKGROUND_ID ? SERVER_DEFAULT_BACKGROUND_ID : id
 );
 
+const getBudgetValue = (profile, keys) => {
+  const budget = profile?.budget || {};
+  const aliases = {
+    eCoin: ['eCoin', 'ecoin', 'e_coin', 'ECoin'],
+    knowledgePoint: ['knowledgePoint', 'knowledge_points'],
+    knowledgeCore: ['knowledgeCore', 'knowledge_core'],
+    sanity: ['sanity'],
+  };
+  const expandedKeys = keys.flatMap((key) => aliases[key] || [key]);
+  for (const key of expandedKeys) {
+    const value = budget[key] ?? profile?.[key];
+    if (value !== undefined && value !== null) return Number(value) || 0;
+  }
+  return 0;
+};
+
 const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
 const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
@@ -135,7 +151,7 @@ class Dashboard extends Component {
       dragOffset: { x: 0, y: 0 },
       currentRank: 'diamond',
       currentBackground: LOCAL_DEFAULT_BACKGROUND_ID,
-      currentTitle: 'title_newbie',
+      currentTitle: 'title_none',
       currentFrame: 'frame_none',
       currentSystemIcon: 'icon_default',
       animationsEnabled: true,
@@ -153,6 +169,7 @@ class Dashboard extends Component {
   }
 
   async componentDidMount() {
+    
     this.timerInterval = setInterval(() => {
       this.setState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -165,7 +182,7 @@ class Dashboard extends Component {
       this.setEquippedStateFromProfile(this.props.userProfile);
     }
 
-    // Apply background ban đầu (dùng data local từ cosmetics.js)
+    // Apply background ban Ã„â€˜Ã¡ÂºÂ§u (dÃƒÂ¹ng data local tÃ¡Â»Â« cosmetics.js)
     cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
 
     // Load/Sync master data (offline-first: load local cache, sync in background)
@@ -174,10 +191,10 @@ class Dashboard extends Component {
       this.setState({ masterDataLoaded: true });
       cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
     } catch (e) {
-      console.warn('Không thể tải master data:', e);
+      console.warn('KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡ÂºÂ£i master data:', e);
     }
 
-    // ĐỒNG BỘ CLOUD: Lấy Profile, Inventory, Coin từ Serverless (sau 5 giây)
+    // Ã„ÂÃ¡Â»â€™NG BÃ¡Â»Ëœ CLOUD: LÃ¡ÂºÂ¥y Profile, Inventory, Coin tÃ¡Â»Â« Serverless (sau 5 giÃƒÂ¢y)
     this.syncTimeout = setTimeout(() => this.performSyncAll(), 5000);
 
     // Load Daily Quests
@@ -191,20 +208,20 @@ class Dashboard extends Component {
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
-  // Khi user Alt+Tab/Ctrl+Tab quay lại app → gọi sync (cooldown check trong syncService)
+  // Khi user Alt+Tab/Ctrl+Tab quay lÃ¡ÂºÂ¡i app Ã¢â€ â€™ gÃ¡Â»Âi sync (cooldown check trong syncService)
   handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
       this.performSyncAll();
     }
   };
 
-  // Gọi handleSyncAllApi (cooldown 1 phút được check trong syncService)
+  // GÃ¡Â»Âi handleSyncAllApi (cooldown 1 phÃƒÂºt Ã„â€˜Ã†Â°Ã¡Â»Â£c check trong syncService)
   getEquippedIds = (profile = this.props.userProfile) => {
     const cosmetics = profile?.equippedCosmetics || {};
     return {
       backgroundId: cosmeticId(cosmetics.equippedBackground) || LOCAL_DEFAULT_BACKGROUND_ID,
       frameId: cosmeticId(cosmetics.equippedFrame) || 'frame_none',
-      titleId: cosmeticId(cosmetics.equippedTitles?.[0]) || 'title_newbie',
+      titleId: cosmeticId(cosmetics.equippedTitles?.[0]) || 'title_none',
     };
   };
 
@@ -229,28 +246,28 @@ class Dashboard extends Component {
       const syncResponse = await handleSyncAllApi();
       if (syncResponse && syncResponse.profile) {
         const { profile } = syncResponse;
-        // handleSyncAllApi đã dispatch inventory + save electron store rồi
+        // handleSyncAllApi Ã„â€˜ÃƒÂ£ dispatch inventory + save electron store rÃ¡Â»â€œi
         this.props.setProfile(profile);
 
-        // Cập nhật State Dashboard theo Cloud
+        // CÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t State Dashboard theo Cloud
         this.setEquippedStateFromProfile(profile);
 
-        console.log('[Dashboard] Cloud Sync hoàn tất:', profile);
+        console.log('[Dashboard] Cloud Sync hoÃƒÂ n tÃ¡ÂºÂ¥t:', profile);
       }
     } catch (e) {
-      console.warn('[Dashboard] Cloud Sync thất bại:', e);
+      console.warn('[Dashboard] Cloud Sync thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i:', e);
     }
   };
 
   /**
    * Load Daily Quests
-   * Luồng:
-   *   1. Nếu force=true → bỏ qua cache, gọi API ngay
-   *   2. Kiểm tra electron-store (base64 encoded)
-   *      - Có data + expiresAt chưa qua ngày → đẩy vào Redux, xong
-   *      - Có data + expiresAt đã qua ngày → gọi API lấy mới (refresh)
-   *      - Không có data → gọi API lấy mới
-   *   3. Kết quả API → lưu vào Redux + electron-store (base64)
+   * LuÃ¡Â»â€œng:
+   *   1. NÃ¡ÂºÂ¿u force=true Ã¢â€ â€™ bÃ¡Â»Â qua cache, gÃ¡Â»Âi API ngay
+   *   2. KiÃ¡Â»Æ’m tra electron-store (base64 encoded)
+   *      - CÃƒÂ³ data + expiresAt chÃ†Â°a qua ngÃƒÂ y Ã¢â€ â€™ Ã„â€˜Ã¡ÂºÂ©y vÃƒÂ o Redux, xong
+   *      - CÃƒÂ³ data + expiresAt Ã„â€˜ÃƒÂ£ qua ngÃƒÂ y Ã¢â€ â€™ gÃ¡Â»Âi API lÃ¡ÂºÂ¥y mÃ¡Â»â€ºi (refresh)
+   *      - KhÃƒÂ´ng cÃƒÂ³ data Ã¢â€ â€™ gÃ¡Â»Âi API lÃ¡ÂºÂ¥y mÃ¡Â»â€ºi
+   *   3. KÃ¡ÂºÂ¿t quÃ¡ÂºÂ£ API Ã¢â€ â€™ lÃ†Â°u vÃƒÂ o Redux + electron-store (base64)
    */
   loadDailyQuests = async () => {
     const now = Math.floor(Date.now() / 1000);
@@ -345,7 +362,7 @@ class Dashboard extends Component {
       const result = await handleEquipCosmeticsApi({
         backgroundId: backgroundIdToSave,
         frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
-        titles: newTitleId === 'title_newbie' ? [] : [newTitleId]
+        titles: newTitleId === 'title_none' ? [] : [newTitleId]
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
@@ -364,7 +381,7 @@ class Dashboard extends Component {
       const result = await handleEquipCosmeticsApi({
         backgroundId: backgroundIdToSave,
         frameId: newFrameId === 'frame_none' ? null : newFrameId,
-        titles: titleIdToSave === 'title_newbie' ? [] : [titleIdToSave]
+        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave]
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
@@ -388,7 +405,7 @@ class Dashboard extends Component {
       const result = await handleEquipCosmeticsApi({
         backgroundId: toServerBackgroundId(bgId),
         frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
-        titles: titleIdToSave === 'title_newbie' ? [] : [titleIdToSave]
+        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave]
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
@@ -548,7 +565,7 @@ class Dashboard extends Component {
     try {
       const result = await claimQuestReward(questKey);
       if (result.success) {
-        toast.success(`✨ ${result.message || this.props.t('missions.rewards_claimed')}`);
+        toast.success(`Ã¢Å“Â¨ ${result.message || this.props.t('missions.rewards_claimed')}`);
 
         const { dailyQuests } = this.props;
         const updatedQuests = { ...dailyQuests.quests };
@@ -761,7 +778,9 @@ class Dashboard extends Component {
       || cosmeticManager.getAllInCategory('systemIcons')[0]
       || { type: 'outline' };
     const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
-    const userBudget = this.props.userProfile?.budget || {};
+    const sanity = getBudgetValue(this.props.userProfile, ['sanity']);
+    const eCoin = getBudgetValue(this.props.userProfile, ['eCoin']);
+    const knowledgePoint = getBudgetValue(this.props.userProfile, ['knowledgePoint']);
     const activeBgId = backgroundId(currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID;
     const shouldRenderDesktopEffects = animationsEnabled && [LOCAL_DEFAULT_BACKGROUND_ID, SERVER_DEFAULT_BACKGROUND_ID].includes(activeBgId) && !selectedBackground?.imageUrl;
     const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
@@ -798,7 +817,7 @@ class Dashboard extends Component {
             </div>
             <div className="currency-info">
               <span className="currency-label">{t('common.sanity')}</span>
-              <span className="currency-value">{userBudget.sanity || 0}</span>
+              <span className="currency-value">{sanity.toLocaleString()}</span>
             </div>
           </div>
           <div className="currency-item ecoin" title={t('common.ecoin')}>
@@ -807,7 +826,7 @@ class Dashboard extends Component {
             </div>
             <div className="currency-info">
               <span className="currency-label">{t('common.ecoin')}</span>
-              <span className="currency-value">{(userBudget.eCoin || 0).toLocaleString()}</span>
+              <span className="currency-value">{eCoin.toLocaleString()}</span>
             </div>
           </div>
           <div className="currency-item knowledge" title={t('common.knowledge_points')}>
@@ -816,7 +835,7 @@ class Dashboard extends Component {
             </div>
             <div className="currency-info">
               <span className="currency-label">{t('common.knowledge_points')}</span>
-              <span className="currency-value">{(userBudget.knowledgePoint || 0).toLocaleString()}</span>
+              <span className="currency-value">{knowledgePoint.toLocaleString()}</span>
             </div>
           </div>
         </div>

@@ -1,4 +1,9 @@
 .rank-frame-badge {
+  --rf-light: #eef2f7;
+  --rf-mid: #94a3b8;
+  --rf-dark: #475569;
+  --rf-glow: rgba(148, 163, 184, 0.4);
+  --rf-gem: #e2e8f0;
   position: relative;
   aspect-ratio: 240 / 268;
   display: inline-block;
@@ -54,19 +59,6 @@
   }
 }
 
-/* Neon Pulse: nhấp nháy hào quang (đơn giản, không cánh) */
-.rank-frame-neon .rf-aura {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: rf-glow-pulse 1.8s ease-in-out infinite;
-}
-
-/* Galactic (deluxe): vương miện + cánh sáng rực */
-.rank-frame-galactic .rf-crown,
-.rank-frame-galactic .rf-wing {
-  animation: rf-glow-pulse 3s ease-in-out infinite;
-}
-
 @keyframes rf-twinkle {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
@@ -79,4 +71,14 @@
 
 @keyframes rf-spin {
   to { transform: rotate(360deg); }
+}
+
+.rank-frame-badge .rf-wing,
+.rank-frame-badge .rf-bigwing,
+.rank-frame-badge .rf-halo {
+  display: none;
+}
+
+.rank-frame-none .rf-crown {
+  display: none;
 }
