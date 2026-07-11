@@ -117,7 +117,9 @@ const UserProfileWidget = ({
           <span className="username">{displayName}</span>
         </div>
         <div className="title-rank-line">
-          <span className="user-title" style={{ color: titleData.color }}>[{titleName}]</span>
+          {titleData && titleName && (
+            <span className="user-title" style={{ color: titleData.color }}>[{titleName}]</span>
+          )}
           <span className={`user-rank rank-${currentRank}`}>{t('dashboard.rank')}: {rankLabel} ({userProfile?.studyStats?.rankScore || 0} RP)</span>
         </div>
       </div>
