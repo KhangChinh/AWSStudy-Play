@@ -99,13 +99,14 @@ const UserProfileWidget = ({
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
+  const frameAssetUrl = cosmeticManager.getCosmeticInfo('frames', currentFrame)?.frameAssetUrl;
   const displayName = userProfile?.information?.name || 'Unde_user';
   const rankLabel = translateRank(currentRank, t);
   const titleName = translateCosmeticName(titleData, t);
 
   return (
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
-      <RankFrame tier={frameTier} size={64} className="widget-rank-frame">
+      <RankFrame tier={frameTier} size={64} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
         {userProfile?.information?.avatarUrl ? (
           <img src={(import.meta.env.VITE_S3_ASSETS_URL || '') + userProfile.information.avatarUrl} alt="avatar" className="avatar-img" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
         ) : (

@@ -19,7 +19,17 @@ export const COSMETICS = {
   ],
   frames: [
     { id: 'frame_none', name: 'No Frame', tier: 'none', rarity: 0 },
-    { id: 'frame_diamond', name: 'Diamond Ascendant', tier: 'diamond', rarity: 5 },
+    {
+      id: 'frame_diamond',
+      name: 'Diamond Ascendant',
+      tier: 'diamond',
+      rarity: 5,
+      assets: {
+        css: 'frame/frame_diamond/assets/frame_diamond.css',
+        frame: 'frame/frame_diamond/assets/frame_diamond.svg',
+      },
+      frameAssetUrl: `${(S3_ASSETS_BASE || '').replace(/\/+$/, '')}/items/frame/frame_diamond/assets/frame_diamond.svg`,
+    },
     { id: 'frame_sapphire', name: 'Sapphire Tide', tier: 'sapphire', rarity: 4 },
     { id: 'frame_amethyst', name: 'Amethyst Arcane', tier: 'amethyst', rarity: 4 },
     { id: 'frame_stone_1', name: 'Quartz Crystal', tier: 'stone_1', rarity: 4 },
