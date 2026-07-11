@@ -97,12 +97,18 @@ contextBridge.exposeInMainWorld('api', {
       'quest-updated',
     ];
     if (validChannels.includes(channel)) {
-      ipcRenderer.on(channel, (_event, ...args) => callback(...args));
+      const wrapper = (_event, ...args) => callback(...args);
+      // Gán thuộc tính ẩn vào callback để có thể truy xuất lúc removeListener
+      callback._wrapper = wrapper;
+      ipcRenderer.on(channel, wrapper);
     }
   },
 
   // ═══ Gỡ listener ═══
   removeListener: (channel, callback) => {
-    ipcRenderer.removeListener(channel, callback);
+    if (callback._wrapper) {
+      ipcRenderer.removeListener(channel, callback._wrapper);
+      delete callback._wrapper;
+    }
   }
 });

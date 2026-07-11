@@ -153,8 +153,6 @@ class Dashboard extends Component {
   }
 
   async componentDidMount() {
-    window.api?.send?.('login-success');
-
     this.timerInterval = setInterval(() => {
       this.setState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

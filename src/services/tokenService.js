@@ -1,4 +1,6 @@
 import { fetchAuthSession, signOut } from 'aws-amplify/auth';
+import { store } from '../store';
+import { logoutClearData } from '../store/actions';
 
 let currentAccessToken = null;
 
@@ -28,7 +30,7 @@ async function triggerLogout() {
     await signOut().catch(() => { });
     window.api?.send('logout');
     await window.api?.invoke('store:clearLoginData').catch(() => { });
-    window.location.reload();
+    store.dispatch(logoutClearData());
   } catch (error) {
     console.error('[TokenService] Lỗi khi forced logout:', error);
   }

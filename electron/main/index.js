@@ -118,78 +118,78 @@ function showMiniWidget() {
   miniWidget.removeMenu();
   miniWidget.loadFile(path.join(__dirname, '../mini-widget/widget.html'));
 
+  let isAnimating = false;
+
   // ═══ Snap to nearest corner when drag ends ═══
   miniWidget.on('moved', () => {
-    if (!miniWidget || miniWidget.isDestroyed()) return;
+    if (!miniWidget || miniWidget.isDestroyed() || isAnimating) return;
     // Small delay to avoid snapping during active drag
     clearTimeout(snapAnimTimer);
     snapAnimTimer = setTimeout(() => snapToCorner(), 150);
   });
 
+  function snapToCorner() {
+    if (!miniWidget || miniWidget.isDestroyed()) return;
+
+    const bounds = miniWidget.getBounds();
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+
+    const corners = [
+      { x: WIDGET_MARGIN, y: WIDGET_MARGIN }, // Top-Left
+      { x: width - bounds.width - WIDGET_MARGIN, y: WIDGET_MARGIN }, // Top-Right
+      { x: WIDGET_MARGIN, y: height - bounds.height - WIDGET_MARGIN }, // Bottom-Left
+      { x: width - bounds.width - WIDGET_MARGIN, y: height - bounds.height - WIDGET_MARGIN } // Bottom-Right
+    ];
+
+    let nearest = corners[0];
+    let minDiff = Infinity;
+    corners.forEach(c => {
+      const d = Math.abs(bounds.x - c.x) + Math.abs(bounds.y - c.y);
+      if (d < minDiff) { minDiff = d; nearest = c; }
+    });
+
+    if (bounds.x !== nearest.x || bounds.y !== nearest.y) {
+      animateToPosition(bounds.x, bounds.y, nearest.x, nearest.y);
+    }
+  }
+
+  function animateToPosition(fromX, fromY, toX, toY) {
+    if (!miniWidget || miniWidget.isDestroyed()) return;
+    isAnimating = true;
+
+    const DURATION = 200; // ms
+    const STEPS = 15;
+    const stepTime = DURATION / STEPS;
+    let step = 0;
+
+    clearTimeout(snapAnimTimer);
+    const interval = setInterval(() => {
+      step++;
+      if (!miniWidget || miniWidget.isDestroyed()) { 
+        clearInterval(interval); 
+        isAnimating = false;
+        return; 
+      }
+
+      // Ease-out cubic
+      const t = step / STEPS;
+      const ease = 1 - Math.pow(1 - t, 3);
+
+      const x = Math.round(fromX + (toX - fromX) * ease);
+      const y = Math.round(fromY + (toY - fromY) * ease);
+      miniWidget.setPosition(x, y);
+
+      if (step >= STEPS) {
+        clearInterval(interval);
+        isAnimating = false;
+      }
+    }, stepTime);
+  }
+
   miniWidget.on('closed', () => {
     clearTimeout(snapAnimTimer);
     miniWidget = null;
   });
-}
-
-function snapToCorner() {
-  if (!miniWidget || miniWidget.isDestroyed()) return;
-
-  const bounds = miniWidget.getBounds();
-  const cx = bounds.x + bounds.width / 2;
-  const cy = bounds.y + bounds.height / 2;
-
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: sw, height: sh } = primaryDisplay.workAreaSize;
-
-  // 4 corner targets
-  const corners = [
-    { x: WIDGET_MARGIN, y: WIDGET_MARGIN },                                    // top-left
-    { x: sw - WIDGET_W - WIDGET_MARGIN, y: WIDGET_MARGIN },                    // top-right
-    { x: WIDGET_MARGIN, y: sh - WIDGET_H - WIDGET_MARGIN },                    // bottom-left
-    { x: sw - WIDGET_W - WIDGET_MARGIN, y: sh - WIDGET_H - WIDGET_MARGIN },    // bottom-right
-  ];
-
-  // Find nearest corner by center distance
-  let nearest = corners[3]; // default bottom-right
-  let minDist = Infinity;
-  for (const c of corners) {
-    const dx = cx - (c.x + WIDGET_W / 2);
-    const dy = cy - (c.y + WIDGET_H / 2);
-    const dist = dx * dx + dy * dy;
-    if (dist < minDist) {
-      minDist = dist;
-      nearest = c;
-    }
-  }
-
-  // Animate smoothly to nearest corner
-  animateToPosition(bounds.x, bounds.y, nearest.x, nearest.y);
-}
-
-function animateToPosition(fromX, fromY, toX, toY) {
-  if (!miniWidget || miniWidget.isDestroyed()) return;
-
-  const DURATION = 200; // ms
-  const STEPS = 15;
-  const stepTime = DURATION / STEPS;
-  let step = 0;
-
-  clearTimeout(snapAnimTimer);
-  const interval = setInterval(() => {
-    step++;
-    if (!miniWidget || miniWidget.isDestroyed()) { clearInterval(interval); return; }
-
-    // Ease-out cubic
-    const t = step / STEPS;
-    const ease = 1 - Math.pow(1 - t, 3);
-
-    const x = Math.round(fromX + (toX - fromX) * ease);
-    const y = Math.round(fromY + (toY - fromY) * ease);
-    miniWidget.setPosition(x, y);
-
-    if (step >= STEPS) clearInterval(interval);
-  }, stepTime);
 }
 
 function closeMiniWidget() {
