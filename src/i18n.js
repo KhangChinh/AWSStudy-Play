@@ -109,7 +109,9 @@ i18n
             preferences_desc: 'Quick adjustments for your experience.',
             language: 'Language',
             app_animations: 'App Animations',
-            rename_cost: '* Rename costs 10,000 P-Coin',
+            rename_cost: '* Rename costs 500 Sanity',
+            rename_insufficient_sanity: 'You need at least 500 Sanity to rename.',
+            rename_success: 'Name updated. 500 Sanity has been deducted.',
             english: 'English',
             vietnamese: 'Vietnamese',
             rename_error: 'Failed to update name. Please try again!',
@@ -579,7 +581,9 @@ i18n
             preferences_desc: 'Điều chỉnh nhanh trải nghiệm của bạn.',
             language: 'Ngôn ngữ',
             app_animations: 'Hiệu ứng mở app',
-            rename_cost: '* Đổi tên tốn 10.000 P-Coin',
+            rename_cost: '* Đổi tên tốn 500 Sanity',
+            rename_insufficient_sanity: 'Bạn cần ít nhất 500 Sanity để đổi tên.',
+            rename_success: 'Đổi tên thành công. Đã trừ 500 Sanity.',
             english: 'Tiếng Anh',
             vietnamese: 'Tiếng Việt',
             rename_error: 'Đổi tên thất bại. Vui lòng thử lại!',
@@ -954,4 +958,3 @@ i18n
   });
 
 export default i18n;
-

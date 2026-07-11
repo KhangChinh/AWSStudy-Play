@@ -5,7 +5,6 @@ import {
   hardwareChipOutline, saveOutline
 } from 'ionicons/icons';
 import ImageCropper from '../../components/ImageCropper';
-import { cosmeticManager } from '../../services/cosmeticServices';
 import { handleUpdateNameApi } from '../../services/cosmeticServices';
 import { getValidAccessToken } from '../../services/tokenService';
 import { connect } from 'react-redux';
@@ -14,8 +13,9 @@ import { setAiSettings } from '../../store/actions/settingsActions';
 import { toast } from 'react-toastify';
 import './SettingsApp.scss';
 
+const RENAME_SANITY_COST = 500;
+
 const SettingsApp = ({
-  currentTitle,
   animationsEnabled,
   userProfile,
   onToggleAnimations,
@@ -39,9 +39,8 @@ const SettingsApp = ({
 
   const fileInputRef = React.useRef(null);
 
-  const selectedTitleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
-    || cosmeticManager.getAllInCategory('titles')[0];
   const displayName = userProfile?.information?.name || 'Player_9999';
+  const currentSanity = Number(userProfile?.budget?.sanity ?? userProfile?.sanity ?? 0);
   const currentLanguage = (i18n?.resolvedLanguage || i18n?.language || 'vi').split('-')[0];
 
   const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
@@ -77,23 +76,38 @@ const SettingsApp = ({
   };
 
   const handleSaveName = async () => {
-    if (!newName.trim() || newName === displayName) {
+    const trimmedName = newName.trim();
+    if (!trimmedName || trimmedName === displayName) {
       setIsEditingName(false);
+      return;
+    }
+    if (currentSanity < RENAME_SANITY_COST) {
+      toast.error(t('settings.rename_insufficient_sanity'));
       return;
     }
 
     setLoading(true);
     try {
-      const response = await handleUpdateNameApi(newName.trim());
-      if (response && response.profile) {
+      const response = await handleUpdateNameApi(trimmedName);
+      if (response?.profile) {
+        const serverSanity = Number(response.profile.budget?.sanity ?? currentSanity);
+        const updatedSanity = serverSanity < currentSanity
+          ? serverSanity
+          : currentSanity - RENAME_SANITY_COST;
+
         dispatchUserLogin({
-          ...userProfile,
+          ...response.profile,
+          budget: {
+            ...response.profile.budget,
+            sanity: updatedSanity,
+          },
           information: {
-            ...userProfile?.information,
-            name: response.profile.information?.name || newName.trim()
-          }
+            ...response.profile.information,
+            name: response.profile.information?.name || trimmedName,
+          },
         });
         setIsEditingName(false);
+        toast.success(t('settings.rename_success'));
       }
     } catch (e) {
       toast.error(t('settings.rename_error') || 'Lỗi khi đổi tên');
@@ -349,12 +363,7 @@ const SettingsApp = ({
                         </button>
                       </div>
                     ) : (
-                      <>
-                        <span className="name">{displayName}</span>
-                        <span className="user-title" style={{ color: selectedTitleData.color }}>
-                          [{t(selectedTitleData.i18nKey + '.name')}]
-                        </span>
-                      </>
+                      <span className="name">{displayName}</span>
                     )}
                   </div>
                   <p className="note">{t('settings.rename_cost')}</p>
