@@ -167,6 +167,47 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
             </>
           )}
         </g>
+
+        {/* Diamond Ascendant has its own visual language: a crystal portal,
+            orbiting shards and a faceted crest instead of the shared crown. */}
+        <g className="rf-diamond-art">
+          <circle className="rf-diamond-aura" cx="120" cy="116" r="102" fill={`url(#${glow})`} />
+
+          <g className="rf-diamond-orbit" fill="none" strokeLinecap="round">
+            <ellipse cx="120" cy="116" rx="98" ry="76" stroke={t.gem} strokeWidth="1.6" strokeDasharray="3 13" opacity="0.72" />
+            <ellipse cx="120" cy="116" rx="80" ry="103" stroke={`url(#${metal})`} strokeWidth="2" strokeDasharray="8 15" opacity="0.58" />
+          </g>
+
+          <g className="rf-diamond-shards" fill={`url(#${metal})`} stroke={t.gem} strokeWidth="1.2" strokeLinejoin="round">
+            <path d="M120 8 L131 26 L120 39 L109 26 Z" />
+            <path d="M206 50 L219 61 L207 77 L196 63 Z" />
+            <path d="M211 151 L223 165 L207 179 L198 162 Z" />
+            <path d="M34 50 L44 63 L33 77 L21 61 Z" />
+            <path d="M29 151 L42 162 L33 179 L17 165 Z" />
+          </g>
+
+          <circle cx="120" cy="116" r="70" fill="rgba(7, 12, 32, 0.34)" stroke={t.dark} strokeWidth="13" />
+          <circle cx="120" cy="116" r="68" fill="none" stroke={`url(#${metal})`} strokeWidth="9" />
+          <circle cx="120" cy="116" r="61.5" fill="none" stroke={`url(#${sheen})`} strokeWidth="2.5" />
+
+          <g className="rf-diamond-facets" fill={t.gem}>
+            {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => (
+              <path key={angle} d="M120 39 L127 48 L120 55 L113 48 Z" transform={`rotate(${angle} 120 116)`} />
+            ))}
+          </g>
+
+          <g className="rf-diamond-crest" strokeLinejoin="round">
+            <path d="M120 188 L146 214 L120 249 L94 214 Z" fill={`url(#${metal})`} stroke={t.dark} strokeWidth="3" />
+            <path d="M120 188 L120 249 L105 214 Z" fill={t.gem} opacity="0.72" />
+            <path d="M120 188 L135 214 L120 249 Z" fill="#ffffff" opacity="0.3" />
+            <path d="M94 214 L120 205 L146 214 L120 223 Z" fill="none" stroke={t.gem} strokeWidth="2" />
+          </g>
+
+          <g className="rf-diamond-glints" fill="#ffffff">
+            <path d="M58 49 l2.5 7.5 l7.5 2.5 l-7.5 2.5 l-2.5 7.5 l-2.5-7.5 l-7.5-2.5 l7.5-2.5 z" />
+            <path d="M188 91 l1.8 5.4 l5.4 1.8 l-5.4 1.8 l-1.8 5.4 l-1.8-5.4 l-5.4-1.8 l5.4-1.8 z" />
+          </g>
+        </g>
       </svg>
 
     </div>

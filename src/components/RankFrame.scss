@@ -65,8 +65,8 @@
 }
 
 @keyframes rf-glow-pulse {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.3); }
+  0%, 100% { filter: brightness(1) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45)); }
+  50% { filter: brightness(1.3) drop-shadow(0 6px 18px var(--rf-glow)); }
 }
 
 @keyframes rf-spin {
@@ -81,4 +81,151 @@
 
 .rank-frame-none .rf-crown {
   display: none;
+}
+
+/* Diamond Ascendant is intentionally unrelated to the shared crown frame. */
+.rank-frame-badge.rank-frame-diamond {
+  --rf-light: #f8fdff;
+  --rf-mid: #67e8f9;
+  --rf-dark: #3730a3;
+  --rf-glow: rgba(34, 211, 238, 0.72);
+  --rf-gem: #a5f3fc;
+  animation: rf-diamond-breathe 3.6s ease-in-out infinite;
+
+  .rf-window {
+    left: 25.5%;
+    top: 20.1%;
+    width: 49%;
+    height: 43.9%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(30, 41, 84, 0.76), rgba(4, 8, 24, 0.92));
+  }
+
+  svg > :not(defs):not(.rf-diamond-art) {
+    display: none;
+  }
+
+  .rf-diamond-art {
+    display: block;
+  }
+
+  .rf-diamond-orbit {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: rf-diamond-orbit 13s linear infinite;
+  }
+
+  .rf-diamond-shards {
+    animation: rf-diamond-shards 2.8s ease-in-out infinite;
+  }
+
+  .rf-diamond-crest {
+    transform-box: fill-box;
+    transform-origin: top center;
+    animation: rf-diamond-crest 2.4s ease-in-out infinite;
+  }
+
+  .rf-diamond-glints {
+    animation: rf-twinkle 1.8s ease-in-out infinite;
+  }
+}
+
+.rf-diamond-art {
+  display: none;
+}
+
+@keyframes rf-diamond-breathe {
+  0%, 100% { filter: brightness(1) drop-shadow(0 7px 14px rgba(34, 211, 238, 0.28)); }
+  50% { filter: brightness(1.16) drop-shadow(0 8px 24px rgba(99, 102, 241, 0.68)); }
+}
+
+@keyframes rf-diamond-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rf-diamond-shards {
+  0%, 100% { transform: translateY(0); opacity: 0.78; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes rf-diamond-crest {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(3px) scale(1.04); }
+}
+
+/* Local frame palette. Cloud inventory items with matching ids automatically
+   inherit these styles everywhere RankFrame is used. */
+.rank-frame-sapphire {
+  --rf-light: #bae6fd;
+  --rf-mid: #3b82f6;
+  --rf-dark: #1e3a8a;
+  --rf-glow: rgba(59, 130, 246, 0.58);
+  --rf-gem: #67e8f9;
+}
+
+.rank-frame-amethyst {
+  --rf-light: #f3e8ff;
+  --rf-mid: #a855f7;
+  --rf-dark: #581c87;
+  --rf-glow: rgba(168, 85, 247, 0.6);
+  --rf-gem: #e879f9;
+}
+
+.rank-frame-stone_1 {
+  --rf-light: #fff1f2;
+  --rf-mid: #f0abfc;
+  --rf-dark: #7e22ce;
+  --rf-glow: rgba(232, 121, 249, 0.62);
+  --rf-gem: #ffffff;
+}
+
+.rank-frame-stone_2 {
+  --rf-light: #a78bfa;
+  --rf-mid: #312e81;
+  --rf-dark: #09090b;
+  --rf-glow: rgba(99, 102, 241, 0.68);
+  --rf-gem: #c4b5fd;
+}
+
+.rank-frame-solar {
+  --rf-light: #fff7b2;
+  --rf-mid: #f97316;
+  --rf-dark: #991b1b;
+  --rf-glow: rgba(249, 115, 22, 0.7);
+  --rf-gem: #fde047;
+}
+
+.rank-frame-sapphire .rf-halo,
+.rank-frame-amethyst .rf-halo,
+.rank-frame-stone_1 .rf-halo,
+.rank-frame-stone_2 .rf-halo,
+.rank-frame-solar .rf-halo {
+  display: block;
+}
+
+.rank-frame-stone_1 .rf-wing,
+.rank-frame-stone_2 .rf-wing,
+.rank-frame-solar .rf-wing {
+  display: block;
+}
+
+.rank-frame-stone_2 .rf-bigwing,
+.rank-frame-solar .rf-bigwing {
+  display: block;
+}
+
+.rank-frame-sapphire,
+.rank-frame-amethyst,
+.rank-frame-stone_1,
+.rank-frame-stone_2,
+.rank-frame-solar {
+  animation: rf-glow-pulse 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-frame-badge,
+  .rank-frame-badge .rf-spark,
+  .rank-frame-badge .rf-halo {
+    animation: none;
+  }
 }
