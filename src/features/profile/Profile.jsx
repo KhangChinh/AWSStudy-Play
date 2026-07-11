@@ -302,7 +302,7 @@ class Profile extends Component {
                   if (!isLocked) onFrameChange?.(frame.id);
                 }}
               >
-                <RankFrame tier={frame.tier || tierFromFrame(frame.id)} size={92}>
+                <RankFrame tier={frame.tier || tierFromFrame(frame.id)} size={92} frameAssetUrl={frame.frameAssetUrl}>
                   <IonIcon icon={personCircleOutline} />
                 </RankFrame>
                 <div className="frame-name">{frame.name}</div>
@@ -352,6 +352,7 @@ class Profile extends Component {
     const rankLabel = translateRank(currentRank, t);
     const equippedTitle = cosmeticManager.getCosmeticInfo('titles', currentTitle)
       || cosmeticManager.getAllInCategory('titles')[0];
+    const equippedFrame = cosmeticManager.getCosmeticInfo('frames', currentFrame);
     const selectedBackground = resolveBackground(currentBackground);
     const profileHeaderStyle = selectedBackground?.profileBackground
       ? { background: selectedBackground.profileBackground }
@@ -375,7 +376,7 @@ class Profile extends Component {
           </div>
           <div className="user-profile-section">
             <div className="avatar-container-simple">
-              <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
+              <RankFrame tier={tierFromFrame(currentFrame)} size={120} frameAssetUrl={equippedFrame?.frameAssetUrl}>
                 {userProfile?.information?.avatarUrl ? (
                   <img src={S3_ASSETS_BASE + userProfile.information.avatarUrl} alt="avatar" className="avatar-img-large" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
                 ) : (

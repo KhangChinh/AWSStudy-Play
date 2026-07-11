@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 268" fill="none">
+  <defs>
+    <linearGradient id="diamond-metal" x1="65" y1="35" x2="178" y2="207" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.32" stop-color="#A5F3FC"/>
+      <stop offset="0.68" stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#312E81"/>
+    </linearGradient>
+    <linearGradient id="diamond-crest" x1="102" y1="190" x2="142" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ECFEFF"/>
+      <stop offset="0.48" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+    <radialGradient id="diamond-aura">
+      <stop stop-color="#67E8F9" stop-opacity="0.5"/>
+      <stop offset="0.5" stop-color="#6366F1" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#312E81" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="diamond-blur" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <filter id="diamond-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .orbit { transform-box: fill-box; transform-origin: center; animation: orbit 14s linear infinite; }
+      .orbit.reverse { animation-direction: reverse; animation-duration: 19s; }
+      .shards { transform-box: fill-box; transform-origin: center; animation: float 2.8s ease-in-out infinite; }
+      .crest { transform-box: fill-box; transform-origin: top center; animation: crest 2.4s ease-in-out infinite; }
+      .glint { animation: glint 1.8s ease-in-out infinite; }
+      @keyframes orbit { to { transform: rotate(360deg); } }
+      @keyframes float { 50% { transform: translateY(-4px); } }
+      @keyframes crest { 50% { transform: translateY(3px) scale(1.04); } }
+      @keyframes glint { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+    </style>
+  </defs>
+
+  <circle cx="120" cy="116" r="103" fill="url(#diamond-aura)" filter="url(#diamond-blur)"/>
+
+  <g class="orbit" stroke-linecap="round">
+    <ellipse cx="120" cy="116" rx="99" ry="76" stroke="#A5F3FC" stroke-width="1.7" stroke-dasharray="3 13" opacity=".75"/>
+  </g>
+  <g class="orbit reverse" stroke-linecap="round">
+    <ellipse cx="120" cy="116" rx="80" ry="103" stroke="url(#diamond-metal)" stroke-width="2.2" stroke-dasharray="8 15" opacity=".65"/>
+  </g>
+
+  <g class="shards" fill="url(#diamond-metal)" stroke="#CFFAFE" stroke-width="1.2" stroke-linejoin="round" filter="url(#diamond-glow)">
+    <path d="M120 7 132 26 120 40 108 26Z"/>
+    <path d="m206 49 14 12-13 17-12-15Z"/>
+    <path d="m211 150 13 15-17 15-10-18Z"/>
+    <path d="M34 49 45 63 33 78 20 61Z"/>
+    <path d="m29 150 14 12-10 18-17-15Z"/>
+  </g>
+
+  <circle cx="120" cy="116" r="71" stroke="#1E1B4B" stroke-width="14" opacity=".82"/>
+  <circle cx="120" cy="116" r="68" stroke="url(#diamond-metal)" stroke-width="9" filter="url(#diamond-glow)"/>
+  <circle cx="120" cy="116" r="61.5" stroke="#ECFEFF" stroke-width="2" opacity=".85"/>
+
+  <g fill="#CFFAFE" filter="url(#diamond-glow)">
+    <path d="m120 38 7 10-7 8-7-8Z"/>
+    <path d="m198 116-10 7-8-7 8-7Z"/>
+    <path d="m120 194-7-10 7-8 7 8Z"/>
+    <path d="m42 116 10-7 8 7-8 7Z"/>
+    <path d="m175 61-2 12-11 1-1-11Z"/>
+    <path d="m175 171-12-2-1-11 11-1Z"/>
+    <path d="m65 171 2-12 11-1 1 11Z"/>
+    <path d="m65 61 12 2 1 11-11 1Z"/>
+  </g>
+
+  <g class="crest" stroke-linejoin="round" filter="url(#diamond-glow)">
+    <path d="m120 188 27 26-27 36-27-36Z" fill="url(#diamond-crest)" stroke="#312E81" stroke-width="3"/>
+    <path d="m120 188-15 26 15 36Z" fill="#CFFAFE" fill-opacity=".68"/>
+    <path d="m120 188 15 26-15 36Z" fill="#FFF" fill-opacity=".28"/>
+    <path d="m93 214 27-9 27 9-27 10Z" stroke="#A5F3FC" stroke-width="2"/>
+  </g>
+
+  <g class="glint" fill="#FFF">
+    <path d="m58 48 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"/>
+    <path d="m188 90 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/>
+  </g>
+</svg>

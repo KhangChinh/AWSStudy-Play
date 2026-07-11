@@ -87,6 +87,7 @@ const UserProfileWidget = ({
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
+  const frameAssetUrl = cosmeticManager.getCosmeticInfo('frames', currentFrame)?.frameAssetUrl;
   const displayName = userProfile?.information?.name || 'Unde_user';
   const rp = userProfile?.studyStats?.rankScore ?? 0;
   const rankInfo = getRankInfo(rp);
@@ -94,7 +95,7 @@ const UserProfileWidget = ({
 
   return (
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
-      <RankFrame tier={frameTier} size={64} className="widget-rank-frame">
+      <RankFrame tier={frameTier} size={64} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
         {userProfile?.information?.avatarUrl ? (
           <img src={(import.meta.env.VITE_S3_ASSETS_URL || '') + userProfile.information.avatarUrl} alt="avatar" className="avatar-img" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
         ) : (
@@ -106,11 +107,10 @@ const UserProfileWidget = ({
           <span className="username">{displayName}</span>
         </div>
         <div className="title-rank-line">
-          <span className="user-title" style={{ color: titleData.color }}>[{titleName}]</span>
-          <span className={`user-rank rank-${currentRank}`}>
-            {rankInfo.label} &nbsp;
-            <span className="rp-value">({rp} RP)</span>
-          </span>
+          {titleData && titleName && (
+            <span className="user-title" style={{ color: titleData.color }}>[{titleName}]</span>
+          )}
+          <span className={`user-rank rank-${currentRank}`}>{t('dashboard.rank')}: {rankLabel} ({userProfile?.studyStats?.rankScore || 0} RP)</span>
         </div>
         {rankInfo.tier !== 'master' && (
           <div className="rank-progress-bar">

@@ -1,0 +1,20 @@
+.rank-frame-diamond {
+  --rf-light: #ffffff;
+  --rf-mid: #67e8f9;
+  --rf-dark: #3730a3;
+  --rf-glow: rgba(34, 211, 238, 0.72);
+  --rf-gem: #a5f3fc;
+}
+
+.rank-frame-diamond.has-external-art {
+  filter: drop-shadow(0 8px 20px rgba(99, 102, 241, 0.58));
+}
+
+.rank-frame-diamond.has-external-art .rf-window {
+  left: 25.5%;
+  top: 20.1%;
+  width: 49%;
+  height: 43.9%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(30, 41, 84, 0.76), rgba(4, 8, 24, 0.92));
+}

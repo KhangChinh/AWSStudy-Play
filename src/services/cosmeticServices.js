@@ -49,6 +49,16 @@ const resolveAutoImage = (item) => {
   return assetUrl(`items/${item.itemType}/${folderId}/${itemId}.jpg`);
 };
 
+const resolveFrameAsset = (item) => {
+  if (item?.itemType !== 'frame') return '';
+
+  const configuredPath = item.assets?.frame || item.assets?.svg;
+  const inferredPath = item.assets?.css?.replace(/\.css(?:\?.*)?$/i, '.svg');
+  const framePath = configuredPath || inferredPath;
+
+  return framePath ? assetUrl(framePath) : '';
+};
+
 const formatName = (sk) => {
   return (sk || '').replace(/^bg_/, '').split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
@@ -85,6 +95,7 @@ class CosmeticManager {
       if (!itemId) return;
 
       const resolvedImageUrl = item.imageUrl ? assetUrl(item.imageUrl) : resolveAutoImage(item);
+      const resolvedFrameAssetUrl = resolveFrameAsset(item);
       const imageStyles = resolvedImageUrl ? imageBackgroundStyles(resolvedImageUrl) : null;
       const idx = this.data[category].findIndex(i => i.id === itemId || i.SK === itemId);
       const existing = idx > -1 ? this.data[category][idx] : null;
@@ -96,6 +107,7 @@ class CosmeticManager {
         id: itemId,
         name: item.name || existing?.name || formatName(itemId),
         imageUrl: resolvedImageUrl,
+        frameAssetUrl: resolvedFrameAssetUrl || existing?.frameAssetUrl || '',
         preview: imageStyles?.preview || existing?.preview,
         profileBackground: imageStyles?.profileBackground || existing?.profileBackground,
         desktopBackground: imageStyles?.desktopBackground || existing?.desktopBackground,

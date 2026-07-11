@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import './RankFrame.scss';
 
 const FRAME_STYLE = {
@@ -39,21 +39,38 @@ const BigWing = ({ side }) => {
   );
 };
 
-const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
+const RankFrame = ({ tier = 'none', size = 96, children, className = '', frameAssetUrl = '' }) => {
   const uid = useId().replace(/:/g, '');
+  const [isExternalFrameReady, setIsExternalFrameReady] = useState(false);
   const t = FRAME_STYLE;
   const metal = `metal-${uid}`;
   const sheen = `sheen-${uid}`;
   const glow = `glow-${uid}`;
 
+  useEffect(() => {
+    setIsExternalFrameReady(false);
+  }, [frameAssetUrl]);
+
   return (
     <div
-      className={`rank-frame-badge rank-frame-${tier} ${className}`}
+      className={`rank-frame-badge rank-frame-${tier} ${isExternalFrameReady ? 'has-external-art' : ''} ${className}`}
       style={{ width: size, '--rf-icon': `${Math.round(size * 0.38)}px` }}
     >
       <div className="rf-window">
         {children}
       </div>
+
+      {frameAssetUrl && (
+        <img
+          className="rf-external-art"
+          src={frameAssetUrl}
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+          onLoad={() => setIsExternalFrameReady(true)}
+          onError={() => setIsExternalFrameReady(false)}
+        />
+      )}
 
       <svg viewBox="0 0 240 268" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -167,6 +184,7 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '' }) => {
             </>
           )}
         </g>
+
       </svg>
 
     </div>

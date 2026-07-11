@@ -16,6 +16,31 @@
     width: 100%;
     height: 100%;
     overflow: visible;
+    z-index: 2;
+    transition: opacity 0.2s ease;
+  }
+
+  .rf-external-art {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &.has-external-art {
+    > svg {
+      opacity: 0;
+    }
+
+    .rf-external-art {
+      opacity: 1;
+    }
   }
 
   /* Cửa sổ chứa avatar – trùng với khung vuông trong viewBox (x60..180, y56..176) */
@@ -33,6 +58,7 @@
     background-color: rgba(8, 12, 28, 0.55); // Trả lại nền cho cửa sổ
     font-size: var(--rf-icon, 32px);
     color: rgba(255, 255, 255, 0.85);
+    z-index: 1;
 
     img,
     ion-icon {
@@ -65,8 +91,8 @@
 }
 
 @keyframes rf-glow-pulse {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.3); }
+  0%, 100% { filter: brightness(1) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45)); }
+  50% { filter: brightness(1.3) drop-shadow(0 6px 18px var(--rf-glow)); }
 }
 
 @keyframes rf-spin {
@@ -81,4 +107,81 @@
 
 .rank-frame-none .rf-crown {
   display: none;
+}
+
+/* Local frame palette. Cloud inventory items with matching ids automatically
+   inherit these styles everywhere RankFrame is used. */
+.rank-frame-sapphire {
+  --rf-light: #bae6fd;
+  --rf-mid: #3b82f6;
+  --rf-dark: #1e3a8a;
+  --rf-glow: rgba(59, 130, 246, 0.58);
+  --rf-gem: #67e8f9;
+}
+
+.rank-frame-amethyst {
+  --rf-light: #f3e8ff;
+  --rf-mid: #a855f7;
+  --rf-dark: #581c87;
+  --rf-glow: rgba(168, 85, 247, 0.6);
+  --rf-gem: #e879f9;
+}
+
+.rank-frame-stone_1 {
+  --rf-light: #fff1f2;
+  --rf-mid: #f0abfc;
+  --rf-dark: #7e22ce;
+  --rf-glow: rgba(232, 121, 249, 0.62);
+  --rf-gem: #ffffff;
+}
+
+.rank-frame-stone_2 {
+  --rf-light: #a78bfa;
+  --rf-mid: #312e81;
+  --rf-dark: #09090b;
+  --rf-glow: rgba(99, 102, 241, 0.68);
+  --rf-gem: #c4b5fd;
+}
+
+.rank-frame-solar {
+  --rf-light: #fff7b2;
+  --rf-mid: #f97316;
+  --rf-dark: #991b1b;
+  --rf-glow: rgba(249, 115, 22, 0.7);
+  --rf-gem: #fde047;
+}
+
+.rank-frame-sapphire .rf-halo,
+.rank-frame-amethyst .rf-halo,
+.rank-frame-stone_1 .rf-halo,
+.rank-frame-stone_2 .rf-halo,
+.rank-frame-solar .rf-halo {
+  display: block;
+}
+
+.rank-frame-stone_1 .rf-wing,
+.rank-frame-stone_2 .rf-wing,
+.rank-frame-solar .rf-wing {
+  display: block;
+}
+
+.rank-frame-stone_2 .rf-bigwing,
+.rank-frame-solar .rf-bigwing {
+  display: block;
+}
+
+.rank-frame-sapphire,
+.rank-frame-amethyst,
+.rank-frame-stone_1,
+.rank-frame-stone_2,
+.rank-frame-solar {
+  animation: rf-glow-pulse 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-frame-badge,
+  .rank-frame-badge .rf-spark,
+  .rank-frame-badge .rf-halo {
+    animation: none;
+  }
 }

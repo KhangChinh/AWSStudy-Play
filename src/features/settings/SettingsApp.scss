@@ -1,16 +1,18 @@
 .settings-app {
   padding: 10px;
+  background: #0b1220;
+  border-radius: 18px;
 
   .section {
     margin-bottom: 32px;
-    background: rgba(255, 255, 255, 0.02);
+    background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 16px;
     padding: 20px;
     transition: all 0.3s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.04);
+      background: #172033;
       border-color: rgba(192, 132, 252, 0.2);
     }
 
@@ -84,7 +86,7 @@
         
         .btn-upload-trigger {
           margin-top: 8px;
-          background: rgba(192, 132, 252, 0.1);
+          background: #2e1d47;
           color: #c084fc;
           border: 1px solid rgba(192, 132, 252, 0.3);
           padding: 6px 16px;
@@ -149,7 +151,7 @@
     }
 
     .btn-rename {
-      background: rgba(192, 132, 252, 0.1);
+      background: #2e1d47;
       color: #c084fc;
       border: 1px solid rgba(192, 132, 252, 0.3);
       padding: 10px 20px;
@@ -176,7 +178,7 @@
     animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     .rename-field {
-      background: rgba(15, 23, 42, 0.8);
+      background: #0f172a;
       border: 2px solid rgba(192, 132, 252, 0.3);
       border-radius: 12px;
       color: #fff;
@@ -194,7 +196,7 @@
         box-shadow: 
           inset 0 2px 4px rgba(0, 0, 0, 0.3),
           0 0 15px rgba(192, 132, 252, 0.2);
-        background: rgba(15, 23, 42, 0.95);
+        background: #162033;
       }
 
       &:disabled {
@@ -221,7 +223,7 @@
     }
 
     .btn-save-name {
-      background: rgba(16, 185, 129, 0.15);
+      background: #123c32;
       color: #10b981;
       border: 1px solid rgba(16, 185, 129, 0.3);
       
@@ -233,7 +235,7 @@
     }
 
     .btn-cancel-name {
-      background: rgba(239, 68, 68, 0.15);
+      background: #492027;
       color: #ef4444;
       border: 1px solid rgba(239, 68, 68, 0.3);
 
@@ -271,7 +273,7 @@
   padding-bottom: 10px;
 
   .tab-btn {
-    background: transparent;
+    background: #111827;
     border: none;
     color: #94a3b8;
     padding: 10px 16px;
@@ -289,12 +291,12 @@
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: #1e293b;
       color: #fff;
     }
 
     &.active {
-      background: rgba(192, 132, 252, 0.2);
+      background: #3b2455;
       color: #c084fc;
     }
   }
@@ -312,7 +314,7 @@
 }
 
 .ai-setting-row {
-  background: rgba(15, 23, 42, 0.4);
+  background: #111827;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   padding: 16px;
@@ -332,12 +334,12 @@
 
     .ai-toggle {
       display: flex;
-      background: rgba(0, 0, 0, 0.3);
+      background: #020617;
       border-radius: 8px;
       padding: 4px;
 
       .toggle-btn {
-        background: transparent;
+        background: #0f172a;
         border: none;
         color: #94a3b8;
         padding: 6px 12px;
@@ -369,7 +371,7 @@
       }
 
       select, input {
-        background: rgba(255, 255, 255, 0.05);
+        background: #0f172a;
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 8px;
         color: #fff;

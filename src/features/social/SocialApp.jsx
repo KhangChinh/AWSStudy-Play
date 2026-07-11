@@ -23,6 +23,7 @@ import {
 } from '../../services/socialServices';
 import { setSocial, appendSocial, mergeSocialFriends } from '../../store/actions';
 import RankFrame from '../../components/RankFrame';
+import { cosmeticManager } from '../../services/cosmeticServices';
 import './SocialApp.scss';
 
 const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
@@ -235,12 +236,14 @@ class SocialApp extends Component {
 
   renderFramedAvatar = (source, avatarUrl, alt = 'avatar', size = 64) => {
     const tier = getFrameTier(source);
+    const frameId = getEquippedFrameId(source);
+    const frameAssetUrl = cosmeticManager.getCosmeticInfo('frames', frameId)?.frameAssetUrl;
     if (tier === 'none') {
       return this.renderAvatar(avatarUrl, alt);
     }
 
     return (
-      <RankFrame tier={tier} size={size} className="social-rank-frame">
+      <RankFrame tier={tier} size={size} className="social-rank-frame" frameAssetUrl={frameAssetUrl}>
         {this.renderAvatar(avatarUrl, alt)}
       </RankFrame>
     );
