@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { withTranslation } from 'react-i18next';
+import { Trans, withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import GachaAnimation from './GachaAnimation';
 import { IonIcon } from '@ionic/react';
@@ -11,15 +11,13 @@ import './GachaApp.scss';
 import { BANNERS } from '../../data/banners';
 import { ITEMS } from '../../data/items';
 import { S3_ASSETS_BASE } from '../../data/cosmetics';
-import { cosmeticManager } from '../../services/cosmeticServices';
-import { applyGachaResult, handleGachaApi } from '../../services/gachaServices';
+import { applyGachaResult, getGachaMasterItems, handleGachaApi } from '../../services/gachaServices';
 import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
+import { handleSyncGachaHistoryApi } from '../../services/syncService';
 import currencyAssets from '../../data/currencyAssets';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
-const SR_HARD_PITY = 10;
-const SSR_HARD_PITY = 80;
 
 class GachaApp extends Component {
   constructor(props) {
@@ -30,18 +28,19 @@ class GachaApp extends Component {
       rewards: [],
       pity5: 0,
       pity4: 0,
-      guaranteedSSR: false, // 50/50 state
+      guaranteedHighest: false, // 50/50 state
       totalRolls: 0,
       activeBanner: BANNERS[0],
       timeLeftStr: '',
       historyItems: [],
       pendingRolls: null,
-      pendingGachaResult: null,
       showDetails: false,
       detailTab: 'rates',
       detailPage: 0,
       isSubmitting: false,
       pendingConfirmRollCount: null,
+      serverItems: [],
+      isLoadingHistory: false,
     };
     this.timer = null;
   }
@@ -130,7 +129,14 @@ class GachaApp extends Component {
           </div>
 
           <div className="gacha-confirm-message">
-            Thiếu {missingCore.toLocaleString()} {t('common.knowledge_core')}, có muốn dùng {pointCost.toLocaleString()} {t('common.knowledge_points')} để mua?
+            <Trans
+              i18nKey="gacha.missing_core_confirm"
+              values={{
+                missingCore: missingCore.toLocaleString(),
+                pointCost: pointCost.toLocaleString(),
+              }}
+              components={{ number: <span className="confirm-number" /> }}
+            />
           </div>
 
 
@@ -150,12 +156,18 @@ class GachaApp extends Component {
   };
 
 
-  componentDidMount() {
+  async componentDidMount() {
     this.syncGachaStateFromProfile(this.props.userProfile);
     this.setState({
       activeBanner: BANNERS[0],
       historyItems: this.props.gachaHistory || [],
     });
+    try {
+      const serverItems = await getGachaMasterItems();
+      this.setState({ serverItems });
+    } catch (error) {
+      console.warn('[GachaApp] Could not load gacha items:', error.message);
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -175,7 +187,7 @@ class GachaApp extends Component {
     this.setState({
       pity5: Number(stats.pity5Star) || 0,
       pity4: Number(stats.pity4Star) || 0,
-      guaranteedSSR: Boolean(stats.is5StarGuaranteed),
+      guaranteedHighest: Boolean(stats.is5StarGuaranteed),
     });
   };
 
@@ -195,48 +207,51 @@ class GachaApp extends Component {
   };
 
   normalizeServerReward = (reward, index) => {
-    const numericRarity = Number(reward.rarity) || 3;
-    const rarity = numericRarity >= 5 ? 'SSR' : numericRarity >= 4 ? 'SR' : 'R';
-
-    const conversionAmount = Number(reward.convertedTo) || 0;
+    const rewardId = reward.SK || reward.id || reward.itemId;
+    const masterItem = this.state.serverItems.find(item => (
+      (rewardId && (item.SK === rewardId || item.id === rewardId))
+      || (reward.name && item.name === reward.name)
+    ));
+    const localItem = (rewardId && ITEMS[rewardId])
+      || Object.values(ITEMS).find(item => item.name === reward.name);
+    const isSanityReward = reward.type === 'sanity'
+      || reward.name === 'Sanity'
+      || Boolean(reward.amount && !masterItem && !localItem);
+    const canonicalItemRarity = masterItem?.rarity ?? localItem?.rarity;
+    const numericRarity = isSanityReward
+      ? 3
+      : (Number(canonicalItemRarity ?? reward.rarity) || 3);
+    const rarityValue = numericRarity >= 5 ? 5 : numericRarity >= 4 ? 4 : 3;
+    const canonicalIcon = localItem?.icon
+      || (masterItem ? this.resolveRewardIcon(masterItem) : null);
 
     return {
       id: reward.SK || reward.id || `${reward.name || 'reward'}-${index}`,
-      name: conversionAmount ? `Sanity x${conversionAmount}` : (reward.name || (reward.amount ? `Sanity x${reward.amount}` : 'Sanity')),
-      sourceName: conversionAmount ? reward.name : null,
-      icon: conversionAmount ? currencyAssets.sanity : this.resolveRewardIcon(reward),
-      rarity,
-      type: numericRarity === 3 ? 'currency' : 'item',
+      name: reward.name || (reward.amount ? `Sanity x${reward.amount}` : 'Sanity'),
+      icon: canonicalIcon || this.resolveRewardIcon(reward),
+      rarity: rarityValue,
+      type: rarityValue === 3 ? 'currency' : 'item',
       amount: reward.amount,
       isConverted: Boolean(reward.isConverted),
-      conversionResult: conversionAmount ? { id: 'item_sanity', amount: conversionAmount } : null,
+      conversionResult: reward.convertedTo ? {
+        id: 'item_sanity',
+        name: `Sanity x${reward.convertedTo}`,
+        icon: currencyAssets.sanity,
+        amount: reward.convertedTo,
+      } : null,
       timestamp: Date.now() + index,
     };
   };
 
   getHighestRarity = (rewards) => {
-    const rarityOrder = ['R', 'SR', 'SSR'];
     return rewards.reduce((highest, reward) => (
-      rarityOrder.indexOf(reward.rarity) > rarityOrder.indexOf(highest) ? reward.rarity : highest
-    ), 'R');
+      Number(reward.rarity) > Number(highest) ? reward.rarity : highest
+    ), 3);
   };
 
 
   getItemMeta = (item) => {
     const itemId = item?.itemId || item?.id || item?.SK;
-    const masterItems = cosmeticManager.getMasterItems();
-    const masterItem = masterItems.find(meta => (
-      meta.SK === itemId || (item?.name && meta.name === item.name)
-    ));
-    if (masterItem) {
-      return {
-        ...masterItem,
-        id: masterItem.SK,
-        rarity: this.getHistoryRarityClass(masterItem.rarity),
-        icon: this.resolveRewardIcon(masterItem),
-      };
-    }
-
     if (itemId && ITEMS[itemId]) return ITEMS[itemId];
 
     const itemName = (item?.name || '').toLowerCase();
@@ -248,48 +263,67 @@ class GachaApp extends Component {
   getBannerRateRows = () => {
     const { activeBanner } = this.state;
     const rates = activeBanner?.rates || {};
-    const rows = [];
+    const serverItems = this.state.serverItems;
+    const groups = [];
 
-    const masterPool = cosmeticManager.getMasterItems().filter(item => item.collectFrom === 'gacha');
-    const addRows = (rank, rarity) => {
-      const tierItems = masterPool.filter(item => Number(item.rarity) === rarity);
-      const limited = tierItems.filter(item => item.isLimited === true);
-      const standard = tierItems.filter(item => item.isLimited !== true);
-      const tierRate = Number(rates[rank] || 0);
-
-      tierItems.forEach(item => {
-        const group = item.isLimited === true ? limited : standard;
-        const groupRate = limited.length && standard.length ? tierRate / 2 : tierRate;
-        rows.push({
-          id: item.SK,
-          name: item.name || item.SK,
-          rarity: rank,
-          rate: group.length ? groupRate / group.length : 0,
-        });
-      });
+    const addGroup = (star) => {
+      const tierRate = Number(rates[star] || 0);
+      const remoteItems = serverItems.filter(item => Number(item.rarity) === star);
+      const fallbackIds = activeBanner?.featured?.[star] || [];
+      const sourceItems = remoteItems.length ? remoteItems : fallbackIds.map(id => ITEMS[id] || { id, name: id, rarity: star });
+      const itemRate = sourceItems.length ? tierRate / sourceItems.length : tierRate;
+      const items = sourceItems.map(item => ({ id: item.SK || item.id, name: item.name || item.SK || item.id, rarity: star, rate: itemRate }));
+      if (items.length) groups.push({ star, items });
     };
 
-    addRows('SSR', 5);
-    addRows('SR', 4);
-    rows.push({ id: 'item_sanity', name: ITEMS.item_sanity?.name || 'Sanity', rarity: 'R', rate: Number(rates.R || 0) });
+    addGroup(5);
+    addGroup(4);
+    // 3★ is always sanity
+    groups.push({
+      star: 3,
+      items: [{ id: 'item_sanity', name: ITEMS.item_sanity?.name || 'Sanity', rarity: 3, rate: Number(rates[3] || 0) }],
+    });
 
-    return rows;
+    return groups;
   };
 
+  // Returns CSS class for rarity: 'star-5' | 'star-4' | 'star-3'
   getHistoryRarityClass = (rarity) => {
-    const value = String(rarity || '').toUpperCase();
-    if (value === 'SSR' || value === '5' || value === '5L') return 'SSR';
-    if (value === 'SR' || value === '4' || value === '4L') return 'SR';
-    return 'R';
+    const value = Number(rarity);
+    if (value === 5) return 'star-5';
+    if (value === 4) return 'star-4';
+    return 'star-3';
   };
+
+  handleNextHistoryPage = async () => {
+    const { detailPage, historyItems, isLoadingHistory } = this.state;
+    const loadedPages = Math.ceil(historyItems.length / 5);
+
+    if (detailPage < loadedPages - 1) {
+      this.setState({ detailPage: detailPage + 1 });
+      return;
+    }
+
+    if (isLoadingHistory || !this.props.gachaHistoryHasMore) return;
+
+    this.setState({ isLoadingHistory: true });
+    const result = await handleSyncGachaHistoryApi();
+    this.setState({ isLoadingHistory: false });
+
+    if (result?.gachaHistory?.length) {
+      this.setState({ detailPage: detailPage + 1 });
+    }
+  };
+
   handleRoll = async (count) => {
     if (this.state.isPlaying || this.state.isSubmitting) return;
 
     this.setState({ isSubmitting: true });
 
     try {
-      const gachaResult = await handleGachaApi(count === 10);
-      const rewards = (gachaResult?.pulledItems || []).map(this.normalizeServerReward);
+      const result = await handleGachaApi(count === 10);
+      await applyGachaResult(result);
+      const rewards = (result?.pulledItems || []).map(this.normalizeServerReward);
 
       if (!rewards.length) {
         throw new Error(this.props.t('gacha.empty_rewards_error'));
@@ -302,39 +336,12 @@ class GachaApp extends Component {
         hasNewItem: rewards.some((reward) => reward.type !== 'currency' && !reward.isConverted),
         currentRarity: this.getHighestRarity(rewards),
         rewards,
-        pendingGachaResult: gachaResult,
         pendingRolls: {
           totalRolls: this.state.totalRolls + count,
         }
       });
     } catch (error) {
       this.setState({ isSubmitting: false });
-      toast.error(error.message || this.props.t('common.error'));
-    }
-  };
-
-  handleAnimationComplete = async () => {
-    const { pendingRolls, pendingGachaResult } = this.state;
-    if (!pendingRolls || !pendingGachaResult) {
-      this.setState({ isPlaying: false });
-      return;
-    }
-
-    try {
-      await applyGachaResult(pendingGachaResult);
-      const stats = pendingGachaResult.profile?.gachaStats || {};
-      this.setState({
-        isPlaying: false,
-        totalRolls: pendingRolls.totalRolls,
-        pity5: Number(stats.pity5Star) || 0,
-        pity4: Number(stats.pity4Star) || 0,
-        guaranteedSSR: Boolean(stats.is5StarGuaranteed),
-        historyItems: pendingGachaResult.gachaHistory || [],
-        pendingRolls: null,
-        pendingGachaResult: null,
-      });
-    } catch (error) {
-      this.setState({ isPlaying: false });
       toast.error(error.message || this.props.t('common.error'));
     }
   };
@@ -370,9 +377,9 @@ class GachaApp extends Component {
             <div className="banner-description">
               <p dangerouslySetInnerHTML={{ __html: this.props.t('gacha.rate_up_desc') }} />
               <div className="featured-list">
-                <div className="featured-item gold">{this.props.t('gacha.featured_ssr')}: {ITEMS[activeBanner.featured.SSR[0]]?.name}</div>
-                {activeBanner.featured.SR.map(id => (
-                  <div key={id} className="featured-item purple">{this.props.t('gacha.featured_sr')}: {ITEMS[id]?.name}</div>
+                <div className="featured-item gold">{this.props.t('gacha.featured_5_star')}: {ITEMS[activeBanner.featured[5]?.[0]]?.name}</div>
+                {(activeBanner.featured[4] || []).map(id => (
+                  <div key={id} className="featured-item purple">{this.props.t('gacha.featured_4_star')}: {ITEMS[id]?.name}</div>
                 ))}
               </div>
             </div>
@@ -390,11 +397,10 @@ class GachaApp extends Component {
             </button>
             <div className="pity-summary">
               <div className="pity-line purple">
-                {this.props.t('gacha.pull')}: <span className="count">{Math.max(1, SR_HARD_PITY - pity4)}</span> <span className="rank">SR-Rank</span> {this.props.t('gacha.guaranteed')}!
+                {this.props.t('gacha.pull')}: <span className="count">{10 - pity4}</span> <span className="rank">4★-Rank</span> {this.props.t('gacha.guaranteed')}!
               </div>
               <div className="pity-line gold">
-                {this.props.t('gacha.pull')}: <span className="count">{Math.max(1, SSR_HARD_PITY - pity5)}</span> <span className="rank">SSR-Rank</span> {this.props.t('gacha.guaranteed')}!
-                {this.state.guaranteedSSR && <span className="guaranteed-state"> ({this.props.t('gacha.featured_guaranteed')})</span>}
+                {this.props.t('gacha.pull')}: <span className="count">{90 - pity5}</span> <span className="rank">5★-Rank</span> {this.props.t('gacha.guaranteed')}!
               </div>
             </div>
           </div>
@@ -431,23 +437,29 @@ class GachaApp extends Component {
               </div>
 
               <div className="modal-tabs">
-                <button className={this.state.detailTab === 'rates' ? 'active' : ''} onClick={() => this.setState({ detailTab: 'rates' })}>Detail</button>
-                <button className={this.state.detailTab === 'history' ? 'active' : ''} onClick={() => this.setState({ detailTab: 'history', detailPage: 0 })}>History</button>
+                <button className={this.state.detailTab === 'rates' ? 'active' : ''} onClick={() => this.setState({ detailTab: 'rates' })}>{this.props.t('gacha.details')}</button>
+                <button className={this.state.detailTab === 'history' ? 'active' : ''} onClick={() => this.setState({ detailTab: 'history', detailPage: 0 })}>{this.props.t('gacha.history')}</button>
               </div>
 
               {this.state.detailTab === 'rates' ? (
                 <div className="detail-list rate-list">
-                  {this.getBannerRateRows().map(row => (
-                    <div key={row.id} className={`detail-item ${row.rarity}`}>
-                      <div className="item-main">
-                        <div className="item-info">
-                          <span className="name">{row.name}</span>
-                          <span className="rarity-tag">{row.rarity}</span>
+                  {this.getBannerRateRows().map(group => {
+                    const starLabel = `${group.star}\u2605`;
+                    const tierClass = group.star === 5 ? 'star-5' : group.star === 4 ? 'star-4' : 'star-3';
+                    return (
+                      <div key={group.star} className={`rate-group ${tierClass}`}>
+                        <div className="rate-group-header">{starLabel}</div>
+                        <div className="rate-group-items">
+                          {group.items.map(row => (
+                            <div key={row.id} className="rate-row">
+                              <span className="name">{row.name}</span>
+                              <span className="rate-value">{(row.rate * 100).toFixed(2)}%</span>
+                            </div>
+                          ))}
                         </div>
-                        <span className="rate-value">{(row.rate * 100).toFixed(2)}%</span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <>
@@ -467,16 +479,13 @@ class GachaApp extends Component {
                           rarity: this.getHistoryRarityClass(item.rarity),
                         };
                         const rarityClass = this.getHistoryRarityClass(meta.rarity || item.rarity);
-                        const sanityAmount = Number(item.sanityAmount) || 0;
-                        const isDuplicate = sanityAmount > 0 && item.name !== 'Sanity';
-                        const displayName = sanityAmount > 0 ? `Sanity x${sanityAmount}` : meta.name;
 
                         return (
                           <div key={`${item.SK || item.timestamp || itemId || item.name || 'item'}-${idx}`} className={`detail-item ${rarityClass}`}>
                             <div className="item-main">
                               <div className="item-info">
-                                <span className="name">{displayName}</span>
-                                <span className="rarity-tag">{rarityClass}</span>
+                                <span className="name">{meta.name}</span>
+                                <span className="rarity-tag">{rarityClass === 'star-5' ? '5★' : rarityClass === 'star-4' ? '4★' : '3★'}</span>
                               </div>
                             </div>
                             <div className="item-footer">
@@ -486,7 +495,7 @@ class GachaApp extends Component {
                                   hour: '2-digit', minute: '2-digit', second: '2-digit'
                                 })}
                               </span>
-                              {isDuplicate && <span className="dup-label">({meta.name} converted to Sanity)</span>}
+                              {(item.isDuplicate || item.sanityAmount > 0) && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
                             </div>
                           </div>
                         );
@@ -501,10 +510,19 @@ class GachaApp extends Component {
                     >
                       <IonIcon icon={chevronBackOutline} />
                     </button>
-                    <span>{this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil(this.state.historyItems.length / 5) || 1}</span>
+                    <span>
+                      {this.props.t('gacha.page')} {this.state.detailPage + 1} / {Math.ceil(this.state.historyItems.length / 5) || 1}
+                      {this.props.gachaHistoryHasMore ? '+' : ''}
+                    </span>
                     <button
-                      disabled={this.state.detailPage >= Math.ceil(this.state.historyItems.length / 5) - 1}
-                      onClick={() => this.setState({ detailPage: this.state.detailPage + 1 })}
+                      disabled={
+                        this.state.isLoadingHistory
+                        || (
+                          this.state.detailPage >= Math.ceil(this.state.historyItems.length / 5) - 1
+                          && !this.props.gachaHistoryHasMore
+                        )
+                      }
+                      onClick={this.handleNextHistoryPage}
                     >
                       <IonIcon icon={chevronForwardOutline} />
                     </button>
@@ -521,7 +539,18 @@ class GachaApp extends Component {
           rarity={currentRarity}
           rewards={rewards}
           t={this.props.t}
-          onComplete={this.handleAnimationComplete}
+          onComplete={() => {
+            const { pendingRolls } = this.state;
+            if (!pendingRolls) {
+              this.setState({ isPlaying: false });
+              return;
+            }
+            this.setState({
+              isPlaying: false,
+              totalRolls: pendingRolls.totalRolls,
+              historyItems: this.props.gachaHistory || [],
+            });
+          }}
         />
       </div>
     );
@@ -531,6 +560,7 @@ class GachaApp extends Component {
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
   gachaHistory: state.gacha.gachaHistory,
+  gachaHistoryHasMore: state.gacha.hasMore,
 });
 
 const mapDispatchToProps = (dispatch) => ({

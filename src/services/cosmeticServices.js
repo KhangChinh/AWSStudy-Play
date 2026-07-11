@@ -3,6 +3,7 @@
  */
 
 import { getValidAccessToken } from './tokenService';
+import { ingestErrorResponse } from './apiErrorService';
 import { COSMETICS, S3_ASSETS_BASE } from '../data/cosmetics';
 
 const normalizeBase = (base) => (base || '').replace(/\/+$/, '');
@@ -188,7 +189,7 @@ const authFetch = async (endpoint, options = {}) => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = await ingestErrorResponse(response);
     throw new Error(errorData.message || `API Error: ${response.status}`);
   }
 

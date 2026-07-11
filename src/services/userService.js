@@ -1,4 +1,5 @@
 import { getValidAccessToken } from './tokenService';
+import { ingestErrorResponse } from './apiErrorService';
 // CHUYỂN QUA PROFILE SERVICE, GIỮ ĐỂ BIẾT CÒN CẦN CHỨC NĂNG NÀY
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -14,7 +15,10 @@ const getAvatarUploadUrl = async (fileName, fileType) => {
       },
       body: JSON.stringify({ fileName, fileType }),
     });
-    if (!response.ok) return { success: false, error: `API Error: ${response.status}` };
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      return { success: false, error: errorData.message || `API Error: ${response.status}` };
+    }
     return await response.json();
   } catch (error) {
     return { success: false, error: error.message };
@@ -33,7 +37,10 @@ const updateAvatarUrl = async (avatarUrl) => {
       },
       body: JSON.stringify({ avatarUrl }),
     });
-    if (!response.ok) return { success: false, error: `API Error: ${response.status}` };
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      return { success: false, error: errorData.message || `API Error: ${response.status}` };
+    }
     return await response.json();
   } catch (error) {
     return { success: false, error: error.message };

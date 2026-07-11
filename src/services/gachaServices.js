@@ -1,9 +1,22 @@
 import { store } from '../store';
 import { getValidAccessToken } from './tokenService';
 import { ingestServerData, hasInventorySyncServerError } from './syncService';
+import { ingestErrorResponse } from './apiErrorService';
 import { KNOWLEDGE_POINTS_PER_CORE } from './currencyServices';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+export const getGachaMasterItems = async () => {
+  const token = await getValidAccessToken();
+  if (!token) throw new Error('No auth token. Please sign in again.');
+  const response = await fetch(`${API_URL}/master-data`, { headers: { 'Authorization': `Bearer ${token}` } });
+  if (!response.ok) {
+    const errData = await ingestErrorResponse(response);
+    throw new Error(errData.message || `Server error (${response.status})`);
+  }
+  const result = await response.json();
+  return (result.items || []).filter((item) => item.collectFrom === 'gacha');
+};
 
 const isDuplicateKeyError = (error) => (
   /contains duplicates/i.test(error?.message || '')
@@ -25,7 +38,7 @@ const postGacha = async (token, isx10) => {
   });
 
   if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
+    const errData = await ingestErrorResponse(response);
     const error = new Error(errData.message || `Server error (${response.status})`);
     error.status = response.status;
     throw error;

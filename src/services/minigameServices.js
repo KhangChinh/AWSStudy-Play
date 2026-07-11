@@ -71,7 +71,11 @@ const handleSyncSudokuLevels = async () => {
             }
         });
 
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            await ingestServerData(errorData);
+            throw new Error(errorData.message || `API Error: ${response.status}`);
+        }
         const syncResult = await response.json();
 
         if (syncResult && syncResult.levels) {
@@ -148,10 +152,12 @@ const handleStartSession = async (gameId, levelId) => {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+            await ingestServerData(errorData);
             throw new Error(errorData.message || `API Error: ${response.status}`);
         }
 
         const result = await response.json();
+        if (!response.ok) await ingestServerData(result);
 
         // 5. Ingest profile mới nhất (server đã trừ sanity)
         if (result && result.success && result.profile) {
@@ -186,6 +192,7 @@ const handleCheckSudokuStep = async (currentGridStr, actionLogs) => {
         });
 
         const result = await response.json();
+        if (!response.ok) await ingestServerData(result);
         if (!response.ok) throw new Error(result.message || 'Lỗi kiểm tra bàn cờ');
 
         return result;
@@ -211,6 +218,7 @@ const handleSubmitSudoku = async (levelId, finalGridStr, actionLogs, endState = 
         });
 
         const result = await response.json();
+        if (!response.ok) await ingestServerData(result);
 
         // Nếu API trả về profile mới thì dùng ingestServerData lưu vào Redux + Electron
         if (result.success && result.profile) {

@@ -18,8 +18,8 @@ const getKnowledgePointBalance = (profile) => {
 };
 
 const ingestErrorProfile = async (payload, fallbackStatus) => {
-  if (payload?.profile) {
-    await ingestServerData({ profile: payload.profile });
+  if (payload && Object.keys(payload).length > 0) {
+    await ingestServerData(payload);
     return;
   }
   if (fallbackStatus === 400 || fallbackStatus === 402) {

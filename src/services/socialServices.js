@@ -4,6 +4,7 @@
  */
 
 import { getValidAccessToken } from './tokenService';
+import { ingestErrorResponse } from './apiErrorService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -23,7 +24,10 @@ export const handleGetFriendsApi = async (lastKey = null) => {
         'Authorization': `Bearer ${token}`
       }
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (e) {
     console.warn('Error getting friends:', e);
@@ -47,7 +51,10 @@ export const handleSendFriendRequestApi = async (targetUserId) => {
       },
       body: JSON.stringify({ targetUserId }),
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (e) {
     console.warn('Error sending friend request:', e);
@@ -71,7 +78,10 @@ export const handleAcceptFriendApi = async (targetUserId) => {
       },
       body: JSON.stringify({ targetUserId }),
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (e) {
     console.warn('Error accepting friend:', e);
@@ -95,7 +105,10 @@ export const handleRemoveFriendApi = async (targetUserId) => {
       },
       body: JSON.stringify({ targetUserId }),
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (e) {
     console.warn('Error removing friend:', e);
@@ -119,7 +132,10 @@ export const handleSearchUsersApi = async (keyword) => {
         'Authorization': `Bearer ${token}`
       }
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (e) {
     console.warn('Error searching users:', e);
@@ -141,7 +157,10 @@ export const handleGetLeaderboardApi = async (gameId) => {
         'Authorization': `Bearer ${token}`
       }
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (e) {
     console.warn('Error getting leaderboard:', e);

@@ -1,5 +1,6 @@
 import { getValidAccessToken } from './tokenService';
 import { ingestServerData, handleSyncInventoryApi } from './syncService';
+import { ingestErrorResponse } from './apiErrorService';
 import { store } from '../store';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -31,7 +32,7 @@ const updateProfileNameApi = async (newName) => {
             body: JSON.stringify({ name: newName }),
         });
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            const errorData = await ingestErrorResponse(response);
             throw new Error(errorData.message || `API Error: ${response.status}`);
         }
         const result = await response.json();

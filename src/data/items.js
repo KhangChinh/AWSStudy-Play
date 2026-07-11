@@ -1,25 +1,25 @@
-﻿/**
+/**
  * Item Database
  * Mapping IDs to metadata
  * Updated: Gacha items mirror AWSServerless sample ItemData
  */
 
 export const ITEMS = {
-  // SSR - Backgrounds
+  // 5★ - Backgrounds
   bg_crimson_void: {
     id: 'bg_crimson_void',
     name: 'Crimson Void Background',
-    rarity: 'SSR',
+    rarity: 5,
     type: 'background',
     cosmeticId: 'bg_crimson_void',
     icon: '/src/assets/gacha/OR7cQ.jpg'
   },
 
-  // SR - Backgrounds
+  // 4★ - Backgrounds
   bg_dark: {
     id: 'bg_dark',
     name: 'Dark Background',
-    rarity: 'SR',
+    rarity: 4,
     type: 'background',
     cosmeticId: 'bg_dark',
     icon: '/src/assets/gacha/OR7cQ.jpg'
@@ -27,17 +27,17 @@ export const ITEMS = {
   bg_light: {
     id: 'bg_light',
     name: 'Light Background',
-    rarity: 'SR',
+    rarity: 4,
     type: 'background',
     cosmeticId: 'bg_light',
     icon: '/src/assets/gacha/OR7cQ.jpg'
   },
 
-  // R - Currency
+  // 3★ - Currency
   item_sanity: {
     id: 'item_sanity',
     name: 'Sanity',
-    rarity: 'R',
+    rarity: 3,
     type: 'currency',
     icon: '/src/assets/Sanity.png'
   }

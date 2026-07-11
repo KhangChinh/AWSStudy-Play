@@ -4,7 +4,7 @@ import { setProfile, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll 
 const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;
 let inventorySyncServerError = false;
-const SYNC_COOLDOWN = 60 * 1000; // 1 phÃƒÂºt
+const SYNC_COOLDOWN = 60 * 1000; // 1 phút
 const hasInventorySyncServerError = () => inventorySyncServerError;
 const pickNumber = (...values) => {
   for (const value of values) {
@@ -38,6 +38,7 @@ const fetchSyncAll = async (token, options) => {
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+      await ingestServerData(errorData);
     const error = new Error(errorData.message || `API Error: ${response.status}`);
     error.status = response.status;
     throw error;
@@ -138,20 +139,20 @@ const ingestServerData = async (payload) => {
     daily
   } = payload;
   const promises = [];
-  // 1. XÃ¡Â»Â­ lÃƒÂ½ Profile
+  // 1. Xử lý Profile
   if (profile) {
     const normalizedProfile = normalizeProfile(profile);
     store.dispatch(setProfile(normalizedProfile));
     promises.push(window.api?.invoke('store:saveProfile', normalizedProfile).catch(() => { }));
   }
-  // 2. XÃ¡Â»Â­ lÃƒÂ½ Daily Quests
+  // 2. Xử lý Daily Quests
   if (daily) {
     store.dispatch(setDailyQuests(daily));
     promises.push(window.api?.invoke('store:saveDaily', daily).catch(() => { }));
     promises.push(window.api?.invoke('quest:save', daily).catch(() => { }));
   }
-  // 3. XÃ¡Â»Â­ lÃƒÂ½ Inventory (Ghi Ã„â€˜ÃƒÂ¨ trang 1)
-  if (inventory) { // inventory giÃ¡Â»Â lÃƒÂ  object: { background: {items, lastEvaluatedKey}, frame: {...} }
+  // 3. Xử lý Inventory (Ghi đè trang 1)
+  if (inventory) { // inventory giờ là object: { background: {items, lastEvaluatedKey}, frame: {...} }
     const types = Object.keys(inventory);
     for (const type of types) {
       const typeData = inventory[type];
@@ -167,7 +168,7 @@ const ingestServerData = async (payload) => {
       }).catch(() => { });
     }
   }
-  // 4. XÃ¡Â»Â­ lÃƒÂ½ Gacha History (Ghi Ã„â€˜ÃƒÂ¨ trang 1)
+  // 4. Xử lý Gacha History (Ghi đè trang 1)
   if (gachaHistory) {
     store.dispatch({
       type: 'SET_GACHA_HISTORY',
@@ -179,7 +180,7 @@ const ingestServerData = async (payload) => {
       isAppend: false
     }).catch(() => { }));
   }
-  // 5. XÃ¡Â»Â­ lÃƒÂ½ Social (Ghi Ã„â€˜ÃƒÂ¨ trang 1)
+  // 5. Xử lý Social (Ghi đè trang 1)
   if (social) {
     store.dispatch({
       type: 'SET_SOCIAL',
@@ -198,7 +199,7 @@ const ingestServerData = async (payload) => {
 };
 const handleSyncAllApi = async ({ force = false } = {}) => {
   if (syncAllPromise) {
-    console.log('[syncService] SyncAll Ã„â€˜ang chÃ¡ÂºÂ¡y, dÃƒÂ¹ng chung kÃ¡ÂºÂ¿t quÃ¡ÂºÂ£...');
+    console.log('[syncService] SyncAll đang chạy, dùng chung kết quả...');
     return syncAllPromise;
   }
   syncAllPromise = (async () => {
@@ -223,7 +224,7 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
       const getSocial = force || !socialHasLoadedData(hydratedState.social);
 
       if (!getProfile && !getDaily && !getInventory && !getGachaHistory && !getSocial) {
-        console.log('[syncService] SyncAll dÃƒÂ¹ng cache Redux/Electron, khÃƒÂ´ng gÃ¡Â»Âi API.');
+        console.log('[syncService] SyncAll dùng cache Redux/Electron, không gọi API.');
         return buildSyncSnapshot(hydratedState);
       }
 
@@ -270,7 +271,7 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
           social, socialLastKey,
           daily
         } = syncResult;
-        // XÃ¡Â»Â­ lÃƒÂ½ lÃ†Â°u trÃ¡Â»Â¯ (Server trÃ¡ÂºÂ£ vÃ¡Â»Â cÃƒÂ¡i nÃƒÂ o thÃƒÂ¬ dispatch & save Store cÃƒÂ¡i Ã„â€˜ÃƒÂ³)
+        // Xử lý lưu trữ (Server trả về cái nào thì dispatch & save Store cái đó)
         if (profile) {
           const normalizedProfile = normalizeProfile(profile);
           store.dispatch(setProfile(normalizedProfile));
@@ -353,6 +354,7 @@ const handleSyncProfileApi = async ({ force = false } = {}) => {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      await ingestServerData(errorData);
       const error = new Error(errorData.message || `API Error: ${response.status}`);
       error.status = response.status;
       throw error;
@@ -417,6 +419,7 @@ const handleSyncInventoryApi = async (itemType) => {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      await ingestServerData(errorData);
       const error = new Error(errorData.message || `API Error: ${response.status}`);
       error.status = response.status;
       throw error;
@@ -481,6 +484,7 @@ const handleSyncGachaHistoryApi = async () => {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      await ingestServerData(errorData);
       const error = new Error(errorData.message || `API Error: ${response.status}`);
       error.status = response.status;
       throw error;
@@ -538,6 +542,7 @@ const handleSyncSocialApi = async () => {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      await ingestServerData(errorData);
       const error = new Error(errorData.message || `API Error: ${response.status}`);
       error.status = response.status;
       throw error;

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Banner Configuration Data
  * Driven by time and theme
  * Updated: Uses current AWSServerless gacha sample items
@@ -7,8 +7,8 @@
 export const AUTO_ROTATE_BANNERS = false;
 
 const CURRENT_GACHA_FEATURED = {
-  SSR: ['bg_crimson_void'],
-  SR: ['bg_dark', 'bg_light'],
+  5: ['bg_crimson_void'],
+  4: ['bg_dark', 'bg_light'],
 };
 
 export const BANNERS = [
@@ -24,9 +24,9 @@ export const BANNERS = [
     effect: 'effect-fire',
     featured: CURRENT_GACHA_FEATURED,
     rates: {
-      SSR: 0.01,
-      SR: 0.10,
-      R: 0.89
+      5: 0.01,
+      4: 0.10,
+      3: 0.89
     }
   },
   {
@@ -41,9 +41,9 @@ export const BANNERS = [
     effect: 'effect-fire',
     featured: CURRENT_GACHA_FEATURED,
     rates: {
-      SSR: 0.01,
-      SR: 0.10,
-      R: 0.89
+      5: 0.01,
+      4: 0.10,
+      3: 0.89
     }
   }
 ];
