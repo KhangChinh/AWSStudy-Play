@@ -75,10 +75,12 @@ const imageBackgroundStyles = (imageUrl) => {
 class CosmeticManager {
   constructor() {
     this.data = JSON.parse(JSON.stringify(COSMETICS));
+    this.masterItems = [];
   }
 
   loadFromMasterData(items) {
     if (!Array.isArray(items)) return;
+    this.masterItems = items.map(item => ({ ...item }));
 
     const categoryMap = {
       background: 'backgrounds',
@@ -138,6 +140,10 @@ class CosmeticManager {
 
   getAllInCategory(category) {
     return this.data[category] || [];
+  }
+
+  getMasterItems() {
+    return this.masterItems;
   }
 }
 
