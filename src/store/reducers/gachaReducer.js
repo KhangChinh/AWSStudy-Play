@@ -7,12 +7,25 @@ const initialState = {
   isLoading: false,
 };
 
+const historyKey = (item) => `${item?.PK || ''}:${item?.SK || item?.timestamp || item?.acquiredAt || item?.name || ''}`;
+
+const normalizeHistory = (items = []) => {
+  const unique = new Map();
+  items.forEach(item => unique.set(historyKey(item), item));
+
+  return Array.from(unique.values()).sort((a, b) => {
+    const aTime = Number(a?.SK || a?.timestamp || Date.parse(a?.acquiredAt) || 0);
+    const bTime = Number(b?.SK || b?.timestamp || Date.parse(b?.acquiredAt) || 0);
+    return bTime - aTime;
+  });
+};
+
 const gachaReducer = (state = initialState, action) => {
   switch (action.type) {
     case SET_GACHA_HISTORY:
       return {
         ...state,
-        gachaHistory: action.payload.gachaHistory || [],
+        gachaHistory: normalizeHistory(action.payload.gachaHistory),
         gachaHistoryLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
         hasMore: action.payload.lastEvaluatedKey !== null,
         isLoading: false,
@@ -20,7 +33,7 @@ const gachaReducer = (state = initialState, action) => {
     case APPEND_GACHA_HISTORY:
       return {
         ...state,
-        gachaHistory: [...state.gachaHistory, ...(action.payload.gachaHistory || [])],
+        gachaHistory: normalizeHistory([...state.gachaHistory, ...(action.payload.gachaHistory || [])]),
         gachaHistoryLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
         hasMore: action.payload.lastEvaluatedKey !== null,
         isLoading: false,

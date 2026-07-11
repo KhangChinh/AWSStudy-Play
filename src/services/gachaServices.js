@@ -68,6 +68,8 @@ export const handleGachaApi = async (isx10) => {
 
       console.warn('[GachaService] x10 duplicate-key fallback: running 10 single pulls');
       const fallbackResults = [];
+      let finalResult = null;
+      const mergedInventory = {};
       for (let i = 0; i < 10; i += 1) {
         let singleResult;
         try {
@@ -79,26 +81,19 @@ export const handleGachaApi = async (isx10) => {
           throw singleError;
         }
         if (!singleResult?.success) throw new Error('Gacha failed.', { cause: error });
-        await ingestServerData({
-          profile: singleResult.profile,
-          inventory: singleResult.inventory,
-          gachaHistory: singleResult.gachaHistory,
-          gachaHistoryLastKey: singleResult.gachaHistoryLastKey,
-        });
+        finalResult = singleResult;
+        Object.assign(mergedInventory, singleResult.inventory || {});
         fallbackResults.push(...(singleResult.pulledItems || []));
       }
-      return fallbackResults;
+      return {
+        ...finalResult,
+        inventory: mergedInventory,
+        pulledItems: fallbackResults,
+      };
     }
 
     if (result && result.success) {
-      await ingestServerData({
-        profile: result.profile,
-        inventory: result.inventory,
-        gachaHistory: result.gachaHistory,
-        gachaHistoryLastKey: result.gachaHistoryLastKey,
-      });
-
-      return result.pulledItems;
+      return result;
     }
 
     throw new Error('Gacha failed.');
@@ -106,4 +101,15 @@ export const handleGachaApi = async (isx10) => {
     console.error('[GachaService] Gacha error:', error.message);
     throw error;
   }
+};
+
+export const applyGachaResult = async (result) => {
+  if (!result?.success) return;
+
+  await ingestServerData({
+    profile: result.profile,
+    inventory: result.inventory,
+    gachaHistory: result.gachaHistory,
+    gachaHistoryLastKey: result.gachaHistoryLastKey,
+  });
 };

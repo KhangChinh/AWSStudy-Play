@@ -11,12 +11,15 @@ import './GachaApp.scss';
 import { BANNERS } from '../../data/banners';
 import { ITEMS } from '../../data/items';
 import { S3_ASSETS_BASE } from '../../data/cosmetics';
-import { handleGachaApi } from '../../services/gachaServices';
+import { cosmeticManager } from '../../services/cosmeticServices';
+import { applyGachaResult, handleGachaApi } from '../../services/gachaServices';
 import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import currencyAssets from '../../data/currencyAssets';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
+const SR_HARD_PITY = 10;
+const SSR_HARD_PITY = 80;
 
 class GachaApp extends Component {
   constructor(props) {
@@ -33,6 +36,7 @@ class GachaApp extends Component {
       timeLeftStr: '',
       historyItems: [],
       pendingRolls: null,
+      pendingGachaResult: null,
       showDetails: false,
       detailTab: 'rates',
       detailPage: 0,
@@ -194,15 +198,18 @@ class GachaApp extends Component {
     const numericRarity = Number(reward.rarity) || 3;
     const rarity = numericRarity >= 5 ? 'SSR' : numericRarity >= 4 ? 'SR' : 'R';
 
+    const conversionAmount = Number(reward.convertedTo) || 0;
+
     return {
       id: reward.SK || reward.id || `${reward.name || 'reward'}-${index}`,
-      name: reward.name || (reward.amount ? `Sanity x${reward.amount}` : 'Sanity'),
-      icon: this.resolveRewardIcon(reward),
+      name: conversionAmount ? `Sanity x${conversionAmount}` : (reward.name || (reward.amount ? `Sanity x${reward.amount}` : 'Sanity')),
+      sourceName: conversionAmount ? reward.name : null,
+      icon: conversionAmount ? currencyAssets.sanity : this.resolveRewardIcon(reward),
       rarity,
       type: numericRarity === 3 ? 'currency' : 'item',
       amount: reward.amount,
       isConverted: Boolean(reward.isConverted),
-      conversionResult: reward.convertedTo ? { id: 'item_sanity', amount: reward.convertedTo } : null,
+      conversionResult: conversionAmount ? { id: 'item_sanity', amount: conversionAmount } : null,
       timestamp: Date.now() + index,
     };
   };
@@ -217,6 +224,19 @@ class GachaApp extends Component {
 
   getItemMeta = (item) => {
     const itemId = item?.itemId || item?.id || item?.SK;
+    const masterItems = cosmeticManager.getMasterItems();
+    const masterItem = masterItems.find(meta => (
+      meta.SK === itemId || (item?.name && meta.name === item.name)
+    ));
+    if (masterItem) {
+      return {
+        ...masterItem,
+        id: masterItem.SK,
+        rarity: this.getHistoryRarityClass(masterItem.rarity),
+        icon: this.resolveRewardIcon(masterItem),
+      };
+    }
+
     if (itemId && ITEMS[itemId]) return ITEMS[itemId];
 
     const itemName = (item?.name || '').toLowerCase();
@@ -228,20 +248,29 @@ class GachaApp extends Component {
   getBannerRateRows = () => {
     const { activeBanner } = this.state;
     const rates = activeBanner?.rates || {};
-    const featured = activeBanner?.featured || {};
     const rows = [];
 
-    const addRows = (rank, ids = []) => {
+    const masterPool = cosmeticManager.getMasterItems().filter(item => item.collectFrom === 'gacha');
+    const addRows = (rank, rarity) => {
+      const tierItems = masterPool.filter(item => Number(item.rarity) === rarity);
+      const limited = tierItems.filter(item => item.isLimited === true);
+      const standard = tierItems.filter(item => item.isLimited !== true);
       const tierRate = Number(rates[rank] || 0);
-      const itemRate = ids.length ? tierRate / ids.length : tierRate;
-      ids.forEach(id => {
-        const item = ITEMS[id] || { id, name: id, rarity: rank };
-        rows.push({ id, name: item.name || id, rarity: rank, rate: itemRate });
+
+      tierItems.forEach(item => {
+        const group = item.isLimited === true ? limited : standard;
+        const groupRate = limited.length && standard.length ? tierRate / 2 : tierRate;
+        rows.push({
+          id: item.SK,
+          name: item.name || item.SK,
+          rarity: rank,
+          rate: group.length ? groupRate / group.length : 0,
+        });
       });
     };
 
-    addRows('SSR', featured.SSR || []);
-    addRows('SR', featured.SR || []);
+    addRows('SSR', 5);
+    addRows('SR', 4);
     rows.push({ id: 'item_sanity', name: ITEMS.item_sanity?.name || 'Sanity', rarity: 'R', rate: Number(rates.R || 0) });
 
     return rows;
@@ -259,8 +288,8 @@ class GachaApp extends Component {
     this.setState({ isSubmitting: true });
 
     try {
-      const pulledItems = await handleGachaApi(count === 10);
-      const rewards = (pulledItems || []).map(this.normalizeServerReward);
+      const gachaResult = await handleGachaApi(count === 10);
+      const rewards = (gachaResult?.pulledItems || []).map(this.normalizeServerReward);
 
       if (!rewards.length) {
         throw new Error(this.props.t('gacha.empty_rewards_error'));
@@ -273,12 +302,39 @@ class GachaApp extends Component {
         hasNewItem: rewards.some((reward) => reward.type !== 'currency' && !reward.isConverted),
         currentRarity: this.getHighestRarity(rewards),
         rewards,
+        pendingGachaResult: gachaResult,
         pendingRolls: {
           totalRolls: this.state.totalRolls + count,
         }
       });
     } catch (error) {
       this.setState({ isSubmitting: false });
+      toast.error(error.message || this.props.t('common.error'));
+    }
+  };
+
+  handleAnimationComplete = async () => {
+    const { pendingRolls, pendingGachaResult } = this.state;
+    if (!pendingRolls || !pendingGachaResult) {
+      this.setState({ isPlaying: false });
+      return;
+    }
+
+    try {
+      await applyGachaResult(pendingGachaResult);
+      const stats = pendingGachaResult.profile?.gachaStats || {};
+      this.setState({
+        isPlaying: false,
+        totalRolls: pendingRolls.totalRolls,
+        pity5: Number(stats.pity5Star) || 0,
+        pity4: Number(stats.pity4Star) || 0,
+        guaranteedSSR: Boolean(stats.is5StarGuaranteed),
+        historyItems: pendingGachaResult.gachaHistory || [],
+        pendingRolls: null,
+        pendingGachaResult: null,
+      });
+    } catch (error) {
+      this.setState({ isPlaying: false });
       toast.error(error.message || this.props.t('common.error'));
     }
   };
@@ -334,10 +390,11 @@ class GachaApp extends Component {
             </button>
             <div className="pity-summary">
               <div className="pity-line purple">
-                {this.props.t('gacha.pull')}: <span className="count">{10 - pity4}</span> <span className="rank">SR-Rank</span> {this.props.t('gacha.guaranteed')}!
+                {this.props.t('gacha.pull')}: <span className="count">{Math.max(1, SR_HARD_PITY - pity4)}</span> <span className="rank">SR-Rank</span> {this.props.t('gacha.guaranteed')}!
               </div>
               <div className="pity-line gold">
-                {this.props.t('gacha.pull')}: <span className="count">{90 - pity5}</span> <span className="rank">SSR-Rank</span> {this.props.t('gacha.guaranteed')}!
+                {this.props.t('gacha.pull')}: <span className="count">{Math.max(1, SSR_HARD_PITY - pity5)}</span> <span className="rank">SSR-Rank</span> {this.props.t('gacha.guaranteed')}!
+                {this.state.guaranteedSSR && <span className="guaranteed-state"> ({this.props.t('gacha.featured_guaranteed')})</span>}
               </div>
             </div>
           </div>
@@ -410,12 +467,15 @@ class GachaApp extends Component {
                           rarity: this.getHistoryRarityClass(item.rarity),
                         };
                         const rarityClass = this.getHistoryRarityClass(meta.rarity || item.rarity);
+                        const sanityAmount = Number(item.sanityAmount) || 0;
+                        const isDuplicate = sanityAmount > 0 && item.name !== 'Sanity';
+                        const displayName = sanityAmount > 0 ? `Sanity x${sanityAmount}` : meta.name;
 
                         return (
                           <div key={`${item.SK || item.timestamp || itemId || item.name || 'item'}-${idx}`} className={`detail-item ${rarityClass}`}>
                             <div className="item-main">
                               <div className="item-info">
-                                <span className="name">{meta.name}</span>
+                                <span className="name">{displayName}</span>
                                 <span className="rarity-tag">{rarityClass}</span>
                               </div>
                             </div>
@@ -426,7 +486,7 @@ class GachaApp extends Component {
                                   hour: '2-digit', minute: '2-digit', second: '2-digit'
                                 })}
                               </span>
-                              {(item.isDuplicate || item.sanityAmount > 0) && <span className="dup-label">({this.props.t('gacha.duplicate')})</span>}
+                              {isDuplicate && <span className="dup-label">({meta.name} converted to Sanity)</span>}
                             </div>
                           </div>
                         );
@@ -461,18 +521,7 @@ class GachaApp extends Component {
           rarity={currentRarity}
           rewards={rewards}
           t={this.props.t}
-          onComplete={() => {
-            const { pendingRolls } = this.state;
-            if (!pendingRolls) {
-              this.setState({ isPlaying: false });
-              return;
-            }
-            this.setState({
-              isPlaying: false,
-              totalRolls: pendingRolls.totalRolls,
-              historyItems: this.props.gachaHistory || [],
-            });
-          }}
+          onComplete={this.handleAnimationComplete}
         />
       </div>
     );
