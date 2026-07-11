@@ -9,6 +9,7 @@ import questReducer from './questReducer';
 import syncReducer from './syncReducer';
 import studyPlannerReducer from './studyPlannerReducer';
 import minigameReducer from './minigameReducer';
+import minigameLogsReducer from './minigameLogReducer';
 import settingsReducer from './settingsReducer';
 
 const appReducer = combineReducers({
@@ -20,6 +21,7 @@ const appReducer = combineReducers({
   sync: syncReducer,
   studyPlanner: studyPlannerReducer,
   minigame: minigameReducer,
+  minigameLogs: minigameLogsReducer,
   settings: settingsReducer,
 });
 
@@ -32,4 +34,4 @@ const rootReducer = (state, action) => {
   return appReducer(state, action);
 };
 
-export default rootReducer;
+export default rootReducer;
