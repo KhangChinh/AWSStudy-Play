@@ -170,5 +170,59 @@ const handleStartSession = async (gameId, levelId) => {
         throw error;
     }
 };
+const handleCheckSudokuStep = async (currentGridStr, actionLogs) => {
+    try {
+        const token = await getValidAccessToken();
+        if (!token) throw new Error('No auth token');
 
-export { handleSyncSudokuLevels, handleStartSession };
+        const url = `${API_URL}/minigame/sudokulevels/check`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ currentGrid: currentGridStr, actionLogs })
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Lỗi kiểm tra bàn cờ');
+
+        return result;
+    } catch (error) {
+        console.error('[gameService] FAIL handleCheckSudokuStep:', error.message);
+        throw error;
+    }
+};
+
+const handleSubmitSudoku = async (levelId, finalGridStr, actionLogs, endState = 'win') => {
+    try {
+        const token = await getValidAccessToken();
+        if (!token) throw new Error('No auth token');
+
+        const url = `${API_URL}/minigame/sudokulevels/end-session`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ levelId, finalGrid: finalGridStr, actionLogs, endState })
+        });
+
+        const result = await response.json();
+
+        // Nếu API trả về profile mới thì dùng ingestServerData lưu vào Redux + Electron
+        if (result.success && result.profile) {
+            await ingestServerData({ profile: result.profile });
+            // Cập nhật stats nếu cần (có thể dispatch action riêng cho stats nếu store bạn có quản lý)
+        }
+
+        return result;
+    } catch (error) {
+        console.error('[gameService] FAIL handleSubmitSudoku:', error.message);
+        throw error;
+    }
+};
+
+export { handleSyncSudokuLevels, handleStartSession, handleCheckSudokuStep, handleSubmitSudoku };
