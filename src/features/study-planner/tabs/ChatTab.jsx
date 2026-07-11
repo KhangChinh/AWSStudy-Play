@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { IonIcon } from '@ionic/react';
 import {
-  addOutline, sendOutline, trashOutline, rocketOutline, chatbubbleEllipsesOutline,
+  addOutline, sendOutline, trashOutline, rocketOutline, chatbubbleEllipsesOutline, attachOutline, documentTextOutline, closeOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -17,12 +17,27 @@ const ChatTab = ({ onPlanCreated }) => {
   const [collectedInfo, setCollectedInfo] = useState({});
   const [readyToGenerate, setReadyToGenerate] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [documentFile, setDocumentFile] = useState(null);
+  const [docStatus, setDocStatus] = useState('idle'); // 'idle', 'processing', 'ready'
   const messagesEndRef = useRef(null);
 
-  // Load chat history on mount
+  // Load chat history and check file status on mount
   useEffect(() => {
     loadChats();
+    checkFileStatus();
   }, []);
+
+  const checkFileStatus = async () => {
+    try {
+      const res = await window.api.invoke('study:getFileStatus');
+      if (res?.success && res.info) {
+        setDocumentFile(res.info);
+        setDocStatus('ready');
+      }
+    } catch (err) {
+      console.error('Failed to get file status', err);
+    }
+  };
 
   const loadChats = async () => {
     const data = await loadChatSessions();
@@ -185,6 +200,42 @@ const ChatTab = ({ onPlanCreated }) => {
     }
   };
 
+  const handleFileUpload = async () => {
+    try {
+      const res = await window.api.invoke('dialog:openFile', {
+        title: t('study.select_document') || 'Chọn tài liệu học tập',
+        filters: [
+          { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'txt'] }
+        ]
+      });
+      
+      if (res.canceled || !res.filePaths || res.filePaths.length === 0) return;
+      
+      const filePath = res.filePaths[0];
+      setDocStatus('processing');
+      toast.info('Đang phân tích tài liệu... Vui lòng chờ.');
+      
+      const uploadRes = await window.api.invoke('study:uploadFile', { filePath });
+      if (uploadRes.success) {
+        setDocumentFile(uploadRes.info);
+        setDocStatus('ready');
+        toast.success(`Đã tải lên: ${uploadRes.info.fileName}`);
+      } else {
+        setDocStatus('idle');
+        toast.error(uploadRes.error || 'Lỗi khi tải file lên');
+      }
+    } catch (err) {
+      setDocStatus('idle');
+      toast.error('Lỗi kết nối IPC');
+    }
+  };
+
+  const handleRemoveFile = async () => {
+    await window.api.invoke('study:removeFile');
+    setDocumentFile(null);
+    setDocStatus('idle');
+  };
+
   return (
     <div className="sp-chat">
       {/* Sidebar */}
@@ -259,19 +310,41 @@ const ChatTab = ({ onPlanCreated }) => {
               </button>
             )}
 
+            {/* Document Banner */}
+            {documentFile && docStatus === 'ready' && (
+              <div className="document-banner">
+                <IonIcon icon={documentTextOutline} className="doc-icon" />
+                <span className="doc-name">{documentFile.fileName}</span>
+                <span className="doc-size">({(documentFile.pageCount)} trang)</span>
+                <button className="doc-remove-btn" onClick={handleRemoveFile}>
+                  <IonIcon icon={closeOutline} />
+                </button>
+              </div>
+            )}
+            
+            {docStatus === 'processing' && (
+              <div className="document-banner processing">
+                <span className="sp-spin" />
+                <span>Đang đọc và phân tích tài liệu...</span>
+              </div>
+            )}
+
             <div className="sp-input-area">
+              <button className="sp-upload-btn" onClick={handleFileUpload} disabled={sending || docStatus === 'processing'} title="Đính kèm tài liệu học tập (PDF, DOCX, TXT)">
+                <IonIcon icon={attachOutline} />
+              </button>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={t('study.message_placeholder')}
+                placeholder={docStatus === 'processing' ? 'Đang đọc tài liệu...' : t('study.message_placeholder')}
                 rows={1}
-                disabled={sending}
+                disabled={sending || docStatus === 'processing'}
               />
               <button
                 className="sp-send-btn"
                 onClick={handleSend}
-                disabled={!input.trim() || sending}
+                disabled={!input.trim() || sending || docStatus === 'processing'}
               >
                 <IonIcon icon={sendOutline} />
               </button>

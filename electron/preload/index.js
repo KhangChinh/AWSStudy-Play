@@ -60,6 +60,10 @@ contextBridge.exposeInMainWorld('api', {
       'study:deleteQuiz',
       'study:loadSettings',
       'study:saveSettings',
+      'study:uploadFile',
+      'study:removeFile',
+      'study:getFileStatus',
+      'dialog:openFile',
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);

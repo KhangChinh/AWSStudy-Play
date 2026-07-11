@@ -629,7 +629,94 @@ $input-h:   48px;
       box-shadow: none;
     }
   }
+
+  .sp-upload-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: $radius-sm;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(30, 41, 59, 0.4);
+    color: $text-secondary;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.1);
+      color: $text-primary;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
 }
+
+// Document banner
+.document-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 12px;
+  padding: 10px 14px;
+  border-radius: $radius-sm;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: $text-primary;
+  font-size: 12.5px;
+  animation: sp-fade-in 300ms ease-out;
+
+  .doc-icon {
+    font-size: 18px;
+    color: #60a5fa;
+  }
+
+  .doc-name {
+    font-weight: 500;
+    @include truncate;
+    max-width: 200px;
+  }
+
+  .doc-size {
+    color: $text-muted;
+    font-size: 11.5px;
+  }
+
+  .doc-remove-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: $text-secondary;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+  }
+
+  &.processing {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    justify-content: center;
+    font-weight: 500;
+  }
+}
+
 
 // Generate plan button
 .sp-generate-btn {
@@ -1479,20 +1566,22 @@ $input-h:   48px;
     margin-bottom: 4px;
   }
 
-  .sp-empty-title {
+  .sp-empty-title, h3 {
     font-size: 15px;
     font-weight: 600;
     color: $text-primary;
+    margin: 0;
   }
 
-  .sp-empty-desc {
+  .sp-empty-desc, p {
     font-size: 13px;
     color: $text-muted;
     max-width: 280px;
     line-height: 1.5;
+    margin: 0;
   }
 
-  .sp-empty-action {
+  .sp-empty-action, .sp-start-btn {
     margin-top: 8px;
     padding: 9px 22px;
     border-radius: $radius-sm;
@@ -1504,6 +1593,7 @@ $input-h:   48px;
     font-weight: 500;
     cursor: pointer;
     transition: all $transition-fast;
+    outline: none;
 
     &:hover {
       background: rgba(147, 51, 234, 0.08);

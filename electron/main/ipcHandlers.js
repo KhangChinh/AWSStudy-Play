@@ -13,7 +13,9 @@ import { app } from 'electron';
 import { startFocus, stopFocus, getSessionStatus, setFocusWin, setUserId, setAuthToken } from './services/focusEngine.js';
 import { classifyContent, clearCache, getAiStatus, getAllowedCategories, saveAllowedCategories, getGroqKey, saveGroqKey, setBlockerModel } from './services/aiGuard.js';
 import { setApiUrl } from './services/sessionApi.js';
-import { chatWithAI, generateStudyPlan, generateQuiz } from './services/aiStudyService.js';
+import { chatWithAI, generateStudyPlan, generateQuiz, summarizeDocument } from './services/aiStudyService.js';
+import { parseFile } from './services/fileParser.js';
+import { setDocument, clearDocument, getDocumentInfo } from './services/documentContext.js';
 import { 
   loadChatHistory, saveChatSession, deleteChatSession, 
   loadStudyPlans, saveStudyPlan, deleteStudyPlan, 
@@ -147,6 +149,49 @@ export function registerIpcHandlers(ipcMain, win) {
     return { success: true };
   });
   // ═══════════════════════════════════════════
+  //  STUDY PLANNER — File Context
+  // ═══════════════════════════════════════════
+  ipcMain.handle('study:uploadFile', async (_event, { filePath }) => {
+    try {
+      // 1. Đọc và chia nhỏ file
+      const doc = await parseFile(filePath);
+      
+      // 2. Tạo summary — chỉ lấy 5 chunks đầu để tránh tràn context Ollama
+      const summaryChunks = doc.chunks.slice(0, 5);
+      const summaryResult = await summarizeDocument(summaryChunks);
+      
+      // 3. Nếu AI tóm tắt thất bại → dùng fallback thay vì block upload
+      let summary, topics;
+      if (summaryResult.success && summaryResult.summary) {
+        summary = summaryResult.summary;
+        topics = summaryResult.topics;
+      } else {
+        console.warn('[StudyFile] Không thể tạo AI summary, dùng fallback từ cấu trúc file.');
+        summary = `Tài liệu "${doc.fileName}" (${doc.pageCount} trang, ${doc.wordCount} từ). Nội dung được chia thành ${doc.chunks.length} phần.`;
+        topics = [...new Set(doc.chunks.slice(0, 8).map(c => c.section).filter(Boolean))];
+      }
+
+      // 4. Lưu vào session context
+      setDocument({ ...doc, summary, topics });
+
+      return { success: true, info: getDocumentInfo() };
+    } catch (error) {
+      console.error('[StudyFile] Lỗi upload file:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('study:removeFile', async () => {
+    clearDocument();
+    return { success: true };
+  });
+
+  ipcMain.handle('study:getFileStatus', async () => {
+    const info = getDocumentInfo();
+    return { success: true, info };
+  });
+
+  // ═══════════════════════════════════════════
   //  STUDY PLANNER — AI Chat, Plans, Quizzes
   // ═══════════════════════════════════════════
   ipcMain.handle('study:chat', async (_event, { messages }) => {
@@ -176,4 +221,8 @@ export function registerIpcHandlers(ipcMain, win) {
   ipcMain.handle('study:loadSettings', async () => loadStudySettings());
   ipcMain.handle('study:saveSettings', async (_event, settings) => saveStudySettings(settings));
 
+  ipcMain.handle('dialog:openFile', async (_event, options) => {
+    const { dialog } = await import('electron');
+    return dialog.showOpenDialog(options);
+  });
 }

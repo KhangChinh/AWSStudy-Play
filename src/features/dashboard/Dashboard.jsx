@@ -1196,7 +1196,7 @@ class Dashboard extends Component {
             </div>
           </div>
           
-          <div className="lq-start-container">
+          <div className={`lq-start-container ${this.state.isFocusRankMode ? 'mode-rank' : 'mode-casual'}`}>
             {/* Bộ chọn chế độ Casual / Rank ngay trên nút */}
             <div className="lq-mode-selector">
               <button 

@@ -2944,6 +2944,7 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    transition: all 0.4s ease;
 
     .lq-mode-selector {
       display: flex;
@@ -2953,17 +2954,18 @@
       padding: 3px;
       border-radius: 6px;
       border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       
       .lq-mode-option {
         background: transparent;
         border: none;
-        color: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.4);
         padding: 4px 14px;
         font-size: 9px;
         font-weight: 800;
         cursor: pointer;
         border-radius: 4px;
-        transition: all 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         text-transform: uppercase;
         outline: none;
         letter-spacing: 0.5px;
@@ -2971,13 +2973,13 @@
         &.casual.active {
           background: #0284c7;
           color: white;
-          box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);
+          box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
         }
         
         &.rank.active {
           background: #b91c1c;
           color: white;
-          box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
         }
 
         &:hover:not(.active) {
@@ -2987,17 +2989,76 @@
       }
     }
 
+    &.mode-casual .lq-mode-selector {
+      border-color: rgba(14, 165, 233, 0.2);
+      box-shadow: 0 0 10px rgba(14, 165, 233, 0.05);
+    }
+    
+    &.mode-rank .lq-mode-selector {
+      border-color: rgba(220, 38, 38, 0.2);
+      box-shadow: 0 0 10px rgba(220, 38, 38, 0.05);
+    }
+
     .lq-start-button {
       position: relative;
       padding: 14px 55px;
       cursor: pointer;
       transform: skewX(-15deg);
       border-radius: 8px;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       outline: none;
       overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-      /* Hiệu ứng tia sáng bóng chạy qua nút (Shiny line) */
+      &::before, &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 130%;
+        left: -15%;
+        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+        z-index: 1;
+      }
+
+      &::before {
+        background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+        opacity: 0;
+      }
+
+      &::after {
+        background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+        opacity: 0;
+      }
+
+      .lq-start-inner {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform: skewX(15deg); /* Bù lại góc nghiêng của nút cha để chữ đứng THẲNG */
+
+        .lq-start-text {
+          font-size: 19px;
+          font-weight: 900;
+          color: #fff;
+          letter-spacing: 1.5px;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          display: flex;
+          align-items: center;
+        }
+
+        .lq-start-sub {
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-top: 3px;
+          transition: color 0.4s ease;
+        }
+      }
+
       .lq-button-shiny-line {
         position: absolute;
         top: 0;
@@ -3012,6 +3073,7 @@
         );
         transform: skewX(25deg);
         transition: left 0.6s ease;
+        z-index: 3;
       }
 
       &:hover .lq-button-shiny-line {
@@ -3019,35 +3081,55 @@
         transition: left 0.8s ease;
       }
 
-      /* Chế độ Casual: Xanh da trời */
+      /* Chế độ Casual */
       &.mode-casual {
-        background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
-        border: 2px solid rgba(255, 255, 255, 0.25);
         box-shadow: 0 4px 16px rgba(2, 132, 199, 0.25);
 
-        &:hover {
-          background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
-          box-shadow: 0 6px 20px rgba(2, 132, 199, 0.35);
+        &::before {
+          transform: translateX(0);
+          opacity: 1;
         }
-        
+
+        &::after {
+          transform: translateX(110%); // Màu đỏ bị đẩy ra bên phải
+          opacity: 0;
+        }
+
         .lq-start-inner .lq-start-sub {
           color: #bae6fd;
         }
-      }
-
-      /* Chế độ Rank: Màu đỏ */
-      &.mode-rank {
-        background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
-        border: 2px solid rgba(255, 255, 255, 0.25);
-        box-shadow: 0 4px 16px rgba(185, 28, 28, 0.25);
 
         &:hover {
-          background: linear-gradient(135deg, #dc2626 0%, #f87171 100%);
-          box-shadow: 0 6px 20px rgba(185, 28, 28, 0.35);
+          box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45), 0 0 15px rgba(14, 165, 233, 0.3);
+          &::before {
+            background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+          }
+        }
+      }
+
+      /* Chế độ Rank */
+      &.mode-rank {
+        box-shadow: 0 4px 16px rgba(185, 28, 28, 0.25);
+
+        &::before {
+          transform: translateX(-110%); // Màu xanh bị đẩy ra bên trái
+          opacity: 0;
+        }
+
+        &::after {
+          transform: translateX(0);
+          opacity: 1;
         }
 
         .lq-start-inner .lq-start-sub {
           color: #fca5a5;
+        }
+
+        &:hover {
+          box-shadow: 0 8px 24px rgba(185, 28, 28, 0.45), 0 0 15px rgba(220, 38, 38, 0.3);
+          &::after {
+            background: linear-gradient(135deg, #dc2626 0%, #f87171 100%);
+          }
         }
       }
 

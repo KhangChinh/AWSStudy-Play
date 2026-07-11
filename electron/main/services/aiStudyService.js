@@ -6,9 +6,14 @@ import http from 'node:http';
 import https from 'node:https';
 import { loadStudySettings } from './studyPlannerStore.js';
 import { geminiRequestWithFallback } from './geminiApi.js';
+import { getContextForQuery, getContextForPlan, getContextForQuiz } from './documentContext.js';
 
 // Models known to be too small to reliably output JSON
 const WEAK_MODELS = ['qwen2.5:1.5b', 'tinyllama', 'phi3:mini', 'phi:mini', 'gemma:2b', 'orca-mini'];
+
+const OLLAMA_BASE = 'http://127.0.0.1:11434';
+const OLLAMA_MODEL_DEFAULT = 'qwen2.5:7b';
+
 
 // ===== HTTP Helpers =====
 
@@ -112,6 +117,13 @@ function parseResponse(content) {
 export async function chatWithAI(messages) {
   try {
     const config = await getAiSettings();
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+    const docContext = getContextForQuery(lastUserMsg);
+    
+    let finalSystemPrompt = CHAT_SYSTEM_PROMPT;
+    if (docContext) {
+      finalSystemPrompt += `\n\nNẾU USER HỎI VỀ BÀI HỌC/KIẾN THỨC, HÃY DỰA VÀO TÀI LIỆU SAU ĐỂ TRẢ LỜI. NẾU USER CHỈ CHAT CHÀO HỎI THÌ KHÔNG CẦN DÙNG.\n\n${docContext.summaryBlock}\n\n${docContext.chunksBlock}`;
+    }
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
       let geminiModel = config.selectedModel || 'gemini-1.5-flash';
@@ -119,7 +131,7 @@ export async function chatWithAI(messages) {
       console.log(`[AIStudy] 🤖 Chat → Provider: Gemini (Cloud) | Preferred Model: ${geminiModel}`);
       // --- GEMINI FLOW ---
       const geminiBody = {
-        system_instruction: { parts: [{ text: CHAT_SYSTEM_PROMPT }] },
+        system_instruction: { parts: [{ text: finalSystemPrompt }] },
         contents: formatGeminiMessages(messages),
         generationConfig: {
           responseMimeType: 'application/json',
@@ -146,9 +158,17 @@ export async function chatWithAI(messages) {
       const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
       console.log(`[AIStudy] 🤖 Chat → Provider: Ollama (Local) | Model: ${ollamaModel}`);
       warnIfWeakModel(ollamaModel);
+
+      // Ollama: chỉ inject summary ngắn gọn — tránh tràn context, giảm thời gian phản hồi
+      let ollamaSystemPrompt = CHAT_SYSTEM_PROMPT;
+      if (docContext && docContext.summaryBlock) {
+        const shortSummary = docContext.summaryBlock.slice(0, 600); // giới hạn 600 ký tự
+        ollamaSystemPrompt += `\n\nTÀI LIỆU ĐÍNH KÈM (tóm tắt ngắn): ${shortSummary}`;
+      }
+
       // --- OLLAMA FLOW ---
       const ollamaMessages = [
-        { role: 'system', content: CHAT_SYSTEM_PROMPT },
+        { role: 'system', content: ollamaSystemPrompt },
         ...messages.map(m => ({ role: m.role, content: m.content })),
       ];
 
@@ -156,8 +176,9 @@ export async function chatWithAI(messages) {
         model: ollamaModel,
         messages: ollamaMessages,
         stream: false,
-        options: { temperature: 0.7, num_predict: 512 },
-      });
+        format: 'json',
+        options: { temperature: 0.7, num_predict: 1024, num_ctx: 4096 },
+      }, 300000); // 5 phút timeout cho local AI
 
       const content = result.message?.content || '';
       const parsed = parseResponse(content);
@@ -182,14 +203,21 @@ export async function chatWithAI(messages) {
 export async function generateStudyPlan(collectedInfo) {
   try {
     const config = await getAiSettings();
-    const userPrompt = `Tao ke hoach hoc tap:
+    const docContext = getContextForPlan();
+    
+    let userPrompt = `Tao ke hoach hoc tap:
 - Linh vuc: ${collectedInfo.subject || 'Chua ro'}
 - Chu de: ${collectedInfo.topic || 'Chua ro'}
 - Trinh do: ${collectedInfo.level || 'Moi bat dau'}
 - Muc tieu: ${collectedInfo.goal || 'Chua ro'}
 - Thoi gian: ${collectedInfo.totalDuration || 'Linh hoat'}
-- Hoc/ngay: ${collectedInfo.dailyHours || 'Linh hoat'}
-CHI TRA VE JSON.`;
+- Hoc/ngay: ${collectedInfo.dailyHours || 'Linh hoat'}`;
+
+    if (docContext) {
+      userPrompt += `\n\n=== TÀI LIỆU ĐÍNH KÈM ===\nTên tài liệu: ${docContext.fileName}\nTóm tắt: ${docContext.summary}\nCác chủ đề: ${docContext.topics.join(', ')}\nCấu trúc tài liệu:\n${docContext.structureBlock}\n\nYÊU CẦU ĐẶC BIỆT: Hãy tạo các phases bám sát Cấu trúc tài liệu này. Đảm bảo Kế hoạch học tập phản ánh chính xác nội dung tài liệu.`;
+    }
+    
+    userPrompt += `\nCHI TRA VE JSON.`;
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
       let geminiModel = config.selectedModel || 'gemini-1.5-flash';
@@ -225,6 +253,7 @@ CHI TRA VE JSON.`;
           { role: 'user', content: userPrompt },
         ],
         stream: false,
+        format: 'json',
         options: { temperature: 0.6, num_predict: 2048 },
       }, 600000); // 10 min timeout
 
@@ -234,6 +263,7 @@ CHI TRA VE JSON.`;
       if (plan) return { success: true, plan };
       console.error('[AIStudy] ❌ Could not parse plan JSON from model output.');
       return { success: false, error: 'Khong the parse ke hoach tu Ollama' };
+
     }
   } catch (error) {
     if (!error.message.includes('ECONNREFUSED')) {
@@ -246,9 +276,16 @@ CHI TRA VE JSON.`;
 export async function generateQuiz(phase, planTitle) {
   try {
     const config = await getAiSettings();
-    const userPrompt = `Tao 10 cau hoi trac nghiem ve: ${phase.name}
-Chu de: ${(phase.topics || []).join(', ')}
-CHI TRA VE JSON.`;
+    const docContext = getContextForQuiz(phase.name, phase.topics);
+    
+    let userPrompt = `Tao 10 cau hoi trac nghiem ve: ${phase.name}
+Chu de: ${(phase.topics || []).join(', ')}`;
+
+    if (docContext) {
+      userPrompt += `\n\n=== NỘI DUNG TỪ TÀI LIỆU (${docContext.fileName}) ===\n${docContext.contentBlock}\n\nYÊU CẦU: Tạo câu hỏi bám sát 100% nội dung tài liệu này. Không bịa đặt kiến thức ngoài tài liệu.`;
+    }
+
+    userPrompt += `\nCHI TRA VE JSON.`;
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
       let geminiModel = config.selectedModel || 'gemini-1.5-flash';
@@ -284,6 +321,7 @@ CHI TRA VE JSON.`;
           { role: 'user', content: userPrompt },
         ],
         stream: false,
+        format: 'json',
         options: { temperature: 0.7, num_predict: 2048 },
       }, 600000);
 
@@ -301,3 +339,74 @@ CHI TRA VE JSON.`;
     return { success: false, error: error.message };
   }
 }
+
+export async function summarizeDocument(chunks) {
+  try {
+    const config = await getAiSettings();
+
+    if (config.aiProvider === 'gemini' && config.geminiKey) {
+      // === GEMINI: có thể nhận text dài ===
+      const docText = chunks.map(c => `[${c.section}]\n${c.content}`).join('\n\n');
+      const prompt = `Tóm tắt tài liệu sau trong khoảng 200-300 từ. Sau đó liệt kê các chủ đề chính.\nTÀI LIỆU:\n${docText}\n\nYÊU CẦU OUTPUT JSON: {"summary":"...","topics":["...","..."]}`;
+
+      let geminiModel = config.selectedModel || 'gemini-1.5-flash';
+      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-1.5-flash';
+      
+      const geminiBody = {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
+      };
+
+      const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000);
+      if (result.error) throw new Error(result.error.message || 'Gemini API Error');
+      
+      const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const parsed = parseResponse(content);
+      if (parsed && parsed.summary) return { success: true, summary: parsed.summary, topics: parsed.topics || [] };
+      console.error('[AIStudy] Gemini không trả về JSON hợp lệ:', content.slice(0, 200));
+
+    } else {
+      // === OLLAMA LOCAL: giới hạn text rất nghiêm để tránh tràn context ===
+      const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
+      console.log(`[AIStudy] Tóm tắt tài liệu bằng Ollama: ${ollamaModel}`);
+
+      // Gộp text từ chunks rồi cắt cứng tối đa 2500 ký tự
+      const rawText = chunks.map(c => `[${c.section}] ${c.content}`).join(' ');
+      const truncatedText = rawText.length > 2500 ? rawText.slice(0, 2500) + '...' : rawText;
+
+      const sectionList = [...new Set(chunks.map(c => c.section))].slice(0, 8).join(', ');
+
+      const prompt = `Bạn là AI tóm tắt tài liệu. Hãy đọc đoạn văn sau và trả về JSON.
+
+VĂN BẢN:
+${truncatedText}
+
+CÁC PHẦN CÓ TRONG TÀI LIỆU: ${sectionList}
+
+TRẢ VỀ ĐÚNG FORMAT JSON SAU, KHÔNG GIẢI THÍCH THÊM:
+{"summary": "tóm tắt nội dung chính trong 100-150 từ", "topics": ["chủ đề 1", "chủ đề 2", "chủ đề 3"]}`;
+
+      const result = await ollamaRequest('/api/chat', {
+        model: ollamaModel,
+        messages: [{ role: 'user', content: prompt }],
+        stream: false,
+        format: 'json',
+        options: { temperature: 0.1, num_predict: 1024, num_ctx: 4096 },
+      }, 600000);
+
+      console.log('[AIStudy] Ollama raw result keys:', Object.keys(result || {}));
+      const content = result?.message?.content || result?.response || '';
+      console.log('[AIStudy] Ollama content:', content.slice(0, 300));
+
+      const parsed = parseResponse(content);
+      if (parsed && parsed.summary) {
+        return { success: true, summary: parsed.summary, topics: parsed.topics || [] };
+      }
+      console.error('[AIStudy] Ollama JSON parse thất bại. Content rỗng hoặc sai format.');
+    }
+  } catch (error) {
+    console.error('[AIStudy] Summarize document error:', error.message);
+  }
+  return { success: false, summary: '', topics: [] };
+}
+
