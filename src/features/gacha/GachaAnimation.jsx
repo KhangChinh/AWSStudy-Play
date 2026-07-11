@@ -1,4 +1,4 @@
-﻿import React, { Component } from 'react';
+import React, { Component } from 'react';
 import './GachaAnimation.scss';
 
 const PARTICLE_COUNT = 72;
@@ -131,12 +131,10 @@ class GachaAnimation extends Component {
   };
 
   getRarityClass = () => {
-    const map = {
-      SSR: 'rarity-ssr',
-      SR: 'rarity-sr',
-      R: 'rarity-r',
-    };
-    return map[this.props.rarity] || 'rarity-r';
+    const value = Number(this.props.rarity);
+    if (value === 5) return 'rarity-five-star';
+    if (value === 4) return 'rarity-four-star';
+    return 'rarity-r';
   };
 
   renderIcon = (icon) => {
@@ -261,13 +259,25 @@ class GachaAnimation extends Component {
 
         {!isMulti && primaryReward && (
           <div className={`reveal-container single ${rarityClass}`}>
-            <div className="rarity-banner">{primaryReward.rarity || this.props.rarity || 'R'}</div>
+            <div className="rarity-banner">{(() => { const r = Number(primaryReward.rarity || this.props.rarity); return r === 5 ? '5★' : r === 4 ? '4★' : '3★'; })()}</div>
             <div className="item-card-shell">
               <div className="item-card-glow" />
               <div className="item-card-shine" />
-              <div className="item-icon">{this.renderIcon(primaryReward.icon)}</div>
+              <div className={primaryReward.isConverted ? 'item-icon conversion-source-icon' : 'item-icon'}>
+                {this.renderIcon(primaryReward.icon)}
+              </div>
+              {primaryReward.isConverted && primaryReward.conversionResult && (
+                <div className="conversion-result-icon">
+                  {this.renderIcon(primaryReward.conversionResult.icon)}
+                </div>
+              )}
             </div>
-            <div className="item-name">{primaryReward.name || this.props.t?.('gacha_animation.mystery_item') || 'Mystery Item'}</div>
+            <div className={primaryReward.isConverted ? 'item-name conversion-source-name' : 'item-name'}>
+              {primaryReward.name || this.props.t?.('gacha_animation.mystery_item') || 'Mystery Item'}
+            </div>
+            {primaryReward.isConverted && primaryReward.conversionResult && (
+              <div className="conversion-result-name">{primaryReward.conversionResult.name}</div>
+            )}
             <div className="item-subtitle">{primaryReward.isConverted ? (this.props.t?.('gacha_animation.converted_reward') || 'Converted Reward') : (this.props.t?.('gacha_animation.new_acquisition') || 'New Acquisition')}</div>
           </div>
         )}
@@ -277,8 +287,9 @@ class GachaAnimation extends Component {
             <div className="multi-title">{this.props.t?.('gacha_animation.results') || 'Results'}</div>
             <div className="result-grid">
               {rewards.map((reward, index) => {
-                const classMap = { SSR: 'ssr', SR: 'sr', R: 'r' };
-                const itemRarityClass = `rarity-${classMap[reward.rarity] || 'r'}`;
+                const rVal = Number(reward.rarity);
+                const itemRarityClass = rVal === 5 ? 'rarity-five-star' : rVal === 4 ? 'rarity-four-star' : 'rarity-r';
+                const starLabel = rVal === 5 ? '5\u2605' : rVal === 4 ? '4\u2605' : '3\u2605';
 
                 return (
                   <div
@@ -289,7 +300,15 @@ class GachaAnimation extends Component {
                     <div className="grid-shine" />
                     <div className="grid-icon">{this.renderIcon(reward.icon)}</div>
                     <div className="grid-name">{reward.name || this.props.t?.('gacha_animation.item') || 'Item'}</div>
-                    <div className="grid-rarity">{reward.rarity || 'R'}</div>
+                    {reward.isConverted && reward.conversionResult && (
+                      <>
+                        <div className="grid-conversion-icon">
+                          {this.renderIcon(reward.conversionResult.icon)}
+                        </div>
+                        <div className="grid-conversion-name">{reward.conversionResult.name}</div>
+                      </>
+                    )}
+                    <div className="grid-rarity">{starLabel}</div>
                   </div>
                 );
               })}

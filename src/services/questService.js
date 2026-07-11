@@ -1,4 +1,5 @@
 import { getValidAccessToken } from './tokenService';
+import { ingestErrorResponse } from './apiErrorService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -16,7 +17,10 @@ export const getDailyQuests = async () => {
         'Content-Type': 'application/json',
       },
     });
-    if (!response.ok) return { success: false, error: `API Error: ${response.status}` };
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      return { success: false, error: errorData.message || `API Error: ${response.status}` };
+    }
     const result = await response.json();
     if (result.success && result.daily) {
       return { success: true, daily: result.daily };
@@ -44,7 +48,7 @@ export const claimQuestReward = async (questKey) => {
       body: JSON.stringify({ questKey }),
     });
     if (!response.ok) {
-      const errResult = await response.json().catch(() => ({}));
+      const errResult = await ingestErrorResponse(response);
       return { success: false, error: errResult.message || `API Error: ${response.status}` };
     }
     const result = await response.json();
@@ -68,7 +72,10 @@ export const refreshDailyQuests = async () => {
         'Content-Type': 'application/json',
       },
     });
-    if (!response.ok) return { success: false, error: `API Error: ${response.status}` };
+    if (!response.ok) {
+      const errorData = await ingestErrorResponse(response);
+      return { success: false, error: errorData.message || `API Error: ${response.status}` };
+    }
     const result = await response.json();
     if (result.success && result.daily) {
       return { success: true, daily: result.daily };
@@ -97,7 +104,7 @@ export const submitQuizReward = async (correctAnswersCount, totalQuestions) => {
       body: JSON.stringify({ correctAnswersCount, totalQuestions }),
     });
     if (!response.ok) {
-      const errResult = await response.json().catch(() => ({}));
+      const errResult = await ingestErrorResponse(response);
       return { success: false, error: errResult.message || `API Error: ${response.status}` };
     }
     const result = await response.json();

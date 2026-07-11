@@ -4,8 +4,8 @@ import { handleSyncProfileApi, ingestServerData } from './syncService';
 const API_URL = import.meta.env.VITE_API_URL;
 
 const ingestErrorProfile = async (payload, fallbackStatus) => {
-  if (payload?.profile) {
-    await ingestServerData({ profile: payload.profile });
+  if (payload && Object.keys(payload).length > 0) {
+    await ingestServerData(payload);
     return;
   }
   if (fallbackStatus === 400 || fallbackStatus === 402 || fallbackStatus === 409) {
@@ -28,6 +28,7 @@ const authRequest = async (path, options = {}) => {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.errCode) {
+    await ingestServerData(data);
     const error = new Error(data.errMessage || data.message || `API Error: ${response.status}`);
     error.status = response.status;
     error.data = data;

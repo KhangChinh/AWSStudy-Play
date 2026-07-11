@@ -202,7 +202,7 @@ class Dashboard extends Component {
       this.setEquippedStateFromProfile(this.props.userProfile);
     }
 
-    // Apply background ban Ã„â€˜Ã¡ÂºÂ§u (dÃƒÂ¹ng data local tÃ¡Â»Â« cosmetics.js)
+    // Apply background ban đầu (dùng data local từ cosmetics.js)
     cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
 
     // Load/Sync master data (offline-first: load local cache, sync in background)
@@ -242,14 +242,14 @@ class Dashboard extends Component {
     }
   };
 
-  // Khi user Alt+Tab/Ctrl+Tab quay lÃ¡ÂºÂ¡i app Ã¢â€ â€™ gÃ¡Â»Âi sync (cooldown check trong syncService)
+  // Khi user Alt+Tab/Ctrl+Tab quay lại app → gọi sync (cooldown check trong syncService)
   handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
       this.performSyncAll();
     }
   };
 
-  // GÃ¡Â»Âi handleSyncAllApi (cooldown 1 phÃƒÂºt Ã„â€˜Ã†Â°Ã¡Â»Â£c check trong syncService)
+  // Gọi handleSyncAllApi (cooldown 1 phút được check trong syncService)
   getEquippedIds = (profile = this.props.userProfile) => {
     const cosmetics = profile?.equippedCosmetics || {};
     return {
@@ -282,28 +282,28 @@ class Dashboard extends Component {
       const syncResponse = await handleSyncAllApi();
       if (syncResponse && syncResponse.profile) {
         const { profile } = syncResponse;
-        // handleSyncAllApi Ã„â€˜ÃƒÂ£ dispatch inventory + save electron store rÃ¡Â»â€œi
+        // handleSyncAllApi đã dispatch inventory + save electron store rồi
         this.props.setProfile(profile);
 
-        // CÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t State Dashboard theo Cloud
+        // Cập nhật State Dashboard theo Cloud
         this.setEquippedStateFromProfile(profile);
 
-        console.log('[Dashboard] Cloud Sync hoÃƒÂ n tÃ¡ÂºÂ¥t:', profile);
+        console.log('[Dashboard] Cloud Sync hoàn tất:', profile);
       }
     } catch (e) {
-      console.warn('[Dashboard] Cloud Sync thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i:', e);
+      console.warn('[Dashboard] Cloud Sync thất bại:', e);
     }
   };
 
   /**
    * Load Daily Quests
-   * LuÃ¡Â»â€œng:
-   *   1. NÃ¡ÂºÂ¿u force=true Ã¢â€ â€™ bÃ¡Â»Â qua cache, gÃ¡Â»Âi API ngay
-   *   2. KiÃ¡Â»Æ’m tra electron-store (base64 encoded)
-   *      - CÃƒÂ³ data + expiresAt chÃ†Â°a qua ngÃƒÂ y Ã¢â€ â€™ Ã„â€˜Ã¡ÂºÂ©y vÃƒÂ o Redux, xong
-   *      - CÃƒÂ³ data + expiresAt Ã„â€˜ÃƒÂ£ qua ngÃƒÂ y Ã¢â€ â€™ gÃ¡Â»Âi API lÃ¡ÂºÂ¥y mÃ¡Â»â€ºi (refresh)
-   *      - KhÃƒÂ´ng cÃƒÂ³ data Ã¢â€ â€™ gÃ¡Â»Âi API lÃ¡ÂºÂ¥y mÃ¡Â»â€ºi
-   *   3. KÃ¡ÂºÂ¿t quÃ¡ÂºÂ£ API Ã¢â€ â€™ lÃ†Â°u vÃƒÂ o Redux + electron-store (base64)
+   * Luồng:
+   *   1. Nếu force=true → bỏ qua cache, gọi API ngay
+   *   2. Kiểm tra electron-store (base64 encoded)
+   *      - Có data + expiresAt chưa qua ngày → đẩy vào Redux, xong
+   *      - Có data + expiresAt đã qua ngày → gọi API lấy mới (refresh)
+   *      - Không có data → gọi API lấy mới
+   *   3. Kết quả API → lưu vào Redux + electron-store (base64)
    */
   loadDailyQuests = async () => {
     const now = Math.floor(Date.now() / 1000);
@@ -601,7 +601,7 @@ class Dashboard extends Component {
     try {
       const result = await claimQuestReward(questKey);
       if (result.success) {
-        toast.success(`Ã¢Å“Â¨ ${result.message || this.props.t('missions.rewards_claimed')}`);
+        toast.success(`✨ ${result.message || this.props.t('missions.rewards_claimed')}`);
 
         const { dailyQuests } = this.props;
         const updatedQuests = { ...dailyQuests.quests };
