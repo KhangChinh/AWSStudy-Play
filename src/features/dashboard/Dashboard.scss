@@ -1421,6 +1421,7 @@
   }
 }
 
+
 /* Inventory App */
 .inventory-app {
   .balance-card {
@@ -2484,5 +2485,21 @@
         }
       }
     }
+  }
+}
+
+/* Solid dashboard chrome: keep the taskbar and app title bars opaque. */
+.os-taskbar {
+  background: #030c1c;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.os-window,
+.os-window.profile {
+  .window-header {
+    background: #071326;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
