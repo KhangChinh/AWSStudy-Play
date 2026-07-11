@@ -1,6 +1,17 @@
-﻿import { getValidAccessToken } from './tokenService';
+import { getValidAccessToken } from './tokenService';
+import { handleSyncProfileApi, ingestServerData } from './syncService';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+const ingestErrorProfile = async (payload, fallbackStatus) => {
+  if (payload?.profile) {
+    await ingestServerData({ profile: payload.profile });
+    return;
+  }
+  if (fallbackStatus === 400 || fallbackStatus === 402 || fallbackStatus === 409) {
+    await handleSyncProfileApi({ force: true });
+  }
+};
 
 const authRequest = async (path, options = {}) => {
   const token = await getValidAccessToken();
@@ -17,7 +28,10 @@ const authRequest = async (path, options = {}) => {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.errCode) {
-    throw new Error(data.errMessage || data.message || `API Error: ${response.status}`);
+    const error = new Error(data.errMessage || data.message || `API Error: ${response.status}`);
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
   return data;
 };
@@ -38,8 +52,9 @@ export const buyShopItemApi = async ({ shopId = 'eCoinShop', itemId }) => {
       body: JSON.stringify({ shopId, itemId }),
     });
   } catch (error) {
+    await ingestErrorProfile(error.data, error.status);
     console.warn('[shopServices] buyShopItem failed:', error.message);
-    return { errCode: -1, errMessage: error.message };
+    return { errCode: -1, errMessage: error.message, profile: error.data?.profile };
   }
 };
 
@@ -50,7 +65,8 @@ export const exchangeKnowledgeCoreApi = async (amount) => {
       body: JSON.stringify({ amount }),
     });
   } catch (error) {
+    await ingestErrorProfile(error.data, error.status);
     console.warn('[shopServices] exchangeKnowledgeCore failed:', error.message);
-    return { errCode: -1, errMessage: error.message };
+    return { errCode: -1, errMessage: error.message, profile: error.data?.profile };
   }
 };

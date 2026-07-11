@@ -163,34 +163,7 @@
           object-fit: cover;
           font-size: 50px;
           color: rgba(255, 255, 255, 0.6);
-        }
-
-        // Frame classes
-        &.frame_neon {
-          border-color: #c084fc;
-          box-shadow: 0 0 20px #a855f7;
-
-          &::before {
-            content: '';
-            position: absolute;
-            inset: -4px;
-            border-radius: 50%;
-            border: 2px solid #a855f7;
-            animation: pulse-frame 2s infinite;
-          }
-        }
-
-        &.frame_gold {
-          border-color: #fbbf24;
-          box-shadow: 0 0 20px #fbbf24;
-        }
-
-        &.frame_galactic {
-          border-color: #3b82f6;
-          background: linear-gradient(45deg, #1e293b, #3b82f6);
-          box-shadow: 0 0 30px #3b82f6;
-        }
-      }
+        }}
 
       .avatar-container-simple {
         position: relative;
@@ -618,21 +591,6 @@
             font-size: 32px;
             color: #64748b;
           }
-
-          &.frame_neon {
-            border-color: #c084fc;
-            box-shadow: 0 0 10px #c084fc;
-          }
-
-          &.frame_gold {
-            border-color: #fbbf24;
-            box-shadow: 0 0 10px #fbbf24;
-          }
-
-          &.frame_galactic {
-            border-color: #3b82f6;
-            box-shadow: 0 0 10px #3b82f6;
-          }
         }
 
         .frame-name {
@@ -738,22 +696,5 @@
         }
       }
     }
-  }
-}
-
-@keyframes pulse-frame {
-  0% {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-
-  50% {
-    transform: scale(1.1);
-    opacity: 0.4;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 0.8;
   }
 }

@@ -169,15 +169,23 @@ class Profile extends Component {
 
     const byId = new Map();
     cosmeticManager.getAllInCategory(category)
-      .filter(item => ownedIds.has(cosmeticId(item)))
-      .forEach(item => byId.set(cosmeticId(item), item));
+      .forEach(item => {
+        const id = cosmeticId(item);
+        if (id) byId.set(id, { ...item, unlocked: ownedIds.has(id) });
+      });
 
     ownedItems.forEach(item => {
       const mappedItem = inventoryItemToCosmetic(item);
-      if (mappedItem && !byId.has(mappedItem.id)) byId.set(mappedItem.id, mappedItem);
+      if (!mappedItem) return;
+      byId.set(mappedItem.id, {
+        ...byId.get(mappedItem.id),
+        ...mappedItem,
+        unlocked: true,
+      });
     });
 
-    return Array.from(byId.values());
+    return Array.from(byId.values())
+      .sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
   };
 
   handleCoverEdit = () => {
@@ -213,12 +221,17 @@ class Profile extends Component {
         <div className="backgrounds-grid">
           {backgrounds.map(background => {
             const isActive = activeBackgroundId === background.id;
+            const isLocked = !background.unlocked;
 
             return (
               <div
                 key={background.id}
-                className={`bg-item-card ${isActive ? 'active' : ''}`}
-                onClick={() => onBackgroundChange?.(background.custom ? background : background.id)}
+                className={`bg-item-card ${isActive ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                role="button"
+                aria-disabled={isLocked}
+                onClick={() => {
+                  if (!isLocked) onBackgroundChange?.(background.custom ? background : background.id);
+                }}
               >
                 <div
                   className="bg-preview"
@@ -234,26 +247,31 @@ class Profile extends Component {
     }
 
     if (activeTab === 'titles') {
-      const titles = this.getEquippableCosmetics('titles', 'title', ['title_newbie'], currentTitle);
+      const titles = this.getEquippableCosmetics('titles', 'title', ['title_none'], currentTitle);
 
       return (
         <div className="titles-list">
           {titles.map(item => {
             const isActive = currentTitle === item.id;
             const titleName = translateCosmeticName(item, translate);
+            const isLocked = !item.unlocked;
 
             return (
               <div
                 key={item.id}
-                className={`profile-title-item ${isActive ? 'active' : ''}`}
-                onClick={() => onTitleChange?.(item.id)}
+                className={`profile-title-item profile-title-${item.id} ${isActive ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                role="button"
+                aria-disabled={isLocked}
+                onClick={() => {
+                  if (!isLocked) onTitleChange?.(item.id);
+                }}
               >
                 <div className="title-info">
                   <div className="title-preview" style={{ color: item.color }}>
                     [{titleName}]
                   </div>
                   <div className="title-desc">
-                    {translate('titles.unlocked')}
+                    {translate(isLocked ? 'titles.locked' : 'titles.unlocked')}
                   </div>
                 </div>
                 {isActive && <div className="active-tag">{translate('profile.equipped')}</div>}
@@ -271,17 +289,24 @@ class Profile extends Component {
       return (
         <div className="frames-grid">
           {frames.map(frame => {
+            const isActive = currentFrame === frame.id;
+            const isLocked = !frame.unlocked;
+
             return (
               <div
                 key={frame.id}
-                className={`frame-item-card ${currentFrame === frame.id ? 'active' : ''}`}
-                onClick={() => onFrameChange?.(frame.id)}
+                className={`frame-item-card ${isActive ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                role="button"
+                aria-disabled={isLocked}
+                onClick={() => {
+                  if (!isLocked) onFrameChange?.(frame.id);
+                }}
               >
-                <RankFrame tier={frame.tier} size={92}>
+                <RankFrame tier={frame.tier || tierFromFrame(frame.id)} size={92}>
                   <IonIcon icon={personCircleOutline} />
                 </RankFrame>
                 <div className="frame-name">{frame.name}</div>
-                {currentFrame === frame.id && <div className="active-dot" />}
+                {isActive && <div className="active-dot" />}
               </div>
             );
           })}
@@ -332,7 +357,7 @@ class Profile extends Component {
       ? { background: selectedBackground.profileBackground }
       : undefined;
     const displayName = userProfile?.information?.name || 'Player_9999';
-    const titleName = translateCosmeticName(equippedTitle, t);
+    const titleName = currentTitle === 'title_none' ? '' : translateCosmeticName(equippedTitle, t);
 
     return (
       <div className={`app-container profile-app rank-${currentRank}`}>
@@ -363,9 +388,11 @@ class Profile extends Component {
                 <span className="name">{displayName}</span>
               </div>
               <div className="title-line">
-                <span className="title-badge" style={{ color: equippedTitle?.color }}>
-                  [{titleName}]
-                </span>
+                {titleName && (
+                  <span className={`title-badge profile-title-${currentTitle}`} style={{ color: equippedTitle?.color }}>
+                    [{titleName}]
+                  </span>
+                )}
                 <span className="rank-chip">{rankLabel}</span>
                 <div className="streak-badge" title={t('common.streak')}>
                   🔥 <span>{userProfile?.streak || 0}</span>

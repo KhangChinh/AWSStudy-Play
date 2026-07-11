@@ -4,8 +4,29 @@ import { setProfile, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll 
 const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;
 let inventorySyncServerError = false;
-const SYNC_COOLDOWN = 60 * 1000; // 1 phút
+const SYNC_COOLDOWN = 60 * 1000; // 1 phÃƒÂºt
 const hasInventorySyncServerError = () => inventorySyncServerError;
+const pickNumber = (...values) => {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') return Number(value) || 0;
+  }
+  return 0;
+};
+
+const normalizeProfile = (profile) => {
+  if (!profile) return profile;
+  const budget = profile.budget || {};
+  return {
+    ...profile,
+    budget: {
+      ...budget,
+      knowledgePoint: pickNumber(budget.knowledgePoint, budget.knowledge_points, profile.knowledgePoint, profile.knowledge_points),
+      knowledgeCore: pickNumber(budget.knowledgeCore, budget.knowledge_core, profile.knowledgeCore, profile.knowledge_core),
+      sanity: pickNumber(budget.sanity, profile.sanity),
+      eCoin: pickNumber(budget.eCoin, budget.ecoin, budget.e_coin, budget.ECoin, profile.eCoin, profile.ecoin, profile.e_coin, profile.ECoin),
+    },
+  };
+};
 const fetchSyncAll = async (token, options) => {
   const response = await fetch(`${API_URL}/sync-all`, {
     method: 'POST',
@@ -58,7 +79,7 @@ const hydrateSyncAllFromLocal = async () => {
 
   if (!state.profile?.userProfile) {
     const profile = await api.invoke('store:loadProfile').catch(() => null);
-    if (profile) store.dispatch(setProfile(profile));
+    if (profile) store.dispatch(setProfile(normalizeProfile(profile)));
   }
 
   state = store.getState();
@@ -117,19 +138,20 @@ const ingestServerData = async (payload) => {
     daily
   } = payload;
   const promises = [];
-  // 1. Xử lý Profile
+  // 1. XÃ¡Â»Â­ lÃƒÂ½ Profile
   if (profile) {
-    store.dispatch(setProfile(profile));
-    promises.push(window.api?.invoke('store:saveProfile', profile).catch(() => { }));
+    const normalizedProfile = normalizeProfile(profile);
+    store.dispatch(setProfile(normalizedProfile));
+    promises.push(window.api?.invoke('store:saveProfile', normalizedProfile).catch(() => { }));
   }
-  // 2. Xử lý Daily Quests
+  // 2. XÃ¡Â»Â­ lÃƒÂ½ Daily Quests
   if (daily) {
     store.dispatch(setDailyQuests(daily));
     promises.push(window.api?.invoke('store:saveDaily', daily).catch(() => { }));
     promises.push(window.api?.invoke('quest:save', daily).catch(() => { }));
   }
-  // 3. Xử lý Inventory (Ghi đè trang 1)
-  if (inventory) { // inventory giờ là object: { background: {items, lastEvaluatedKey}, frame: {...} }
+  // 3. XÃ¡Â»Â­ lÃƒÂ½ Inventory (Ghi Ã„â€˜ÃƒÂ¨ trang 1)
+  if (inventory) { // inventory giÃ¡Â»Â lÃƒÂ  object: { background: {items, lastEvaluatedKey}, frame: {...} }
     const types = Object.keys(inventory);
     for (const type of types) {
       const typeData = inventory[type];
@@ -145,7 +167,7 @@ const ingestServerData = async (payload) => {
       }).catch(() => { });
     }
   }
-  // 4. Xử lý Gacha History (Ghi đè trang 1)
+  // 4. XÃ¡Â»Â­ lÃƒÂ½ Gacha History (Ghi Ã„â€˜ÃƒÂ¨ trang 1)
   if (gachaHistory) {
     store.dispatch({
       type: 'SET_GACHA_HISTORY',
@@ -157,7 +179,7 @@ const ingestServerData = async (payload) => {
       isAppend: false
     }).catch(() => { }));
   }
-  // 5. Xử lý Social (Ghi đè trang 1)
+  // 5. XÃ¡Â»Â­ lÃƒÂ½ Social (Ghi Ã„â€˜ÃƒÂ¨ trang 1)
   if (social) {
     store.dispatch({
       type: 'SET_SOCIAL',
@@ -176,7 +198,7 @@ const ingestServerData = async (payload) => {
 };
 const handleSyncAllApi = async ({ force = false } = {}) => {
   if (syncAllPromise) {
-    console.log('[syncService] SyncAll đang chạy, dùng chung kết quả...');
+    console.log('[syncService] SyncAll Ã„â€˜ang chÃ¡ÂºÂ¡y, dÃƒÂ¹ng chung kÃ¡ÂºÂ¿t quÃ¡ÂºÂ£...');
     return syncAllPromise;
   }
   syncAllPromise = (async () => {
@@ -201,7 +223,7 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
       const getSocial = force || !socialHasLoadedData(hydratedState.social);
 
       if (!getProfile && !getDaily && !getInventory && !getGachaHistory && !getSocial) {
-        console.log('[syncService] SyncAll dùng cache Redux/Electron, không gọi API.');
+        console.log('[syncService] SyncAll dÃƒÂ¹ng cache Redux/Electron, khÃƒÂ´ng gÃ¡Â»Âi API.');
         return buildSyncSnapshot(hydratedState);
       }
 
@@ -248,10 +270,12 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
           social, socialLastKey,
           daily
         } = syncResult;
-        // Xử lý lưu trữ (Server trả về cái nào thì dispatch & save Store cái đó)
+        // XÃ¡Â»Â­ lÃƒÂ½ lÃ†Â°u trÃ¡Â»Â¯ (Server trÃ¡ÂºÂ£ vÃ¡Â»Â cÃƒÂ¡i nÃƒÂ o thÃƒÂ¬ dispatch & save Store cÃƒÂ¡i Ã„â€˜ÃƒÂ³)
         if (profile) {
-          store.dispatch(setProfile(profile));
-          await window.api?.invoke('store:saveProfile', profile).catch(() => { });
+          const normalizedProfile = normalizeProfile(profile);
+          store.dispatch(setProfile(normalizedProfile));
+          await window.api?.invoke('store:saveProfile', normalizedProfile).catch(() => { });
+          syncResult.profile = normalizedProfile;
         }
         if (daily) {
           store.dispatch(setDailyQuests(daily));
@@ -301,18 +325,21 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
     syncAllPromise = null;
   }
 };
-const handleSyncProfileApi = async () => {
+const handleSyncProfileApi = async ({ force = false } = {}) => {
   try {
     const reduxProfile = store.getState().profile?.userProfile;
-    if (reduxProfile) {
+    if (!force && reduxProfile) {
       return { success: true, profile: reduxProfile };
     }
 
     // Use local Electron profile cache to avoid startup delay
-    const localProfile = await window.api?.invoke('store:loadProfile');
-    if (localProfile) {
-      store.dispatch(setProfile(localProfile));
-      return { success: true, profile: localProfile };
+    if (!force) {
+      const localProfile = await window.api?.invoke('store:loadProfile');
+      if (localProfile) {
+        const normalizedProfile = normalizeProfile(localProfile);
+        store.dispatch(setProfile(normalizedProfile));
+        return { success: true, profile: normalizedProfile };
+      }
     }
     const token = await getValidAccessToken();
     if (!token) throw new Error('No auth token');
@@ -332,8 +359,10 @@ const handleSyncProfileApi = async () => {
     }
     const syncResult = await response.json();
     if (syncResult && syncResult.success && syncResult.profile) {
-      store.dispatch(setProfile(syncResult.profile));
-      await window.api?.invoke('store:saveProfile', syncResult.profile).catch(() => { });
+      const normalizedProfile = normalizeProfile(syncResult.profile);
+      store.dispatch(setProfile(normalizedProfile));
+      await window.api?.invoke('store:saveProfile', normalizedProfile).catch(() => { });
+      syncResult.profile = normalizedProfile;
     }
     return syncResult;
   } catch (error) {
