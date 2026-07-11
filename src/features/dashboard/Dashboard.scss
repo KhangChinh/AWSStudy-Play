@@ -2509,7 +2509,7 @@
   position: absolute;
   bottom: 80px; /* Ngay phía trên taskbar */
   right: 30px;
-  z-index: 99;
+  z-index: 5; /* Hạ từ 99 xuống 5 để nằm dưới các cửa sổ ứng dụng (có z-index >= 10) */
   display: flex;
   flex-direction: column;
   align-items: center; /* Căn giữa tất cả các thành phần dọc trục */
