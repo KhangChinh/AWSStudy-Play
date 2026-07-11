@@ -252,6 +252,10 @@
 
 }
 
+.os-desktop.custom-background-active {
+  background: var(--desktop-user-background, #0b1028) !important;
+}
+
 .os-desktop.no-animations {
   .desktop-line-bg {
     display: none;

@@ -129,11 +129,28 @@ class CosmeticManager {
     return this.data[category]?.find(i => i.id === id || i.SK === id) || null;
   }
 
-  applyBackgroundAssets() {
+  applyBackgroundAssets(background) {
+    if (typeof document === 'undefined') return;
+
+    const backgroundId = typeof background === 'string'
+      ? background
+      : background?.id || background?.SK;
+    const item = this.getCosmeticInfo('backgrounds', backgroundId);
+    const cssPath = item?.assets?.css;
+
     this.removeExternalCSS();
+    if (!cssPath) return;
+
+    const link = document.createElement('link');
+    link.id = 'dynamic-theme-style';
+    link.rel = 'stylesheet';
+    link.href = assetUrl(cssPath);
+    link.dataset.backgroundId = backgroundId;
+    document.head.appendChild(link);
   }
 
   removeExternalCSS() {
+    if (typeof document === 'undefined') return;
     const old = document.getElementById('dynamic-theme-style');
     if (old) old.remove();
   }

@@ -820,9 +820,10 @@ class Dashboard extends Component {
     const rp = this.props.userProfile?.studyStats?.rankScore ?? 0;
     const rankInfo = getRankInfo(rp);
     const activeBgId = backgroundId(currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID;
+    const hasCustomBackgroundCss = Boolean(selectedBackground?.assets?.css);
     const shouldRenderDesktopEffects = animationsEnabled && [LOCAL_DEFAULT_BACKGROUND_ID, SERVER_DEFAULT_BACKGROUND_ID].includes(activeBgId) && !selectedBackground?.imageUrl;
     const desktopBackground = selectedBackground?.desktopBackground || selectedBackground?.preview;
-    const desktopStyle = desktopBackground
+    const desktopStyle = desktopBackground && !hasCustomBackgroundCss
       ? {
         '--desktop-user-background': desktopBackground,
         background: desktopBackground,
@@ -831,12 +832,16 @@ class Dashboard extends Component {
     const desktopClassName = [
       'os-desktop',
       !animationsEnabled ? 'no-animations' : '',
+      hasCustomBackgroundCss ? 'custom-background-active' : '',
       `icon-style-${iconData.type}`,
     ].filter(Boolean).join(' ');
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
         {shouldRenderDesktopEffects && this.renderDesktopLineBackground(activeBgId)}
+        {animationsEnabled && hasCustomBackgroundCss && (
+          <div className={`desktop-line-bg custom-background-effects bg-${activeBgId}`} aria-hidden="true" />
+        )}
         {this.state.isDragging && <div className="drag-overlay"></div>}
 
         <UserProfileWidget
