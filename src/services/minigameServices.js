@@ -218,18 +218,39 @@ const handleSubmitSudoku = async (levelId, finalGridStr, actionLogs, endState = 
         });
 
         const result = await response.json();
-        if (!response.ok) await ingestServerData(result);
 
-        // Nếu API trả về profile mới thì dùng ingestServerData lưu vào Redux + Electron
-        if (result.success && result.profile) {
-            await ingestServerData({ profile: result.profile });
-            // Cập nhật stats nếu cần (có thể dispatch action riêng cho stats nếu store bạn có quản lý)
+        if (result.success) {
+            // 1. Cập nhật Profile (eCoin, sanity...)
+            if (result.profile) {
+                await ingestServerData({ profile: result.profile });
+            }
+
+            // 2. Cập nhật danh sách Level mới nhất vào Redux và Electron Store
+            if (result.levels && result.levels.length > 0) {
+                // Đảm bảo biến payload được khai báo BÊN TRONG khối if này
+                const payload = {
+                    sudokuLevels: result.levels,
+                    lastEvaluatedKey: result.lastEvaluatedKey || null
+                };
+
+                // Đẩy vào Redux
+                store.dispatch({ type: 'SET_SUDOKU_LEVELS', payload });
+
+                // Lưu vào Electron Store (Offline)
+                await window.api?.invoke('store:saveSudokuLevels', {
+                    sudokuLevels: result.levels,
+                    lastEvaluatedKey: result.lastEvaluatedKey || null,
+                    isAppend: false
+                }).catch((err) => {
+                    console.error('[gameService] Lỗi khi lưu offline levels:', err);
+                });
+            }
         }
 
         return result;
     } catch (error) {
         console.error('[gameService] FAIL handleSubmitSudoku:', error.message);
-        throw error;
+        throw error; // Ném lỗi ra ngoài để SudokuGame.jsx bắt được bằng catch (e)
     }
 };
 
