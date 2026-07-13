@@ -302,6 +302,7 @@ const handleUpdateNameApi = async (newName) => {
 
 
 export {
+  assetUrl,
   handleGetMasterDataApi,
   handleEquipCosmeticsApi,
   handleUpdateNameApi,

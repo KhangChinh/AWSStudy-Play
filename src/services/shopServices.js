@@ -2,6 +2,7 @@ import { getValidAccessToken } from './tokenService';
 import { handleSyncProfileApi, ingestServerData } from './syncService';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const SHOP_PATH = '/shop/ecoin';
 
 const ingestErrorProfile = async (payload, fallbackStatus) => {
   if (payload && Object.keys(payload).length > 0) {
@@ -37,37 +38,28 @@ const authRequest = async (path, options = {}) => {
   return data;
 };
 
-export const getShopApi = async (shopId = 'eCoinShop') => {
+export const getShopApi = async () => {
   try {
-    return await authRequest(`/shop?shopId=${encodeURIComponent(shopId)}`);
+    return await authRequest(SHOP_PATH);
   } catch (error) {
     console.warn('[shopServices] getShop failed:', error.message);
     return { errCode: -1, errMessage: error.message };
   }
 };
 
-export const buyShopItemApi = async ({ shopId = 'eCoinShop', itemId }) => {
+export const buyShopItemApi = async ({ itemId }) => {
   try {
-    return await authRequest('/shop/buy', {
+    const result = await authRequest(`${SHOP_PATH}/buy`, {
       method: 'POST',
-      body: JSON.stringify({ shopId, itemId }),
+      body: JSON.stringify({ itemId }),
     });
+    if (result?.success) {
+      await ingestServerData({ profile: result.profile, inventory: result.inventory });
+    }
+    return result;
   } catch (error) {
     await ingestErrorProfile(error.data, error.status);
     console.warn('[shopServices] buyShopItem failed:', error.message);
-    return { errCode: -1, errMessage: error.message, profile: error.data?.profile };
-  }
-};
-
-export const exchangeKnowledgeCoreApi = async (amount) => {
-  try {
-    return await authRequest('/currency/exchange', {
-      method: 'POST',
-      body: JSON.stringify({ amount }),
-    });
-  } catch (error) {
-    await ingestErrorProfile(error.data, error.status);
-    console.warn('[shopServices] exchangeKnowledgeCore failed:', error.message);
     return { errCode: -1, errMessage: error.message, profile: error.data?.profile };
   }
 };

@@ -3,14 +3,18 @@ import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import { cartOutline, cart } from 'ionicons/icons';
 import { toast } from 'react-toastify';
-import { setProfile, appendInventory } from '../../store/actions';
 import { buyShopItemApi, getShopApi } from '../../services/shopServices';
+import { assetUrl } from '../../services/cosmeticServices';
 import { handleConvertPointsAction, KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import currencyAssets from '../../data/currencyAssets';
 import './Shop.scss';
 
-const SHOP_ID = 'eCoinShop';
 const CORE_PRICE = KNOWLEDGE_POINTS_PER_CORE;
+
+const normalizeShopItem = (item) => ({
+  ...item,
+  owned: item.isOwned ?? item.owned ?? false,
+});
 
 const FALLBACK_SHOP_ITEMS = [
   {
@@ -78,24 +82,14 @@ class Shop extends Component {
 
   loadShop = async () => {
     this.setState({ isLoadingShop: true });
-    const result = await getShopApi(SHOP_ID);
+    const result = await getShopApi();
     if (result && !result.errCode && result.shop) {
       const serverItems = result.shop.activeItems || [];
-      this.setState({ shopItems: serverItems.length ? serverItems : FALLBACK_SHOP_ITEMS });
+      this.setState({
+        shopItems: serverItems.length ? serverItems.map(normalizeShopItem) : FALLBACK_SHOP_ITEMS,
+      });
     }
     this.setState({ isLoadingShop: false });
-  };
-
-  updateProfileBudget = async (budgetPatch) => {
-    const nextProfile = {
-      ...(this.props.userProfile || {}),
-      budget: {
-        ...(this.props.userProfile?.budget || {}),
-        ...budgetPatch,
-      },
-    };
-    this.props.setProfile(nextProfile);
-    await window.api?.invoke('store:saveProfile', nextProfile).catch(() => {});
   };
 
   handleCoreAmountChange = (event) => {
@@ -150,26 +144,18 @@ class Shop extends Component {
     }
 
     this.setState({ buyingKey: item.itemId });
-    const result = await buyShopItemApi({ shopId: SHOP_ID, itemId: item.itemId });
-    if (result && !result.errCode && result.item) {
-      const itemType = result.item.itemType || result.itemType || 'frame';
-      const branch = this.props.inventory?.[itemType] || {};
-      if (result.profile) {
-        this.props.setProfile(result.profile);
-        await window.api?.invoke('store:saveProfile', result.profile).catch(() => {});
+    // Backend tra ve { profile, shop, inventory }; profile + inventory da duoc
+    // ingestServerData xu ly trong buyShopItemApi. O day chi dong bo lai shop UI.
+    const result = await buyShopItemApi({ itemId: item.itemId });
+    if (result && !result.errCode && result.success) {
+      const serverItems = result.shop?.activeItems;
+      if (Array.isArray(serverItems)) {
+        this.setState({ shopItems: serverItems.map(normalizeShopItem) });
       } else {
-        await this.updateProfileBudget({ [result.currency || 'eCoin']: result.newBalance });
+        this.setState((prev) => ({
+          shopItems: prev.shopItems.map((shopItem) => shopItem.itemId === item.itemId ? { ...shopItem, owned: true } : shopItem),
+        }));
       }
-      this.props.appendInventory({ itemType, items: [result.item], lastKey: branch.lastKey || null });
-      await window.api?.invoke('store:saveInventory', {
-        itemType,
-        inventory: [result.item],
-        lastEvaluatedKey: branch.lastKey || null,
-        isAppend: true,
-      }).catch(() => {});
-      this.setState((prev) => ({
-        shopItems: prev.shopItems.map((shopItem) => shopItem.itemId === item.itemId ? { ...shopItem, owned: true } : shopItem),
-      }));
       toast.success(this.props.t('store.purchase_success'));
     } else {
       toast.error(result?.errMessage || this.props.t('store.purchase_failed'));
@@ -274,7 +260,7 @@ class Shop extends Component {
     return (
       <div className={`store-item rarity-${item.rarity} ${item.owned ? 'owned' : ''}`} key={item.itemId}>
         <div className="item-cover shop-item-cover">
-          {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <span className="item-initial">{(item.itemType || 'IT').slice(0, 2).toUpperCase()}</span>}
+          {item.imageUrl ? <img src={assetUrl(item.imageUrl)} alt={item.name} /> : <span className="item-initial">{(item.itemType || 'IT').slice(0, 2).toUpperCase()}</span>}
         </div>
         <div className="item-info">
           <span className="item-title">{item.name || item.itemId}</span>
@@ -308,12 +294,6 @@ class Shop extends Component {
 
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
-  inventory: state.inventory,
 });
 
-const mapDispatchToProps = (dispatch) => ({
-  setProfile: (profile) => dispatch(setProfile(profile)),
-  appendInventory: (payload) => dispatch(appendInventory(payload)),
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(Shop);
+export default connect(mapStateToProps)(Shop);
