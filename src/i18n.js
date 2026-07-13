@@ -89,6 +89,7 @@ i18n
           },
           dashboard: {
             rank: 'Rank',
+            rank_milestones: 'Rank Milestones',
             missions: 'Missions',
             cleanup: 'Cleanup',
             minimize_all: 'Minimize All',
@@ -559,6 +560,7 @@ i18n
           },
           dashboard: {
             rank: 'Hạng',
+            rank_milestones: 'Cột mốc Rank',
             missions: 'Nhiệm vụ',
             cleanup: 'Dọn dẹp',
             minimize_all: 'Thu nhỏ hết',

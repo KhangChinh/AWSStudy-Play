@@ -45,12 +45,12 @@ const translateCosmeticName = (item, t) => {
 };
 
 const RANK_LIST_DATA = [
-  { tier: 'bronze', name: 'Đồng V', rp: 0 },
-  { tier: 'silver', name: 'Bạc V', rp: 180 },
-  { tier: 'gold', name: 'Vàng V', rp: 510 },
-  { tier: 'platinum', name: 'Bạch Kim V', rp: 990 },
-  { tier: 'diamond', name: 'Kim Cương V', rp: 1620 },
-  { tier: 'master', name: 'Cao Thủ', rp: 2400 }
+  { tier: 'bronze', nameKey: 'rank.bronze', rp: 0 },
+  { tier: 'silver', nameKey: 'rank.silver', rp: 180 },
+  { tier: 'gold', nameKey: 'rank.gold', rp: 510 },
+  { tier: 'platinum', nameKey: 'rank.platinum', rp: 990 },
+  { tier: 'diamond', nameKey: 'rank.diamond', rp: 1620 },
+  { tier: 'master', nameKey: 'rank.master', rp: 2400 }
 ];
 
 const resolveBackground = (background) => {
@@ -224,13 +224,6 @@ class Dashboard extends Component {
     this.fetchFriends();
   }
 
-  componentWillUnmount() {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-    if (this.syncTimeout) clearTimeout(this.syncTimeout);
-    document.removeEventListener('mousedown', this.handleClickOutside);
-    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-  }
-
   fetchFriends = async () => {
     try {
       const res = await handleGetFriendsApi();
@@ -359,8 +352,10 @@ class Dashboard extends Component {
 
   componentWillUnmount() {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.syncTimeout) clearTimeout(this.syncTimeout);
     if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
     document.removeEventListener('mousedown', this.handleClickOutside);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     window.removeEventListener('mousemove', this.handleDragging);
     window.removeEventListener('mouseup', this.handleDragEnd);
     window.removeEventListener('touchmove', this.handleDragging);
@@ -1143,7 +1138,7 @@ class Dashboard extends Component {
                 >
                   <IonIcon icon={chevronBackOutline} />
                 </button>
-                <span className="popover-title">Cột Mốc Rank</span>
+                <span className="popover-title">{t('dashboard.rank_milestones')}</span>
                 <button 
                   className="popover-nav-btn" 
                   disabled={this.state.rankListPage === 1}
@@ -1157,7 +1152,7 @@ class Dashboard extends Component {
                   <div key={item.tier} className="popover-rank-item">
                     <RankBadge tier={item.tier} size={32} />
                     <div className="popover-rank-info">
-                      <span className="popover-rank-name">{item.name}</span>
+                      <span className="popover-rank-name">{t(item.nameKey)}</span>
                       <span className="popover-rank-rp">{item.rp} RP</span>
                     </div>
                   </div>
