@@ -156,6 +156,25 @@ export function registerStoreIPC(ipcMain) {
       return null;
     }
   });
+  // Shop cache is user-scoped because activeItems contains isOwned flags.
+  ipcMain.handle('store:saveShop', async (_event, shopData) => {
+    try {
+      store.set('userShop', encodeBase64(shopData));
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:saveShop failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('store:loadShop', async () => {
+    try {
+      const encrypted = store.get('userShop');
+      return encrypted ? decodeBase64(encrypted) : null;
+    } catch (err) {
+      console.error('[storeIpc] store:loadShop failed:', err);
+      return null;
+    }
+  });
   // ═══ Gacha History ═══
   ipcMain.handle('store:saveGachaHistory', async (_event, payload) => {
     try {
@@ -238,6 +257,7 @@ export function registerStoreIPC(ipcMain) {
   ipcMain.handle('store:clearSudokuLevels', async () => {
     try {
       store.delete('userSudokuLevels');
+      store.delete('userShop');
       return { success: true };
     } catch (err) {
       console.error('[storeIpc] store:clearSudokuLevels failed:', err);

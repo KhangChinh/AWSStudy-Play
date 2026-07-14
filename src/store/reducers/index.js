@@ -11,6 +11,7 @@ import studyPlannerReducer from './studyPlannerReducer';
 import minigameReducer from './minigameReducer';
 import minigameLogsReducer from './minigameLogReducer';
 import settingsReducer from './settingsReducer';
+import shopReducer from './shopReducer';
 
 const appReducer = combineReducers({
   profile: profileReducer,
@@ -23,6 +24,7 @@ const appReducer = combineReducers({
   minigame: minigameReducer,
   minigameLogs: minigameLogsReducer,
   settings: settingsReducer,
+  shop: shopReducer,
 });
 
 const rootReducer = (state, action) => {
