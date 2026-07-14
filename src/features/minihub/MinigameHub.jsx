@@ -6,7 +6,7 @@ import { playOutline, trophyOutline, timeOutline, gameControllerOutline } from '
 
 import './MinigameHub.scss';
 
-import { handleSyncSudokuLevels } from '../../services/minigameServices';
+import { handleSyncSudokuLevels, handleGetLeaderboardApi } from '../../services/minigameServices';
 import { toast } from 'react-toastify';
 import SudokuGame from './games/sudoku/SudokuGame.jsx';
 
@@ -15,12 +15,6 @@ const MINIGAMES = [
   { id: 'minesweeper', label: 'Minesweeper', icon: '💣' },
   { id: 'sudoku', label: 'Sudoku', icon: '🔢' },
 ];
-
-const MINIGAME_SCORES = {
-  all: [500, 425, 350, 275, 200],
-  minesweeper: [180, 155, 120, 90, 60],
-  sudoku: [130, 110, 90, 75, 50],
-};
 
 // ═══ Arcade Game List ═══
 const ArcadeList = ({ onPlayGame }) => (
@@ -52,24 +46,7 @@ const ArcadeList = ({ onPlayGame }) => (
   </div>
 );
 
-// ═══ Leaderboard ═══
-const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => {
-  const scores = tab === 'study'
-    ? [120.5, 98.2, 85.0, 72.4, 60.1]
-    : MINIGAME_SCORES[minigameFilter];
-
-  const scoreLabel = tab === 'study'
-    ? (v) => `${v.toFixed(1)}h`
-    : (v) => `${v} Wins`;
-
-  const DEMO_PLAYERS = [
-    { name: 'Cosmic_King', avatar: '👑' },
-    { name: 'Nebula_Runner', avatar: '✨' },
-    { name: 'Star_Gazer', avatar: '🔭' },
-    { name: 'Void_Walker', avatar: '🌌' },
-    { name: 'Galaxy_Master', avatar: '🌠' }
-  ];
-
+const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, leaderboardData }) => {
   return (
     <div className="leaderboard-section">
       <div className="section-header">
@@ -99,67 +76,108 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter }) => 
       )}
 
       <div className="rank-list">
-        {DEMO_PLAYERS.map((player, i) => (
-          <div className={`rank-item ${i < 3 ? `top-${i + 1}` : ''}`} key={i}>
-            <div className="rank-number">
-              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-            </div>
-            <div className="player-info">
-              <div className="player-avatar">{player.avatar}</div>
-              <div className="player-details">
-                <div className="name-with-title">
-                  <span className="player-name">{player.name}</span>
-                  <span className="player-title" style={{ color: i === 0 ? '#a855f7' : i < 3 ? '#f87171' : '#94a3b8' }}>
-                    [{i === 0 ? 'Đại Gia' : i < 3 ? 'Chiến Thần' : 'Tân Thủ'}]
-                  </span>
+        {leaderboardData && leaderboardData.length > 0 ? (
+          leaderboardData.map((player, i) => (
+            <div className={`rank-item ${i < 3 ? `top-${i + 1}` : ''}`} key={i}>
+              <div className="rank-number">
+                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+              </div>
+              <div className="player-info">
+                <div className="player-avatar">
+                  <img src={player.displayInfo?.avatarUrl || 'avatars/default_avatar.jpg'} alt="avt" style={{ width: 40, borderRadius: '50%' }} />
                 </div>
-                <span className="player-rank-title">{i === 0 ? 'Grandmaster' : i < 3 ? 'Elite' : 'Challenger'}</span>
+                <div className="player-details">
+                  <div className="name-with-title">
+                    <span className="player-name">{player.displayInfo?.name || 'Ẩn danh'}</span>
+                    <span className="player-title" style={{ color: i === 0 ? '#a855f7' : i < 3 ? '#f87171' : '#94a3b8' }}>
+                      [{i === 0 ? 'Đại Gia' : i < 3 ? 'Chiến Thần' : 'Tân Thủ'}]
+                    </span>
+                  </div>
+                  <span className="player-rank-title">Màn đã qua: {player.levelsCompleted || 0}</span>
+                </div>
+              </div>
+              <div className="score-badge">
+                {player.totalScore} Điểm
               </div>
             </div>
-            <div className="score-badge">
-              {scoreLabel(scores[i])}
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>Chưa có dữ liệu xếp hạng.</div>
+        )}
       </div>
     </div>
   );
 };
-
 // ═══ Main MinigameHub ═══
 class MinigameHub extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      tab: 'study',
-      minigameFilter: 'all',
+      tab: 'minigame', // Sửa default thành minigame để check ngay lúc vào
+      minigameFilter: 'sudoku', // Sửa default thành sudoku
       isLoading: false,
       activeGame: null,
     };
   }
 
-  // ─── THÊM MỚI: Xử lý nút bấm Play Game ───
+  componentDidMount() {
+    console.log("[MiniHub] ComponentDidMount - Current Tab:", this.state.tab);
+    if (this.state.tab === 'minigame') {
+      this.handleLoadLeaderboard();
+    }
+  }
+
+  // Xóa hàm bị lặp, gộp lại thành 1 hàm duy nhất và chuẩn nhất
+  handleLoadLeaderboard = async () => {
+    console.log("[MiniHub] Triggering handleLoadLeaderboard...");
+    this.setState({ isLoading: true });
+    try {
+      if (this.state.tab === 'minigame') {
+        const targetGame = this.state.minigameFilter === 'all' ? 'sudoku' : this.state.minigameFilter;
+        console.log(`[MiniHub] Gọi API cho gameId: ${targetGame}`);
+
+        // Gọi hàm API đã import
+        const response = await handleGetLeaderboardApi(targetGame);
+        console.log("[MiniHub] Kết quả API trả về:", response);
+      }
+    } catch (error) {
+      console.error('[MiniHub] Lỗi khi tải bảng xếp hạng:', error);
+      toast.error('Lỗi khi tải bảng xếp hạng!');
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  };
+
+  // Xóa setMinigameFilter lặp, gộp lại
+  setMinigameFilter = (filter) => {
+    console.log(`[MiniHub] Thay đổi filter thành: ${filter}`);
+    this.setState({ minigameFilter: filter }, () => {
+      this.handleLoadLeaderboard();
+    });
+  };
+
+  // Xóa setTab lặp, gộp lại
+  setTab = (tab) => {
+    console.log(`[MiniHub] Thay đổi tab thành: ${tab}`);
+    this.setState({ tab }, () => {
+      if (tab === 'minigame') {
+        this.handleLoadLeaderboard();
+      }
+    });
+  };
+
   handlePlayGame = async (gameId) => {
     if (gameId === 'sudoku') {
       this.setState({ isLoading: true });
       try {
         toast.info("Đang tải danh sách màn chơi...");
         const response = await handleSyncSudokuLevels();
+        console.log("=== DANH SÁCH MÀN CHƠI SUDOKU ===", response);
 
-        // Log dữ liệu để kiểm tra
-        console.log("=== DANH SÁCH MÀN CHƠI SUDOKU ===");
-        console.log(response);
-        console.log("=================================");
-
-        // FIX: Đổi điều kiện kiểm tra từ !response.errCode sang check sự tồn tại của response.levels 
         if (response && (response.levels || response.success)) {
-          // Xóa dòng log console cho gọn hoặc để lại tùy bạn
           toast.success("Tải màn chơi thành công!");
-
-          // 🚨 THÊM DÒNG NÀY: Kích hoạt render SudokuGame
-          this.setState({ activeGame: 'sudoku' })
+          this.setState({ activeGame: 'sudoku' });
         } else {
-          // Chỉ rơi vào đây nếu service thực sự trả về null hoặc API lỗi không trả ra levels
           toast.error("Có lỗi xảy ra hoặc không tìm thấy dữ liệu.");
         }
       } catch (error) {
@@ -173,32 +191,14 @@ class MinigameHub extends Component {
     }
   };
 
-  handleLoadLeaderboard = async () => {
-    this.setState({ isLoading: true });
-    try {
-      const response = await handleGetLeaderboardApi(this.state.minigameFilter);
-      if (response && response.errCode === 0) {
-        // Lưu leaderboard vào redux nếu cần
-      }
-    } catch (error) {
-      console.log('Error loading leaderboard:', error);
-      toast.error('Lỗi khi tải bảng xếp hạng!');
-    }
-    this.setState({ isLoading: false });
-  };
-
-  setTab = (tab) => {
-    this.setState({ tab });
-  };
-
-  setMinigameFilter = (filter) => {
-    this.setState({ minigameFilter: filter }, () => {
-      // this.handleLoadLeaderboard(); 
-    });
-  };
-
   render() {
     const { tab, minigameFilter, activeGame } = this.state;
+    const { leaderboards } = this.props;
+
+    // Console log để check Redux Props khi Render
+    const targetGame = minigameFilter === 'all' ? 'sudoku' : minigameFilter;
+    const currentBoardData = leaderboards?.[targetGame]?.data || [];
+    console.log(`[MiniHub] Render - Data Redux (Game: ${targetGame}):`, currentBoardData);
 
     if (activeGame === 'sudoku') {
       return (
@@ -209,7 +209,6 @@ class MinigameHub extends Component {
     return (
       <div className="app-container minigame-hub">
         <h2 className="app-title">🎮 Minigame Hub</h2>
-        {/* THAY ĐỔI: Truyền hàm handlePlayGame xuống ArcadeList */}
         <ArcadeList onPlayGame={this.handlePlayGame} />
 
         <LeaderboardView
@@ -217,6 +216,7 @@ class MinigameHub extends Component {
           minigameFilter={minigameFilter}
           setTab={this.setTab}
           setMinigameFilter={this.setMinigameFilter}
+          leaderboardData={currentBoardData}
         />
       </div>
     );
@@ -225,6 +225,7 @@ class MinigameHub extends Component {
 
 const mapStateToProps = (state) => ({
   minigameHighscores: state.minigame.minigameHighscores,
+  leaderboards: state.minigame.leaderboards // Lấy thêm state này
 });
 
 export default connect(mapStateToProps, null)(withTranslation()(MinigameHub));

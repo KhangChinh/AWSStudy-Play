@@ -1,7 +1,7 @@
 export const SET_SUDOKU_LEVELS = 'SET_SUDOKU_LEVELS';
 export const APPEND_SUDOKU_LEVELS = 'APPEND_SUDOKU_LEVELS';
 export const CLEAR_SUDOKU_LEVELS = 'CLEAR_SUDOKU_LEVELS';
-
+export const SET_LEADERBOARD = 'SET_LEADERBOARD';
 export const setSudokuLevels = (payload) => ({
     type: SET_SUDOKU_LEVELS,
     payload, // payload = { items: [], lastKey: ... }
@@ -14,4 +14,9 @@ export const appendSudokuLevels = (payload) => ({
 
 export const clearSudokuLevels = () => ({
     type: CLEAR_SUDOKU_LEVELS,
+});
+
+export const setLeaderboard = (payload) => ({
+    type: SET_LEADERBOARD,
+    payload,
 });

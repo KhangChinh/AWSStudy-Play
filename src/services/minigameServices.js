@@ -253,5 +253,97 @@ const handleSubmitSudoku = async (levelId, finalGridStr, actionLogs, endState = 
         throw error; // Ném lỗi ra ngoài để SudokuGame.jsx bắt được bằng catch (e)
     }
 };
+const handleGetLeaderboardApi = async (gameId) => {
+    try {
+        const state = store.getState().minigame;
+        let cachedBoard = state.leaderboards?.[gameId];
+        // Đổi thời gian hiện tại ra GIÂY để so sánh trực tiếp với expiresAt từ DynamoDB
+        const nowSecs = Math.floor(Date.now() / 1000);
 
-export { handleSyncSudokuLevels, handleStartSession, handleCheckSudokuStep, handleSubmitSudoku };
+        // ==========================================
+        // 1. KIỂM TRA TRONG REDUX
+        // ==========================================
+        if (cachedBoard && cachedBoard.expiresAt && cachedBoard.expiresAt > nowSecs) {
+            console.log(`[Cache Hit] Trả về Leaderboard ${gameId} từ Redux. Hết hạn sau: ${cachedBoard.expiresAt - nowSecs}s`);
+            return { success: true, topPlayers: cachedBoard.data };
+        }
+
+        // ==========================================
+        // 2. KIỂM TRA TRONG ELECTRON STORE
+        // ==========================================
+        try {
+            const localLeaderboard = await window.api?.invoke('store:get', `leaderboard_${gameId}`);
+
+            // Nếu có data và CHƯA HẾT HẠN
+            if (localLeaderboard && localLeaderboard.expiresAt && localLeaderboard.expiresAt > nowSecs) {
+                console.log(`[Cache Hit] Trả về Leaderboard ${gameId} từ Electron Store. Nạp lại lên Redux.`);
+
+                // Đồng bộ ngược từ Electron lên Redux để lần sau lấy nhanh hơn
+                store.dispatch({
+                    type: 'SET_LEADERBOARD',
+                    payload: {
+                        gameId,
+                        data: localLeaderboard.data,
+                        expiresAt: localLeaderboard.expiresAt
+                    }
+                });
+                return { success: true, topPlayers: localLeaderboard.data };
+            }
+        } catch (err) {
+            console.log("Store Offline trống hoặc lỗi, tiến hành gọi API...");
+        }
+
+        // ==========================================
+        // 3. GỌI API SERVER (Khi không có hoặc đã hết hạn)
+        // ==========================================
+        console.log(`🚀 Cả 2 cache đều hụt/hết hạn. Gọi API Server lấy Leaderboard ${gameId}...`);
+
+        const token = await getValidAccessToken();
+        if (!token) throw new Error('No auth token');
+
+        const url = `${API_URL}/minigame/leaderboard?gameId=${gameId}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Lỗi lấy bảng xếp hạng');
+        }
+
+        const result = await response.json();
+
+        // Cập nhật lại Redux và Electron Store với mốc expiresAt do Backend trả về
+        if (result && result.topPlayers) {
+            // Giả định backend gặp lỗi không trả expiresAt thì client tự bù bằng 10 phút
+            const serverExpiresAt = result.expiresAt || (nowSecs + 10 * 60);
+
+            const payloadData = {
+                gameId,
+                data: result.topPlayers,
+                expiresAt: serverExpiresAt
+            };
+
+            // Lưu lên Redux
+            store.dispatch({ type: 'SET_LEADERBOARD', payload: payloadData });
+
+            // Ghi đè vào Electron Store
+            await window.api?.invoke('store:set', {
+                key: `leaderboard_${gameId}`,
+                value: { data: result.topPlayers, expiresAt: serverExpiresAt }
+            }).catch(() => { });
+
+            return { success: true, topPlayers: result.topPlayers };
+        }
+
+        return { success: false, topPlayers: [] };
+    } catch (e) {
+        console.error('[gameService] Lỗi gọi Leaderboard:', e.message);
+        return null;
+    }
+};
+export { handleSyncSudokuLevels, handleStartSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi };
