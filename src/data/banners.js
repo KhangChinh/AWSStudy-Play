@@ -4,7 +4,8 @@
  * Updated: Uses current AWSServerless gacha sample items
  */
 
-export const AUTO_ROTATE_BANNERS = false;
+export const AUTO_ROTATE_BANNERS = true;
+export const BANNER_ROTATION_MS = 60 * 60 * 1000;
 
 const CURRENT_GACHA_FEATURED = {
   5: ['bg_crimson_void'],

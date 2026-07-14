@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 import './GachaApp.scss';
 
 // Import System Banners Data
-import { BANNERS } from '../../data/banners';
+import { AUTO_ROTATE_BANNERS, BANNER_ROTATION_MS, BANNERS } from '../../data/banners';
 import { ITEMS } from '../../data/items';
 import { S3_ASSETS_BASE } from '../../data/cosmetics';
 import { applyGachaResult, getGachaMasterItems, handleGachaApi } from '../../services/gachaServices';
@@ -19,6 +19,23 @@ import currencyAssets from '../../data/currencyAssets';
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
 
+const normalizeAssetBase = (value = '') => value.replace(/\/+$/, '');
+const resolveMasterItemImage = (item, fallback = '') => {
+  if (!item) return fallback;
+  const base = normalizeAssetBase(S3_ASSETS_BASE);
+  const toAssetUrl = (assetPath) => {
+    if (!assetPath) return '';
+    if (/^https?:\/\//i.test(assetPath) || assetPath.startsWith('/')) return assetPath;
+    const normalized = assetPath.replace(/^\/+/, '').replace(/^items\//, '');
+    return `${base}/items/${normalized}`;
+  };
+
+  if (item.imageUrl) return toAssetUrl(item.imageUrl);
+  if (item.itemType === 'background') return toAssetUrl(`background/${item.SK}/${item.SK}.jpg`);
+  if (item.itemType === 'frame' && item.assets?.css) return toAssetUrl(item.assets.css.replace(/\.css(?:\?.*)?$/i, '.svg'));
+  return fallback;
+};
+
 class GachaApp extends Component {
   constructor(props) {
     super(props);
@@ -26,20 +43,19 @@ class GachaApp extends Component {
       isPlaying: false,
       currentRarity: 'gray',
       rewards: [],
+      hasNewItem: false,
       pity5: 0,
       pity4: 0,
-      guaranteedHighest: false, // 50/50 state
-      totalRolls: 0,
       activeBanner: BANNERS[0],
       timeLeftStr: '',
       historyItems: [],
-      pendingRolls: null,
       showDetails: false,
       detailTab: 'rates',
       detailPage: 0,
       isSubmitting: false,
       pendingConfirmRollCount: null,
       serverItems: [],
+      guaranteedFiveStarItem: null,
       isLoadingHistory: false,
     };
     this.timer = null;
@@ -118,6 +134,7 @@ class GachaApp extends Component {
     const requiredCore = count * KNOWLEDGE_CORE_PER_ROLL;
     const missingCore = Math.max(0, requiredCore - coreCost);
     const knowledgePoints = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
+
     const hasEnoughPoints = pointCost <= knowledgePoints;
 
     return (
@@ -158,17 +175,66 @@ class GachaApp extends Component {
 
   async componentDidMount() {
     this.syncGachaStateFromProfile(this.props.userProfile);
+    this.updateBannerTime();
+    this.timer = window.setInterval(this.updateBannerTime, 1000);
     this.setState({
-      activeBanner: BANNERS[0],
       historyItems: this.props.gachaHistory || [],
     });
     try {
       const serverItems = await getGachaMasterItems();
-      this.setState({ serverItems });
+      const guaranteedFiveStarItem = this.pickRandomGuaranteedFiveStar(serverItems);
+      this.setState({ serverItems, guaranteedFiveStarItem });
     } catch (error) {
       console.warn('[GachaApp] Could not load gacha items:', error.message);
     }
   }
+
+  componentWillUnmount() {
+    if (this.timer) window.clearInterval(this.timer);
+  }
+
+  pickRandomGuaranteedFiveStar = (items = this.state.serverItems) => {
+    const candidates = items.filter(item => Number(item.rarity) === 5 && item.isLimited === true);
+    return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : null;
+  };
+
+  updateBannerTime = () => {
+    const now = Date.now();
+
+    if (AUTO_ROTATE_BANNERS && BANNERS.length > 1) {
+      const rotationSlot = Math.floor(now / BANNER_ROTATION_MS);
+      const activeBanner = BANNERS[rotationSlot % BANNERS.length];
+      const remainingMs = BANNER_ROTATION_MS - (now % BANNER_ROTATION_MS);
+      const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      const pad = value => String(value).padStart(2, '0');
+
+      this.setState(prevState => ({
+        activeBanner,
+        timeLeftStr: `${pad(minutes)}:${pad(seconds)}`,
+        guaranteedFiveStarItem: prevState.activeBanner.id === activeBanner.id
+          ? prevState.guaranteedFiveStarItem
+          : this.pickRandomGuaranteedFiveStar(prevState.serverItems),
+      }));
+      return;
+    }
+
+    const endAt = new Date(this.state.activeBanner?.endTime).getTime();
+    if (!Number.isFinite(endAt)) {
+      this.setState({ timeLeftStr: this.props.t('gacha.infinite_time') });
+      return;
+    }
+
+    const remainingMs = Math.max(0, endAt - now);
+    const totalSeconds = Math.floor(remainingMs / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = value => String(value).padStart(2, '0');
+    this.setState({ timeLeftStr: `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}` });
+  };
 
   componentDidUpdate(prevProps) {
     if (prevProps.userProfile !== this.props.userProfile) {
@@ -187,7 +253,6 @@ class GachaApp extends Component {
     this.setState({
       pity5: Number(stats.pity5Star) || 0,
       pity4: Number(stats.pity4Star) || 0,
-      guaranteedHighest: Boolean(stats.is5StarGuaranteed),
     });
   };
 
@@ -197,14 +262,9 @@ class GachaApp extends Component {
     });
   };
 
-  resolveRewardIcon = (reward) => {
-    if (reward.imageUrl) {
-      if (reward.imageUrl.startsWith('http') || reward.imageUrl.startsWith('/')) return reward.imageUrl;
-      return `${S3_ASSETS_BASE}${reward.imageUrl}`;
-    }
-
-    return currencyAssets.sanity;
-  };
+  resolveRewardIcon = (reward) => (
+    reward?.imageUrl ? resolveMasterItemImage(reward) : currencyAssets.sanity
+  );
 
   normalizeServerReward = (reward, index) => {
     const rewardId = reward.SK || reward.id || reward.itemId;
@@ -222,8 +282,9 @@ class GachaApp extends Component {
       ? 3
       : (Number(canonicalItemRarity ?? reward.rarity) || 3);
     const rarityValue = numericRarity >= 5 ? 5 : numericRarity >= 4 ? 4 : 3;
-    const canonicalIcon = localItem?.icon
-      || (masterItem ? this.resolveRewardIcon(masterItem) : null);
+    const canonicalIcon = masterItem
+      ? resolveMasterItemImage(masterItem, localItem?.icon || '')
+      : localItem?.icon;
 
     return {
       id: reward.SK || reward.id || `${reward.name || 'reward'}-${index}`,
@@ -270,7 +331,12 @@ class GachaApp extends Component {
       const tierRate = Number(rates[star] || 0);
       const remoteItems = serverItems.filter(item => Number(item.rarity) === star);
       const fallbackIds = activeBanner?.featured?.[star] || [];
-      const sourceItems = remoteItems.length ? remoteItems : fallbackIds.map(id => ITEMS[id] || { id, name: id, rarity: star });
+      let sourceItems = remoteItems.length ? remoteItems : fallbackIds.map(id => ITEMS[id] || { id, name: id, rarity: star });
+
+      if (star === 3 && !sourceItems.some(item => (item.SK || item.id) === 'item_sanity')) {
+        sourceItems = [...sourceItems, ITEMS.item_sanity || { id: 'item_sanity', name: 'Sanity', rarity: 3 }];
+      }
+
       const itemRate = sourceItems.length ? tierRate / sourceItems.length : tierRate;
       const items = sourceItems.map(item => ({ id: item.SK || item.id, name: item.name || item.SK || item.id, rarity: star, rate: itemRate }));
       if (items.length) groups.push({ star, items });
@@ -278,11 +344,8 @@ class GachaApp extends Component {
 
     addGroup(5);
     addGroup(4);
-    // 3★ is always sanity
-    groups.push({
-      star: 3,
-      items: [{ id: 'item_sanity', name: ITEMS.item_sanity?.name || 'Sanity', rarity: 3, rate: Number(rates[3] || 0) }],
-    });
+    addGroup(3);
+
 
     return groups;
   };
@@ -336,9 +399,6 @@ class GachaApp extends Component {
         hasNewItem: rewards.some((reward) => reward.type !== 'currency' && !reward.isConverted),
         currentRarity: this.getHighestRarity(rewards),
         rewards,
-        pendingRolls: {
-          totalRolls: this.state.totalRolls + count,
-        }
       });
     } catch (error) {
       this.setState({ isSubmitting: false });
@@ -350,6 +410,12 @@ class GachaApp extends Component {
     const { isPlaying, isSubmitting, currentRarity, rewards, pity5, pity4, activeBanner, timeLeftStr } = this.state;
     const knowledgeCore = this.getBudgetValue(['knowledgeCore', 'knowledge_core']);
     const knowledgePoints = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
+    const guaranteedFiveStarItem = this.state.guaranteedFiveStarItem;
+    const fallbackFiveStar = ITEMS[activeBanner.featured[5]?.[0]];
+    const featuredFiveStar = guaranteedFiveStarItem || fallbackFiveStar;
+    const featuredFourStars = this.state.serverItems.filter(item => Number(item.rarity) === 4 && item.isLimited === true).slice(0, 2);
+    const displayedFourStars = featuredFourStars.length ? featuredFourStars : (activeBanner.featured[4] || []).map(id => ITEMS[id]).filter(Boolean);
+    const bannerImage = resolveMasterItemImage(featuredFiveStar, activeBanner.image);
 
     return (
       <div className={`app-container gacha-app ${activeBanner.theme}`}>
@@ -368,7 +434,7 @@ class GachaApp extends Component {
         </div>
 
         <div className="gacha-main-layout">
-          <div className={`banner-backdrop ${activeBanner.background}`} style={{ backgroundImage: `url(${activeBanner.image})` }}>
+          <div className={`banner-backdrop ${activeBanner.background}`} style={{ backgroundImage: `url(${bannerImage})` }}>
             <div className="banner-overlay" />
           </div>
 
@@ -377,15 +443,23 @@ class GachaApp extends Component {
             <div className="banner-description">
               <p dangerouslySetInnerHTML={{ __html: this.props.t('gacha.rate_up_desc') }} />
               <div className="featured-list">
-                <div className="featured-item gold">{this.props.t('gacha.featured_5_star')}: {ITEMS[activeBanner.featured[5]?.[0]]?.name}</div>
-                {(activeBanner.featured[4] || []).map(id => (
-                  <div key={id} className="featured-item purple">{this.props.t('gacha.featured_4_star')}: {ITEMS[id]?.name}</div>
+                {featuredFiveStar && (
+                  <div className="featured-item gold">
+                    <img src={resolveMasterItemImage(featuredFiveStar, activeBanner.image)} alt={featuredFiveStar.name} />
+                    <span>{this.props.t('gacha.featured_5_star')}: {featuredFiveStar.name}</span>
+                  </div>
+                )}
+                {displayedFourStars.map(item => (
+                  <div key={item.SK || item.id} className="featured-item purple">
+                    <img src={resolveMasterItemImage(item, activeBanner.image)} alt={item.name} />
+                    <span>{this.props.t('gacha.featured_4_star')}: {item.name}</span>
+                  </div>
                 ))}
               </div>
             </div>
 
             <div className="rotation-timer">
-              <IonIcon icon={timeOutline} /> {this.props.t('gacha.remaining')}: {this.props.t('gacha.infinite_time')}
+              <IonIcon icon={timeOutline} /> {this.props.t('gacha.remaining')}: <span>{timeLeftStr || this.props.t('gacha.infinite_time')}</span>
             </div>
           </div>
         </div>
@@ -397,10 +471,10 @@ class GachaApp extends Component {
             </button>
             <div className="pity-summary">
               <div className="pity-line purple">
-                {this.props.t('gacha.pull')}: <span className="count">{10 - pity4}</span> <span className="rank">4★-Rank</span> {this.props.t('gacha.guaranteed')}!
+                {this.props.t('gacha.pull')}: <span className="count">{10 - pity4}</span> <span className="rank">4★</span> {this.props.t('gacha.guaranteed')}!
               </div>
               <div className="pity-line gold">
-                {this.props.t('gacha.pull')}: <span className="count">{90 - pity5}</span> <span className="rank">5★-Rank</span> {this.props.t('gacha.guaranteed')}!
+                {this.props.t('gacha.pull')}: <span className="count">{80 - pity5}</span> <span className="rank">5★</span> {this.props.t('gacha.guaranteed')}!
               </div>
             </div>
           </div>
@@ -539,18 +613,10 @@ class GachaApp extends Component {
           rarity={currentRarity}
           rewards={rewards}
           t={this.props.t}
-          onComplete={() => {
-            const { pendingRolls } = this.state;
-            if (!pendingRolls) {
-              this.setState({ isPlaying: false });
-              return;
-            }
-            this.setState({
-              isPlaying: false,
-              totalRolls: pendingRolls.totalRolls,
-              historyItems: this.props.gachaHistory || [],
-            });
-          }}
+          onComplete={() => this.setState({
+            isPlaying: false,
+            historyItems: this.props.gachaHistory || [],
+          })}
         />
       </div>
     );
@@ -563,11 +629,7 @@ const mapStateToProps = (state) => ({
   gachaHistoryHasMore: state.gacha.hasMore,
 });
 
-const mapDispatchToProps = (dispatch) => ({
-  dispatch,
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(GachaApp));
+export default connect(mapStateToProps)(withTranslation()(GachaApp));
 
 
 

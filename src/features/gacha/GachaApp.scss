@@ -141,22 +141,49 @@
 
     .banner-backdrop {
       position: absolute;
-      inset: 0;
+      inset: -1.5%;
+      overflow: hidden;
+      isolation: isolate;
+      background-color: #070b18;
+      background-repeat: no-repeat;
       background-size: cover;
-      background-position: center;
-      transition: 0.5s;
+      background-position: 68% center;
+      filter: saturate(1.08) contrast(1.04);
+      transform: scale(1.03);
+      animation: banner-background-enter 900ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+      transition: background-image 0.5s ease, background-position 0.5s ease;
+      will-change: transform, opacity;
 
       &::before {
         content: '';
         position: absolute;
         inset: 0;
-        background: radial-gradient(circle at 20% 50%, transparent, rgba(0, 0, 0, 0.4) 100%);
+        z-index: 1;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 72% 45%, transparent 0 22%, rgba(2, 6, 23, 0.18) 58%, rgba(2, 6, 23, 0.64) 100%),
+          linear-gradient(90deg, rgba(2, 6, 23, 0.96) 0%, rgba(2, 6, 23, 0.78) 28%, rgba(2, 6, 23, 0.18) 62%, rgba(2, 6, 23, 0.28) 100%);
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0;
+        z-index: 2;
+        height: 38%;
+        pointer-events: none;
+        background: linear-gradient(to bottom, transparent, rgba(2, 6, 23, 0.88));
       }
 
       .banner-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(to right, rgba(2, 6, 23, 0.4) 0%, transparent 60%);
+        z-index: 3;
+        pointer-events: none;
+        background:
+          linear-gradient(115deg, rgba(251, 191, 36, 0.08), transparent 34%),
+          repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 18px);
+        mix-blend-mode: screen;
       }
     }
 
@@ -204,11 +231,33 @@
           .featured-item {
             font-size: 14px;
             font-weight: 800;
-            padding: 4px 12px;
-            border-radius: 4px;
+            padding: 6px 12px 6px 6px;
+            border-radius: 8px;
             width: fit-content;
-            background: rgba(0, 0, 0, 0.4);
+            max-width: 100%;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.55);
             border-left: 3px solid transparent;
+            backdrop-filter: blur(6px);
+
+            img {
+              width: 42px;
+              height: 42px;
+              flex: 0 0 42px;
+              object-fit: cover;
+              border-radius: 6px;
+              background: rgba(255, 255, 255, 0.08);
+              border: 1px solid currentColor;
+            }
+
+            span {
+              min-width: 0;
+              line-height: 1.25;
+            }
 
             &.gold {
               border-color: #fbbf24;
@@ -224,6 +273,12 @@
       }
 
       .rotation-timer {
+        span {
+          color: #f8fafc;
+          font-weight: 800;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: 0.04em;
+        }
         margin-top: 20px;
         display: flex;
         align-items: center;
@@ -536,9 +591,6 @@
       font-weight: 900;
     }
 
-    .qty {
-      color: #334155 !important;
-    }
   }
 
   /* Inherited & Modal Adjustments */
@@ -559,7 +611,10 @@
 
     .modal-content {
       width: min(900px, calc(100vw - 48px));
-      max-height: 80vh;
+      height: min(700px, calc(100vh - 48px));
+      max-height: calc(100vh - 48px);
+      box-sizing: border-box;
+      overflow: hidden;
       background: #0f172a;
       border-radius: 32px;
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -630,19 +685,34 @@
 
       .detail-list {
         flex: 1;
+        min-height: 0;
         overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(168, 85, 247, 0.75) rgba(255, 255, 255, 0.04);
         display: flex;
         flex-direction: column;
         gap: 12px;
         padding-right: 10px;
 
         &::-webkit-scrollbar {
-          width: 6px;
+          width: 8px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.04);
+          border-radius: 10px;
         }
 
         &::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(168, 85, 247, 0.75);
           border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        &::-webkit-scrollbar-thumb:hover {
+          background: #a855f7;
         }
 
         .detail-item {
@@ -719,20 +789,6 @@
               }
             }
 
-            .rate-value {
-              min-width: 72px;
-              text-align: right;
-              color: #fbbf24;
-              font-size: 18px;
-              font-weight: 900;
-              font-variant-numeric: tabular-nums;
-            }
-
-            .qty {
-              font-weight: 900;
-              color: #94a3b8;
-              font-size: 14px;
-            }
           }
 
           .item-footer {
@@ -793,15 +849,18 @@
             }
 
             .name {
+              flex: 1 1 auto;
+              min-width: 0;
               font-size: 14px;
               font-weight: 700;
               color: #e2e8f0;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
+              line-height: 1.35;
+              overflow-wrap: anywhere;
             }
 
             .rate-value {
+              flex: 0 0 auto;
+              margin-left: 12px;
               font-size: 14px;
               font-weight: 900;
               font-variant-numeric: tabular-nums;
@@ -880,6 +939,42 @@
     }
   }
 
+  @keyframes banner-background-enter {
+    from { opacity: 0; transform: scale(1.09); }
+    to { opacity: 1; transform: scale(1.03); }
+  }
+
+  @media (max-width: 900px) {
+    .gacha-main-layout .banner-backdrop {
+      background-position: 72% center;
+
+      &::before {
+        background:
+          linear-gradient(90deg, rgba(2, 6, 23, 0.94) 0%, rgba(2, 6, 23, 0.66) 48%, rgba(2, 6, 23, 0.26) 100%),
+          linear-gradient(to bottom, transparent 48%, rgba(2, 6, 23, 0.72) 100%);
+      }
+    }
+  }
+
+  @media (max-width: 600px) {
+    .gacha-main-layout .banner-backdrop {
+      inset: 0;
+      background-position: center top;
+      transform: none;
+
+      &::before {
+        background: linear-gradient(to bottom, rgba(2, 6, 23, 0.12) 0%, rgba(2, 6, 23, 0.58) 48%, rgba(2, 6, 23, 0.96) 82%);
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gacha-main-layout .banner-backdrop {
+      animation: none;
+      transform: none;
+      transition: none;
+    }
+  }
   @keyframes rainbow-bg {
     0% {
       background-position: 0% 50%;
@@ -894,15 +989,6 @@
     }
   }
 
-  @keyframes shine {
-    0% {
-      transform: translateX(-100%) rotate(45deg);
-    }
-
-    100% {
-      transform: translateX(100%) rotate(45deg);
-    }
-  }
 }
 
 .gacha-app .details-currency-icon { width: 22px; height: 22px; object-fit: contain; margin-right: 8px; vertical-align: middle; }

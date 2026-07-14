@@ -10,9 +10,9 @@ class GachaAnimation extends Component {
     super(props);
     this.state = {
       phase: 'idle', // idle | blackout | portal | flight | burst | reveal | done
-      particles: this.generateParticles(),
-      stars: this.generateStars(),
-      shards: this.generateShards(),
+      particles: [],
+      stars: [],
+      shards: [],
       showSkip: false,
       isInstantReveal: false,
     };
@@ -123,11 +123,12 @@ class GachaAnimation extends Component {
   };
 
   handleClose = () => {
+    this.clearTimers();
     this.setState({ phase: 'done' });
-    setTimeout(() => {
+    this.timers.push(setTimeout(() => {
       this.setState({ phase: 'idle' });
       this.props.onComplete?.();
-    }, 420);
+    }, 420));
   };
 
   getRarityClass = () => {

@@ -15,7 +15,10 @@ export const getGachaMasterItems = async () => {
     throw new Error(errData.message || `Server error (${response.status})`);
   }
   const result = await response.json();
-  return (result.items || []).filter((item) => item.collectFrom === 'gacha');
+  return (result.items || []).filter((item) => (
+    item.collectFrom === 'gacha'
+    || item.collectorFrom === 'gacha'
+  ));
 };
 
 const isDuplicateKeyError = (error) => (
