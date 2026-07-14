@@ -42,6 +42,8 @@ contextBridge.exposeInMainWorld('api', {
       'store:clearDaily',
       'store:saveMasterData',
       'store:loadMasterData',
+      'store:saveShop',
+      'store:loadShop',
       'store:clearLoginData',
       'store:saveAiSettings',
       'store:loadAiSettings',

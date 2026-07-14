@@ -9,3 +9,4 @@ export * from './minigameActions';
 export * from './minigameLogActions';
 export * from './authActions';
 export * from './settingsActions';
+export * from './shopActions';

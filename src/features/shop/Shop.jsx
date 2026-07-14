@@ -33,7 +33,6 @@ const getBudgetValue = (profile, keys) => {
 
 class Shop extends Component {
   state = {
-    shopItems: [],
     coreAmount: 1,
     isLoadingShop: false,
     buyingKey: null,
@@ -59,13 +58,7 @@ class Shop extends Component {
 
   loadShop = async () => {
     this.setState({ isLoadingShop: true });
-    const result = await getShopApi();
-    if (result && !result.errCode && result.shop) {
-      const serverItems = result.shop.activeItems || [];
-      this.setState({
-        shopItems: serverItems.map(normalizeShopItem),
-      });
-    }
+    await getShopApi();
     this.setState({ isLoadingShop: false });
   };
 
@@ -125,14 +118,6 @@ class Shop extends Component {
     // ingestServerData xu ly trong buyShopItemApi. O day chi dong bo lai shop UI.
     const result = await buyShopItemApi({ itemId: item.itemId });
     if (result && !result.errCode && result.success) {
-      const serverItems = result.shop?.activeItems;
-      if (Array.isArray(serverItems)) {
-        this.setState({ shopItems: serverItems.map(normalizeShopItem) });
-      } else {
-        this.setState((prev) => ({
-          shopItems: prev.shopItems.map((shopItem) => shopItem.itemId === item.itemId ? { ...shopItem, owned: true } : shopItem),
-        }));
-      }
       toast.success(this.props.t('store.purchase_success'));
     } else {
       toast.error(result?.errMessage || this.props.t('store.purchase_failed'));
@@ -261,7 +246,7 @@ class Shop extends Component {
         </div>
         <div className="store-grid">
           {this.renderCoreItem()}
-          {this.state.shopItems.map((item) => this.renderShopItem(item))}
+          {this.props.shopItems.map((item) => this.renderShopItem(item))}
         </div>
         {this.renderCoreModal()}
       </div>
@@ -271,6 +256,7 @@ class Shop extends Component {
 
 const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
+  shopItems: (state.shop?.activeItems || []).map(normalizeShopItem),
 });
 
 export default connect(mapStateToProps)(Shop);
