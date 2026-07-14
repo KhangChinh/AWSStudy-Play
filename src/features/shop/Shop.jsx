@@ -16,29 +16,6 @@ const normalizeShopItem = (item) => ({
   owned: item.isOwned ?? item.owned ?? false,
 });
 
-const FALLBACK_SHOP_ITEMS = [
-  {
-    itemId: 'item#frame_stone_1',
-    name: 'Khung Thach Anh',
-    imageUrl: 'https://cloudfront.net/items/theme_cyberpunk.jpg',
-    rarity: 4,
-    itemType: 'frame',
-    currencyType: 'eCoin',
-    price: 100,
-    owned: false,
-  },
-  {
-    itemId: 'item#frame_stone_2',
-    name: 'Khung Obsidian',
-    imageUrl: 'https://cloudfront.net/items/theme_cyberpunk.jpg',
-    rarity: 5,
-    itemType: 'frame',
-    currencyType: 'eCoin',
-    price: 2500,
-    owned: false,
-  },
-];
-
 const getBudgetValue = (profile, keys) => {
   const budget = profile?.budget || {};
   const aliases = {
@@ -56,7 +33,7 @@ const getBudgetValue = (profile, keys) => {
 
 class Shop extends Component {
   state = {
-    shopItems: FALLBACK_SHOP_ITEMS,
+    shopItems: [],
     coreAmount: 1,
     isLoadingShop: false,
     buyingKey: null,
@@ -86,7 +63,7 @@ class Shop extends Component {
     if (result && !result.errCode && result.shop) {
       const serverItems = result.shop.activeItems || [];
       this.setState({
-        shopItems: serverItems.length ? serverItems.map(normalizeShopItem) : FALLBACK_SHOP_ITEMS,
+        shopItems: serverItems.map(normalizeShopItem),
       });
     }
     this.setState({ isLoadingShop: false });
