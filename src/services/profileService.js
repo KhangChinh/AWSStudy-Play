@@ -68,7 +68,65 @@ const getInventoryItem = async (itemType) => {
     }
 };
 
+const uploadAvatarApi = async (file) => {
+    // 1. Kiểm tra File size (Giới hạn 2MB)
+    const MAX_SIZE = 2 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+        throw new Error('Ảnh quá nặng, vui lòng chọn ảnh dưới 2MB.');
+    }
+
+    // 2. Kiểm tra ngân sách (Frontend check nhẹ)
+    const currentProfile = store.getState().profile; // Lấy profile từ Redux store
+    if (!currentProfile || !currentProfile.budget || currentProfile.budget.eCoin < 500) {
+        throw new Error('Không đủ eCoin để đổi ảnh đại diện (Cần 500 eCoin).');
+    }
+
+    try {
+        // 3. Chuyển file sang Base64
+        const base64Image = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]); // Chỉ lấy phần data, bỏ prefix 'data:image/jpeg;base64,'
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+
+        // 4. Gọi API
+        const token = await getValidAccessToken();
+        const url = `${API_URL}/update-avatar`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                imageBody: base64Image,
+                contentType: file.type // ví dụ: 'image/jpeg' hoặc 'image/png'
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await ingestErrorResponse(response);
+            throw new Error(errorData.message || `API Error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // 5. Cập nhật lại Store bằng profile mới từ server (nếu bị lỗi tiền trên server nó vẫn trả về profile cũ)
+        if (result && result.profile) {
+            await ingestServerData(result);
+        }
+
+        return result;
+    } catch (error) {
+        console.warn('[profileService] FAIL uploadAvatarApi:', error.message);
+        throw error;
+    }
+};
+
 export {
     updateProfileNameApi,
-    getInventoryItem
+    getInventoryItem,
+    uploadAvatarApi,
 };
