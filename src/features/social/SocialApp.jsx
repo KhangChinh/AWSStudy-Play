@@ -24,19 +24,8 @@ import {
 import { setSocial, appendSocial, mergeSocialFriends } from '../../store/actions';
 import RankFrame from '../../components/RankFrame';
 import { cosmeticManager } from '../../services/cosmeticServices';
+import { DEFAULT_AVATAR_URL, resolveAvatarUrl } from '../../utils/avatarUrl';
 import './SocialApp.scss';
-
-const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
-const DEFAULT_AVATAR = `${S3_ASSETS_BASE}avatars/default_avatar.jpg`;
-
-const isAbsoluteAssetUrl = (url = '') => /^(https?:|data:|blob:)/i.test(url);
-
-const resolveAvatarUrl = (avatarUrl) => {
-  const value = typeof avatarUrl === 'string' ? avatarUrl.trim() : '';
-  if (!value) return DEFAULT_AVATAR;
-  if (isAbsoluteAssetUrl(value)) return value;
-  return `${S3_ASSETS_BASE}${value.replace(/^\/+/, '')}`;
-};
 
 const getFriendUserId = (friend) => friend?.SK || friend?.userId || friend?.friendId;
 
@@ -225,8 +214,8 @@ class SocialApp extends Component {
   };
 
   handleAvatarError = (event) => {
-    if (event.currentTarget.src !== DEFAULT_AVATAR) {
-      event.currentTarget.src = DEFAULT_AVATAR;
+    if (event.currentTarget.src !== DEFAULT_AVATAR_URL) {
+      event.currentTarget.src = DEFAULT_AVATAR_URL;
     }
   };
 

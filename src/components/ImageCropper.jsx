@@ -42,30 +42,24 @@ const ImageCropper = ({ image, onCrop, onCancel, t }) => {
     const ctx = canvas.getContext('2d');
     const img = imageRef.current;
     
-    // The crop area is a 200x200 square in the center of the container
-    const cropSize = 300;
-    canvas.width = cropSize;
-    canvas.height = cropSize;
+    const outputSize = 300;
+    canvas.width = outputSize;
+    canvas.height = outputSize;
 
-    const container = containerRef.current.getBoundingClientRect();
-    const rect = img.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const imageRect = img.getBoundingClientRect();
+    const displayedCropSize = Math.min(300, containerRect.width - 24, containerRect.height - 24);
+    const cropLeft = containerRect.left + (containerRect.width - displayedCropSize) / 2;
+    const cropTop = containerRect.top + (containerRect.height - displayedCropSize) / 2;
 
-    // Scale factor between natural image and rendered image (without CSS zoom)
-    // rect.width is (naturalWidth * zoom / someFactor) maybe? 
-    // Actually, simpler:
-    const scaleX = img.naturalWidth / (rect.width / zoom);
-    const scaleY = img.naturalHeight / (rect.height / zoom);
+    // Both rectangles use viewport coordinates. Mixing relative and viewport
+    // coordinates here previously sampled outside the image and produced black JPEGs.
+    const sx = (cropLeft - imageRect.left) * (img.naturalWidth / imageRect.width);
+    const sy = (cropTop - imageRect.top) * (img.naturalHeight / imageRect.height);
+    const sw = displayedCropSize * (img.naturalWidth / imageRect.width);
+    const sh = displayedCropSize * (img.naturalHeight / imageRect.height);
 
-    // Calculate source coordinates in natural pixels
-    const mouseX = (container.width / 2 - cropSize / 2) - rect.left;
-    const mouseY = (container.height / 2 - cropSize / 2) - rect.top;
-
-    const sx = mouseX * (img.naturalWidth / rect.width);
-    const sy = mouseY * (img.naturalHeight / rect.height);
-    const sw = (cropSize * img.naturalWidth) / rect.width;
-    const sh = (cropSize * img.naturalHeight) / rect.height;
-
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cropSize, cropSize);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outputSize, outputSize);
 
     return new Promise((resolve) => {
       canvas.toBlob((blob) => {
@@ -76,7 +70,7 @@ const ImageCropper = ({ image, onCrop, onCancel, t }) => {
 
   const handleApply = async () => {
     const blob = await getCroppedImg();
-    onCrop(blob);
+    if (blob) onCrop(blob);
   };
 
   return (

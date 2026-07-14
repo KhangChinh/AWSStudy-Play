@@ -15,6 +15,7 @@ import { applyGachaResult, getGachaMasterItems, handleGachaApi } from '../../ser
 import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import { handleSyncGachaHistoryApi } from '../../services/syncService';
 import currencyAssets from '../../data/currencyAssets';
+import gachaItemFallback from '../../assets/gacha/OR7cQ.jpg';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
@@ -60,6 +61,11 @@ class GachaApp extends Component {
     };
     this.timer = null;
   }
+
+  handleBannerImageError = (event) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = gachaItemFallback;
+  };
 
   getBudgetValue = (keys, fallback = 0) => {
     const profile = this.props.userProfile || {};
@@ -415,7 +421,7 @@ class GachaApp extends Component {
     const featuredFiveStar = guaranteedFiveStarItem || fallbackFiveStar;
     const featuredFourStars = this.state.serverItems.filter(item => Number(item.rarity) === 4 && item.isLimited === true).slice(0, 2);
     const displayedFourStars = featuredFourStars.length ? featuredFourStars : (activeBanner.featured[4] || []).map(id => ITEMS[id]).filter(Boolean);
-    const bannerImage = resolveMasterItemImage(featuredFiveStar, activeBanner.image);
+    const bannerImage = resolveMasterItemImage(featuredFiveStar, gachaItemFallback);
 
     return (
       <div className={`app-container gacha-app ${activeBanner.theme}`}>
@@ -434,7 +440,10 @@ class GachaApp extends Component {
         </div>
 
         <div className="gacha-main-layout">
-          <div className={`banner-backdrop ${activeBanner.background}`} style={{ backgroundImage: `url(${bannerImage})` }}>
+          <div
+            className={`banner-backdrop ${activeBanner.background}`}
+            style={{ backgroundImage: `url("${bannerImage}"), url("${gachaItemFallback}")` }}
+          >
             <div className="banner-overlay" />
           </div>
 
@@ -445,13 +454,13 @@ class GachaApp extends Component {
               <div className="featured-list">
                 {featuredFiveStar && (
                   <div className="featured-item gold">
-                    <img src={resolveMasterItemImage(featuredFiveStar, activeBanner.image)} alt={featuredFiveStar.name} />
+                    <img src={resolveMasterItemImage(featuredFiveStar, gachaItemFallback)} alt={featuredFiveStar.name} onError={this.handleBannerImageError} />
                     <span>{this.props.t('gacha.featured_5_star')}: {featuredFiveStar.name}</span>
                   </div>
                 )}
                 {displayedFourStars.map(item => (
                   <div key={item.SK || item.id} className="featured-item purple">
-                    <img src={resolveMasterItemImage(item, activeBanner.image)} alt={item.name} />
+                    <img src={resolveMasterItemImage(item, gachaItemFallback)} alt={item.name} onError={this.handleBannerImageError} />
                     <span>{this.props.t('gacha.featured_4_star')}: {item.name}</span>
                   </div>
                 ))}

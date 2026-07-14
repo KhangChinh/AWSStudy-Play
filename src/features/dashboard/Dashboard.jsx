@@ -35,6 +35,7 @@ import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../serv
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
 import { getTierFromRP, getRankInfo } from '../../utils/rankSystem';
+import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
 import './Dashboard.scss';
 
 
@@ -85,9 +86,6 @@ const getBudgetValue = (profile, keys) => {
   return 0;
 };
 
-const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
-const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
-
 const UserProfileWidget = ({
   currentTitle,
   currentFrame,
@@ -109,9 +107,9 @@ const UserProfileWidget = ({
     <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
       <RankFrame tier={frameTier} size={64} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
         {userProfile?.information?.avatarUrl ? (
-          <img src={(import.meta.env.VITE_S3_ASSETS_URL || '') + userProfile.information.avatarUrl} alt="avatar" className="avatar-img" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+          <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img" onError={useDefaultAvatarOnError} />
         ) : (
-          <img src={DEFAULT_AVATAR} alt="avatar" className="avatar-img" />
+          <img src={DEFAULT_AVATAR_URL} alt="avatar" className="avatar-img" />
         )}
       </RankFrame>
       <div className="user-info">
@@ -1082,7 +1080,7 @@ class Dashboard extends Component {
                     <div key={friend.SK} className="friends-widget-item">
                       <div className="friend-avatar-mini">
                         {friend.friendAvatarUrl ? (
-                          <img src={(import.meta.env.VITE_S3_ASSETS_URL || '') + friend.friendAvatarUrl} alt="avatar" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                          <img src={resolveAvatarUrl(friend.friendAvatarUrl)} alt="avatar" onError={useDefaultAvatarOnError} />
                         ) : (
                           <div className="friend-avatar-placeholder">👤</div>
                         )}

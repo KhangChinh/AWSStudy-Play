@@ -8,6 +8,8 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .cropper-container {
@@ -16,12 +18,16 @@
   border-radius: 20px;
   width: 100%;
   max-width: 500px;
+  height: min(760px, calc(100% - 40px));
+  max-height: calc(100dvh - 40px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 
   .cropper-header {
+    flex: 0 0 auto;
     padding: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     text-align: center;
@@ -45,9 +51,10 @@
   }
 
   .cropper-view-area {
+    flex: 1 1 auto;
+    min-height: 240px;
     position: relative;
     width: 100%;
-    aspect-ratio: 1;
     background: #000;
     overflow: hidden;
 
@@ -72,12 +79,10 @@
       align-items: center;
       justify-content: center;
 
-      // The darkening effect around the hole
-      background: radial-gradient(circle, transparent 150px, rgba(0, 0, 0, 0.6) 151px);
-      
       .crop-hole {
-        width: 300px;
-        height: 300px;
+        width: min(300px, calc(100% - 24px));
+        max-height: calc(100% - 24px);
+        aspect-ratio: 1;
         border: 2px solid rgba(255, 255, 255, 0.5);
         border-radius: 50%;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
@@ -86,6 +91,7 @@
   }
 
   .cropper-controls {
+    flex: 0 0 auto;
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -148,6 +154,26 @@
           &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(147, 51, 234, 0.4); }
         }
       }
+    }
+  }
+}
+
+@media (max-height: 700px) {
+  .cropper-modal-overlay {
+    padding: 10px;
+  }
+
+  .cropper-container {
+    height: calc(100% - 20px);
+    max-height: calc(100dvh - 20px);
+
+    .cropper-header {
+      padding: 12px 16px;
+    }
+
+    .cropper-controls {
+      padding: 14px 16px;
+      gap: 12px;
     }
   }
 }

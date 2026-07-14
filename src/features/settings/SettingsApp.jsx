@@ -6,14 +6,16 @@ import {
 } from 'ionicons/icons';
 import ImageCropper from '../../components/ImageCropper';
 import { handleUpdateNameApi } from '../../services/cosmeticServices';
-import { getValidAccessToken } from '../../services/tokenService';
+import { uploadAvatarApi } from '../../services/profileService';
 import { connect } from 'react-redux';
 import { setProfile } from '../../store/actions/profileActions';
 import { setAiSettings } from '../../store/actions/settingsActions';
 import { toast } from 'react-toastify';
+import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
 import './SettingsApp.scss';
 
 const RENAME_SANITY_COST = 500;
+const AVATAR_CHANGE_ECOIN_COST = 500;
 
 const SettingsApp = ({
   animationsEnabled,
@@ -42,10 +44,6 @@ const SettingsApp = ({
   const displayName = userProfile?.information?.name || 'Player_9999';
   const currentSanity = Number(userProfile?.budget?.sanity ?? userProfile?.sanity ?? 0);
   const currentLanguage = (i18n?.resolvedLanguage || i18n?.language || 'vi').split('-')[0];
-
-  const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
-  const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
-  const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
   useEffect(() => {
     setLocalAiSettings(aiSettings);
@@ -123,7 +121,7 @@ const SettingsApp = ({
       toast.error(t('profile.invalid_image_type'));
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 2 * 1024 * 1024) {
       toast.error(t('profile.image_too_large'));
       return;
     }
@@ -138,71 +136,14 @@ const SettingsApp = ({
     setPendingImage(null);
     setIsUploading(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL;
-      const token = await getValidAccessToken();
-      if (!token) {
-        toast.error(t('auth.session_expired'));
-        return;
+      const result = await uploadAvatarApi(blob);
+      if (!result?.success) {
+        throw new Error(result?.message || t('profile.avatar_upload_failed'));
       }
-
-      const presignRes = await fetch(`${API_URL}/avatar/presign`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!presignRes.ok) {
-        const errData = await presignRes.json().catch(() => ({}));
-        if (presignRes.status === 429) {
-          toast.error(t('profile.avatar_cooldown'));
-        } else {
-          toast.error(errData.message || t('profile.avatar_upload_url_failed'));
-        }
-        return;
-      }
-      const presignData = await presignRes.json();
-      const { url: uploadUrl, fields } = presignData;
-
-      const formData = new FormData();
-      Object.entries(fields || {}).forEach(([k, v]) => formData.append(k, v));
-      formData.append('file', blob, 'avatar.jpg');
-
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!uploadRes.ok) {
-        toast.error(t('profile.avatar_s3_upload_failed'));
-        return;
-      }
-
-      const confirmRes = await fetch(`${API_URL}/avatar/confirm`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!confirmRes.ok) {
-        const errData = await confirmRes.json().catch(() => ({}));
-        toast.error(errData.message || t('profile.avatar_confirm_failed'));
-        return;
-      }
-      const confirmData = await confirmRes.json();
-      const newAvatarPath = confirmData.avatarUrl;
-
       toast.success(t('profile.avatar_updated'));
-      dispatchUserLogin({
-        ...userProfile,
-        information: {
-          ...userProfile?.information,
-          avatarUrl: newAvatarPath,
-        },
-      });
     } catch (err) {
       console.error('Avatar upload error:', err);
-      toast.error(t('profile.avatar_upload_failed'));
+      toast.error(err.message || t('profile.avatar_upload_failed'));
     } finally {
       setIsUploading(false);
     }
@@ -308,9 +249,9 @@ const SettingsApp = ({
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {userProfile?.information?.avatarUrl ? (
-                    <img src={S3_ASSETS_BASE + userProfile.information.avatarUrl} alt="avatar" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                    <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" onError={useDefaultAvatarOnError} />
                   ) : (
-                    <img src={DEFAULT_AVATAR} alt="avatar" />
+                    <img src={DEFAULT_AVATAR_URL} alt="avatar" />
                   )}
                   <div className="upload-overlay">
                     <IonIcon icon={imageOutline} />
@@ -319,6 +260,7 @@ const SettingsApp = ({
                 <div className="upload-info">
                   <p className="upload-label">{t('settings.upload_avatar')}</p>
                   <p className="upload-note">{t('settings.upload_note')}</p>
+                  <p className="upload-cost">{t('settings.avatar_change_cost', { cost: AVATAR_CHANGE_ECOIN_COST })}</p>
                   <button className="btn-upload-trigger" onClick={() => fileInputRef.current?.click()}>
                     {t('settings.change_image')}
                   </button>

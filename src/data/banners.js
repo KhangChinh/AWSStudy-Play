@@ -3,6 +3,7 @@
  * Driven by time and theme
  * Updated: Uses current AWSServerless gacha sample items
  */
+import gachaItemFallback from '../assets/gacha/OR7cQ.jpg';
 
 export const AUTO_ROTATE_BANNERS = true;
 export const BANNER_ROTATION_MS = 60 * 60 * 1000;
@@ -20,7 +21,7 @@ export const BANNERS = [
     startTime: '2024-01-01T00:00:00Z',
     endTime: '2027-01-01T00:00:00Z',
     background: 'solar-bg',
-    image: '/src/assets/gacha/OR7cQ.jpg',
+    image: gachaItemFallback,
     theme: 'theme-solar',
     effect: 'effect-fire',
     featured: CURRENT_GACHA_FEATURED,
@@ -37,7 +38,7 @@ export const BANNERS = [
     startTime: '2024-01-01T00:00:00Z',
     endTime: '2027-01-01T00:00:00Z',
     background: 'solar-bg',
-    image: '/src/assets/gacha/OR7cQ.jpg',
+    image: gachaItemFallback,
     theme: 'theme-solar',
     effect: 'effect-fire',
     featured: CURRENT_GACHA_FEATURED,

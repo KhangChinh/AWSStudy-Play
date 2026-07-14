@@ -8,6 +8,7 @@ import {
 import RankFrame from '../../components/RankFrame';
 import { cosmeticManager } from '../../services/cosmeticServices';
 import { getInventoryItem } from '../../services/profileService';
+import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
 import './Profile.scss';
 
 const tierFromFrame = (id) => (id || '').replace('frame_', '') || 'none';
@@ -43,9 +44,7 @@ const resolveBackground = (background) => {
   return cosmeticManager.getCosmeticInfo('backgrounds', background);
 };
 
-const S3_AVATAR_BASE = (import.meta.env.VITE_S3_ASSETS_URL || '') + 'avatars/';
 const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
-const DEFAULT_AVATAR = S3_AVATAR_BASE + 'default_avatar.jpg';
 
 const normalizeBase = (base) => (base || '').replace(/\/+$/, '');
 const normalizeAssetPath = (path) => (path || '').replace(/^\/+/, '').replace(/\\/g, '/');
@@ -378,9 +377,9 @@ class Profile extends Component {
             <div className="avatar-container-simple">
               <RankFrame tier={tierFromFrame(currentFrame)} size={120} frameAssetUrl={equippedFrame?.frameAssetUrl}>
                 {userProfile?.information?.avatarUrl ? (
-                  <img src={S3_ASSETS_BASE + userProfile.information.avatarUrl} alt="avatar" className="avatar-img-large" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                  <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img-large" onError={useDefaultAvatarOnError} />
                 ) : (
-                  <img src={DEFAULT_AVATAR} alt="avatar" className="avatar-img-large" />
+                  <img src={DEFAULT_AVATAR_URL} alt="avatar" className="avatar-img-large" />
                 )}
               </RankFrame>
             </div>

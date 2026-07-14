@@ -76,7 +76,7 @@ const uploadAvatarApi = async (file) => {
     }
 
     // 2. Kiểm tra ngân sách (Frontend check nhẹ)
-    const currentProfile = store.getState().profile; // Lấy profile từ Redux store
+    const currentProfile = store.getState().profile?.userProfile;
     if (!currentProfile || !currentProfile.budget || currentProfile.budget.eCoin < 500) {
         throw new Error('Không đủ eCoin để đổi ảnh đại diện (Cần 500 eCoin).');
     }

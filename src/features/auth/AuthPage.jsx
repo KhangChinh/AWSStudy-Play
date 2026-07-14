@@ -50,6 +50,10 @@ class AuthPage extends Component {
     this.setState({ [field]: value });
   };
 
+  handleTogglePasswordVisibility = (field) => {
+    this.setState((prevState) => ({ [field]: !prevState[field] }));
+  };
+
   handleToggleAuthMode = (mode) => {
     const keepEmail = ['confirm', 'forgot', 'resetPassword'].includes(mode);
     this.setState({
@@ -292,8 +296,9 @@ class AuthPage extends Component {
                     <button
                       type="button"
                       className="toggle-password"
-                      tabIndex={-1}
-                      onClick={() => this.setState({ showPassword: !showPassword })}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
+                      onClick={() => this.handleTogglePasswordVisibility('showPassword')}
                       disabled={isLoading}
                     >
                       <IonIcon icon={showPassword ? eyeOutline : eyeOffOutline} />
@@ -310,8 +315,9 @@ class AuthPage extends Component {
                     <button
                       type="button"
                       className="toggle-password"
-                      tabIndex={-1}
-                      onClick={() => this.setState({ showConfirmPassword: !showConfirmPassword })}
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showConfirmPassword}
+                      onClick={() => this.handleTogglePasswordVisibility('showConfirmPassword')}
                       disabled={isLoading}
                     >
                       <IonIcon icon={showConfirmPassword ? eyeOutline : eyeOffOutline} />
@@ -336,8 +342,9 @@ class AuthPage extends Component {
                       <button
                         type="button"
                         className="toggle-password"
-                        tabIndex={-1}
-                        onClick={() => this.setState({ showPassword: !showPassword })}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        aria-pressed={showPassword}
+                        onClick={() => this.handleTogglePasswordVisibility('showPassword')}
                         disabled={isLoading}
                       >
                         <IonIcon icon={showPassword ? eyeOutline : eyeOffOutline} />
@@ -351,8 +358,9 @@ class AuthPage extends Component {
                       <button
                         type="button"
                         className="toggle-password"
-                        tabIndex={-1}
-                        onClick={() => this.setState({ showConfirmPassword: !showConfirmPassword })}
+                        aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        aria-pressed={showConfirmPassword}
+                        onClick={() => this.handleTogglePasswordVisibility('showConfirmPassword')}
                         disabled={isLoading}
                       >
                         <IonIcon icon={showConfirmPassword ? eyeOutline : eyeOffOutline} />
