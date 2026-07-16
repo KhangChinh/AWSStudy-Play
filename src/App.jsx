@@ -10,7 +10,7 @@ import Dashboard from './features/dashboard/Dashboard';
 import AuthPage from './features/auth/AuthPage';
 import Spinner from './components/Spinner';
 
-import { handleSyncAllApi } from './services/syncService';
+import { checkAppVersion, handleSyncAllApi } from './services/syncService';
 import { handleLogoutApi } from './services/authService';
 import { initializeAuth } from './services/tokenService';
 
@@ -25,6 +25,17 @@ class App extends Component {
   }
 
   async componentDidMount() {
+
+    try {
+      const versionResult = await checkAppVersion({
+        onVersionChanged: () => handleLogoutApi({ resizeWindow: false }),
+      });
+      if (versionResult.changed) {
+        console.info('[App] Data version changed; local data was cleared and the session was logged out.');
+      }
+    } catch (error) {
+      console.warn('[App] Version check failed; continuing with local data:', error?.message || error);
+    }
 
     try {
       if (window.api?.invoke) {

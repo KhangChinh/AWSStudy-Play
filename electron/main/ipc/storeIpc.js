@@ -156,6 +156,15 @@ export function registerStoreIPC(ipcMain) {
       return null;
     }
   });
+  ipcMain.handle('store:clearMasterData', async () => {
+    try {
+      store.delete('masterItemData');
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:clearMasterData failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
   // Shop cache is user-scoped because activeItems contains isOwned flags.
   ipcMain.handle('store:saveShop', async (_event, shopData) => {
     try {
@@ -172,6 +181,34 @@ export function registerStoreIPC(ipcMain) {
       return encrypted ? decodeBase64(encrypted) : null;
     } catch (err) {
       console.error('[storeIpc] store:loadShop failed:', err);
+      return null;
+    }
+  });
+  ipcMain.handle('store:clearShop', async () => {
+    try {
+      store.delete('userShop');
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:clearShop failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  // App data version is not user-scoped and survives logout.
+  ipcMain.handle('store:saveVersion', async (_event, versionData) => {
+    try {
+      store.set('appDataVersion', encodeBase64(versionData));
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:saveVersion failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('store:loadVersion', async () => {
+    try {
+      const encoded = store.get('appDataVersion');
+      return encoded ? decodeBase64(encoded) : null;
+    } catch (err) {
+      console.error('[storeIpc] store:loadVersion failed:', err);
       return null;
     }
   });

@@ -11,6 +11,48 @@ const saveLastSyncAll = (timestamp) => {
   localStorage.setItem(LAST_SYNC_STORAGE_KEY, String(timestamp));
   store.dispatch(setLastSyncAll(timestamp));
 }; // 1 phút
+const checkAppVersion = async ({ onVersionChanged } = {}) => {
+  if (!API_URL || !window.api?.invoke) return { changed: false, skipped: true };
+
+  const response = await fetch(API_URL + '/version', { method: 'GET' });
+  if (!response.ok) return { changed: false, skipped: true };
+
+  const responseText = await response.text();
+  if (!responseText.trim()) return { changed: false, skipped: true };
+
+  let payload;
+  try {
+    payload = JSON.parse(responseText);
+  } catch {
+    return { changed: false, skipped: true };
+  }
+
+  const serverVersion = payload?.version;
+  if (serverVersion === null || serverVersion === undefined || serverVersion === '') {
+    return { changed: false, skipped: true };
+  }
+
+  const saved = await window.api.invoke('store:loadVersion');
+  const versionData = {
+    version: String(serverVersion),
+    timestamp: payload?.timestamp ?? Date.now(),
+  };
+
+  if (!saved?.version) {
+    await window.api.invoke('store:saveVersion', versionData);
+    return { changed: false, initialized: true };
+  }
+
+  if (String(saved.version) === versionData.version) return { changed: false };
+
+  await window.api.invoke('store:saveVersion', versionData);
+  await Promise.all([
+    window.api.invoke('store:clearMasterData'),
+    window.api.invoke('store:clearShop'),
+  ]);
+  if (onVersionChanged) await onVersionChanged();
+  return { changed: true };
+};
 const hasInventorySyncServerError = () => inventorySyncServerError;
 const pickNumber = (...values) => {
   for (const value of values) {
@@ -564,5 +606,6 @@ export {
   handleSyncProfileApi,
   handleSyncInventoryApi,
   handleSyncGachaHistoryApi,
-  handleSyncSocialApi
+  handleSyncSocialApi,
+  checkAppVersion
 };
