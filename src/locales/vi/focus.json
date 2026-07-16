@@ -1,0 +1,11 @@
+{
+  "title": "Cài đặt tập trung",
+  "desc": "Chọn ứng dụng muốn hạn chế trong phiên làm việc:",
+  "start": "Bắt đầu tập trung",
+  "started": "Phiên tập trung đã bắt đầu!",
+  "error": "Không thể bắt đầu phiên tập trung!",
+  "toggle": "Bật hoặc tắt bảng tập trung",
+  "select_apps_to_block": "Chọn ứng dụng cần chặn:",
+  "social_media": "Mạng xã hội",
+  "web_browser": "Trình duyệt web"
+}

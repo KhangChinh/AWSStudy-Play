@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, Suspense, lazy } from 'react';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -10,23 +10,16 @@ import {
   schoolOutline,
   peopleOutline,
   chevronBackOutline, chevronForwardOutline,
-  chevronUpOutline, chevronDownOutline,
   shieldCheckmarkOutline
 } from 'ionicons/icons';
 
 import FocusGuard from '../focus/FocusGuard';
-import Profile from '../profile/Profile';
-import StudyPlanner from '../study-planner/StudyPlanner';
+import DesktopFriendsWidget from '../social/DesktopFriendsWidget';
+import DesktopFocusControl from '../focus/DesktopFocusControl';
 import { cosmeticManager } from '../../services/cosmeticServices';
-import GachaTestApp from '../gacha/GachaApp';
-import MinigameHub from '../minihub/MinigameHub';
-import Shop from '../shop/Shop';
-import SettingsApp from '../settings/SettingsApp';
-import SocialApp from '../social/SocialApp';
 import currencyAssets from '../../data/currencyAssets';
 import studyFloatIcons from '../../data/studyFloatIcons';
 import RankFrame from '../../components/RankFrame';
-import RankBadge from '../../components/RankBadge';
 import { handleLogoutApi } from '../../services/authService';
 import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
 import { handleSyncAllApi } from '../../services/syncService';
@@ -38,6 +31,14 @@ import { getTierFromRP, getRankInfo } from '../../utils/rankSystem';
 import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
 import './Dashboard.scss';
 
+const SettingsApp = lazy(() => import('../settings/SettingsApp'));
+const Profile = lazy(() => import('../profile/Profile'));
+const GachaApp = lazy(() => import('../gacha/GachaApp'));
+const MinigameHub = lazy(() => import('../minihub/MinigameHub'));
+const Shop = lazy(() => import('../shop/Shop'));
+const SocialApp = lazy(() => import('../social/SocialApp'));
+const StudyPlanner = lazy(() => import('../study-planner/StudyPlanner'));
+
 
 const translateCosmeticName = (item, t) => {
   if (!item) return '';
@@ -45,14 +46,6 @@ const translateCosmeticName = (item, t) => {
   return item.name || '';
 };
 
-const RANK_LIST_DATA = [
-  { tier: 'bronze', nameKey: 'rank.bronze', rp: 0 },
-  { tier: 'silver', nameKey: 'rank.silver', rp: 180 },
-  { tier: 'gold', nameKey: 'rank.gold', rp: 510 },
-  { tier: 'platinum', nameKey: 'rank.platinum', rp: 990 },
-  { tier: 'diamond', nameKey: 'rank.diamond', rp: 1620 },
-  { tier: 'master', nameKey: 'rank.master', rp: 2400 }
-];
 
 const resolveBackground = (background) => {
   if (background && typeof background === 'object') return background;
@@ -104,7 +97,7 @@ const UserProfileWidget = ({
   const titleName = translateCosmeticName(titleData, t);
 
   return (
-    <div className={`user-profile-widget rank-${currentRank}`} onClick={onClick}>
+    <button type="button" className={`user-profile-widget rank-${currentRank}`} onClick={onClick} aria-label={t('common.profile')}>
       <RankFrame tier={frameTier} size={64} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
         {userProfile?.information?.avatarUrl ? (
           <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img" onError={useDefaultAvatarOnError} />
@@ -122,30 +115,18 @@ const UserProfileWidget = ({
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 
-function getRankProgressColor(tier) {
-  const colors = {
-    bronze: '#cd7f32',
-    silver: '#a8c0d6',
-    gold: '#f5c542',
-    platinum: '#5dc8c8',
-    diamond: '#a78bfa',
-    master: '#f97316',
-  };
-  return colors[tier] || colors.diamond;
-}
-
 const APPS = [
-  { id: 'settings', nameKey: 'common.settings', className: 'settings', icon: settingsOutline, content: <SettingsApp /> },
-  { id: 'profile', nameKey: 'common.profile', className: 'profile', icon: personOutline, content: <Profile /> },
-  { id: 'gacha', nameKey: 'common.gacha', className: 'gacha', icon: ticketOutline, content: <GachaTestApp /> },
-  { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, content: <MinigameHub /> },
-  { id: 'shop', nameKey: 'common.shop', className: 'shop', icon: cartOutline, content: <Shop /> },
-  { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, content: <SocialApp /> },
-  { id: 'study-planner', nameKey: 'common.study_planner', className: 'study-planner-icon', icon: schoolOutline, content: <StudyPlanner /> }
+  { id: 'settings', nameKey: 'common.settings', className: 'settings', icon: settingsOutline, component: SettingsApp },
+  { id: 'profile', nameKey: 'common.profile', className: 'profile', icon: personOutline, component: Profile },
+  { id: 'gacha', nameKey: 'common.gacha', className: 'gacha', icon: ticketOutline, component: GachaApp },
+  { id: 'minigame', nameKey: 'common.minigames', className: 'minigame', icon: gameControllerOutline, component: MinigameHub },
+  { id: 'shop', nameKey: 'common.shop', className: 'shop', icon: cartOutline, component: Shop },
+  { id: 'social', nameKey: 'common.social', className: 'social', icon: peopleOutline, component: SocialApp },
+  { id: 'study-planner', nameKey: 'common.study_planner', className: 'study-planner-icon', icon: schoolOutline, component: StudyPlanner }
 ];
 
 class Dashboard extends Component {
@@ -177,11 +158,8 @@ class Dashboard extends Component {
       isFocusRankMode: false,
       isRankListOpen: false,
       rankListPage: 0,
-      isFriendsWidgetCollapsed: false,
-      friendsListPage: 0,
     };
     this.timerInterval = null;
-    this.syncTimeout = null;
     this.questsPanelRef = React.createRef();
     this.questsBtnRef = React.createRef();
   }
@@ -195,31 +173,26 @@ class Dashboard extends Component {
     }, 60000);
     document.addEventListener('mousedown', this.handleClickOutside);
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    document.addEventListener('keydown', this.handleGlobalKeyDown);
 
     if (this.props.userProfile) {
       this.setEquippedStateFromProfile(this.props.userProfile);
     }
 
-    // Apply background ban đầu (dùng data local từ cosmetics.js)
+    // Master cosmetics use their own local cache and only refresh in background.
     cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
-
-    // Load/Sync master data (offline-first: load local cache, sync in background)
     try {
       await syncItemData();
       this.setState({ masterDataLoaded: true });
       cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
-    } catch (e) {
-      console.warn('Không thể tải master data:', e);
+    } catch (error) {
+      console.warn('[Dashboard] Master data sync unavailable; using local cosmetics.', error);
     }
-
-    // ĐỒNG BỘ CLOUD: Lấy Profile, Inventory, Coin từ Serverless (sau 5 giây)
-    this.syncTimeout = setTimeout(() => this.performSyncAll(), 5000);
-
     // Load Daily Quests
-    this.loadDailyQuests();
+    if (!this.props.dailyQuests) this.loadDailyQuests();
 
     // Tải danh sách bạn bè để hiển thị lên widget nền
-    this.fetchFriends();
+    if (!this.props.socialLoaded) this.fetchFriends();
   }
 
   fetchFriends = async () => {
@@ -241,6 +214,12 @@ class Dashboard extends Component {
   };
 
   // Gọi handleSyncAllApi (cooldown 1 phút được check trong syncService)
+  handleGlobalKeyDown = (event) => {
+    if (event.key === 'Escape' && this.state.activeApp) {
+      this.closeApp(null, this.state.activeApp);
+    }
+  };
+
   getEquippedIds = (profile = this.props.userProfile) => {
     const cosmetics = profile?.equippedCosmetics || {};
     return {
@@ -350,10 +329,10 @@ class Dashboard extends Component {
 
   componentWillUnmount() {
     if (this.timerInterval) clearInterval(this.timerInterval);
-    if (this.syncTimeout) clearTimeout(this.syncTimeout);
     if (this.dragRaf) cancelAnimationFrame(this.dragRaf);
     document.removeEventListener('mousedown', this.handleClickOutside);
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    document.removeEventListener('keydown', this.handleGlobalKeyDown);
     window.removeEventListener('mousemove', this.handleDragging);
     window.removeEventListener('mouseup', this.handleDragEnd);
     window.removeEventListener('touchmove', this.handleDragging);
@@ -501,7 +480,7 @@ class Dashboard extends Component {
   };
 
   closeApp = (e, appId) => {
-    e.stopPropagation();
+    e?.stopPropagation();
     this.setState(prev => {
       const remainingApps = prev.openApps.filter(id => id !== appId);
       const newStackOrder = prev.stackOrder.filter(id => id !== appId);
@@ -923,6 +902,8 @@ class Dashboard extends Component {
           return (
             <div
               key={appId}
+              role="dialog"
+              aria-label={app.nameKey ? t(app.nameKey) : app.name}
               className={`os-window ${app.className} ${appId === 'profile' ? `rank-${currentRank}` : ''} ${activeApp === appId ? 'active' : ''} ${isMinimized ? 'minimized' : ''} ${isMaximized ? 'maximized' : ''} ${this.state.isVacuuming ? 'vacuuming' : ''} ${this.state.isDragging === appId ? 'dragging' : ''}`}
               style={{
                 top: isMaximized ? 0 : pos.y,
@@ -940,23 +921,26 @@ class Dashboard extends Component {
                   {app.nameKey ? t(app.nameKey) : app.name}
                 </div>
                 <div className="window-controls">
-                  <button className="control minimize" onClick={(e) => this.toggleMinimize(e, appId)}>
+                  <button type="button" aria-label={t('dashboard.minimize')} className="control minimize" onClick={(e) => this.toggleMinimize(e, appId)}>
                     <IonIcon icon={removeOutline} />
                   </button>
                   <button
+                    type="button"
                     className="control maximize"
+                    aria-label={isMaximized ? t('dashboard.restore') : t('dashboard.maximize')}
                     title={isMaximized ? t('dashboard.restore') : t('dashboard.maximize')}
                     onClick={(e) => this.toggleMaximize(e, appId)}
                   >
                     <IonIcon icon={isMaximized ? copyOutline : squareOutline} style={{ fontSize: isMaximized ? 11 : 9 }} />
                   </button>
-                  <button className="control close" onClick={(e) => this.closeApp(e, appId)}>
+                  <button type="button" aria-label={t('common.close')} className="control close" onClick={(e) => this.closeApp(e, appId)}>
                     <IonIcon icon={closeOutline} />
                   </button>
                 </div>
               </div>
               <div className="window-content">
-                {React.cloneElement(app.content, {
+                <Suspense fallback={<div className="app-loading" role="status">{t('common.loading', 'Loading...')}</div>}>
+                  {React.createElement(app.component, {
                   currentBackground: this.state.currentBackground,
                   currentTitle: this.state.currentTitle,
                   currentFrame: this.state.currentFrame,
@@ -971,7 +955,8 @@ class Dashboard extends Component {
                   onSystemIconChange: this.handleSystemIconChange,
                   t,
                   i18n,
-                })}
+                  })}
+                </Suspense>
               </div>
             </div>
           );
@@ -981,26 +966,29 @@ class Dashboard extends Component {
 
         <div className="os-taskbar">
           <div className="taskbar-start">
-            <div
+            <button type="button"
+              aria-label={t('dashboard.minimize_all')}
               className="minimize-all-btn"
               onClick={this.handleMinimizeAll}
               title={t('dashboard.minimize_all')}
             >
-              <IonIcon icon={removeOutline} />
-            </div>
-            <div
+              <IonIcon icon={removeOutline} aria-hidden="true" />
+            </button>
+            <button type="button"
+              aria-label={t('dashboard.cleanup')}
               className={`start-btn ${this.state.isVacuuming ? 'active' : ''}`}
               onClick={this.handleClearAllApps}
               title={t('dashboard.cleanup')}
             >
-              <IonIcon icon={planetOutline} className={this.state.isVacuuming ? 'spinning' : ''} />
-            </div>
+              <IonIcon icon={planetOutline} className={this.state.isVacuuming ? 'spinning' : ''} aria-hidden="true" />
+            </button>
           </div>
 
           <div className="floating-app-launcher">
             {APPS.length > this.state.appsPerPage && (
               <button
                 className="taskbar-nav-btn prev"
+                aria-label={t('dashboard.previous_page', 'Previous apps')}
                 disabled={this.state.launcherPage === 0}
                 onClick={() => this.setState(prev => ({ launcherPage: Math.max(0, prev.launcherPage - 1) }))}
               >
@@ -1013,7 +1001,8 @@ class Dashboard extends Component {
                 this.state.launcherPage * this.state.appsPerPage,
                 (this.state.launcherPage + 1) * this.state.appsPerPage
               ).map(app => (
-                <div
+                <button
+                  type="button"
                   key={app.id}
                   className={`launcher-icon ${activeApp === app.id ? 'active' : ''} ${openApps.includes(app.id) ? 'opened' : ''} ${minimizedApps.includes(app.id) ? 'minimized' : ''}`}
                   onClick={(e) => {
@@ -1024,18 +1013,21 @@ class Dashboard extends Component {
                     }
                   }}
                   title={t(app.nameKey)}
+                  aria-label={t(app.nameKey)}
+                  aria-pressed={activeApp === app.id}
                 >
                   <div className="icon-img-wrapper">
                     <IonIcon icon={app.icon} style={{ fontSize: 24 }} />
                   </div>
                   <div className="indicator"></div>
-                </div>
+                </button>
               ))}
             </div>
 
             {APPS.length > this.state.appsPerPage && (
               <button
                 className="taskbar-nav-btn next"
+                aria-label={t('dashboard.next_page', 'Next apps')}
                 disabled={(this.state.launcherPage + 1) * this.state.appsPerPage >= APPS.length}
                 onClick={() => this.setState(prev => ({ launcherPage: prev.launcherPage + 1 }))}
               >
@@ -1046,183 +1038,27 @@ class Dashboard extends Component {
 
           <div className="taskbar-sys">
             <span className="os-time">{time}</span>
-            <button className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout} title={t('common.logout')}>
+            <button type="button" aria-label={t('common.logout')} className="btn-logout" onClick={this.handleLogout} disabled={disabledButtons.logout} title={t('common.logout')}>
               <IonIcon icon={logOutOutline} />
             </button>
           </div>
         </div>
-
-        {/* Widget Bạn Bè hình chữ nhật nằm độc lập trên desktop nền */}
-        {(() => {
-          const acceptedFriends = (this.props.friends || []).filter(f => f.status === 'ACCEPTED');
-          const totalPages = Math.ceil(acceptedFriends.length / 6);
-          const currentPage = Math.min(this.state.friendsListPage, Math.max(0, totalPages - 1));
-          const paginatedFriends = acceptedFriends.slice(currentPage * 6, (currentPage + 1) * 6);
-          
-          return (
-            <div className={`desktop-friends-widget ${this.state.isFriendsWidgetCollapsed ? 'collapsed' : ''}`}>
-              <button 
-                className="friends-widget-toggle"
-                onClick={() => this.setState(prev => ({ isFriendsWidgetCollapsed: !prev.isFriendsWidgetCollapsed }))}
-                title={this.state.isFriendsWidgetCollapsed ? "Mở danh sách bạn bè" : "Thu gọn"}
-              >
-                <IonIcon icon={this.state.isFriendsWidgetCollapsed ? chevronBackOutline : chevronForwardOutline} />
-              </button>
-              <div className="friends-widget-header">
-                <span className="friends-widget-title">
-                  <IonIcon icon={peopleOutline} style={{ marginRight: 6, fontSize: 15 }} />
-                  Bạn Bè ({acceptedFriends.length})
-                </span>
-              </div>
-              <div className="friends-widget-body">
-                {paginatedFriends.length > 0 ? (
-                  paginatedFriends.map(friend => (
-                    <div key={friend.SK} className="friends-widget-item">
-                      <div className="friend-avatar-mini">
-                        {friend.friendAvatarUrl ? (
-                          <img src={resolveAvatarUrl(friend.friendAvatarUrl)} alt="avatar" onError={useDefaultAvatarOnError} />
-                        ) : (
-                          <div className="friend-avatar-placeholder">👤</div>
-                        )}
-                      </div>
-                      <span className="friend-name-mini">{friend.friendName || 'Unknown'}</span>
-                      {friend.level && <span className="friend-level-mini">Lv.{friend.level}</span>}
-                    </div>
-                  ))
-                ) : (
-                  <div className="friends-widget-empty">
-                    Chưa có bạn bè
-                  </div>
-                )}
-              </div>
-
-              {/* Phân trang khi có hơn 6 người bạn */}
-              {totalPages > 1 && (
-                <div className="friends-widget-pagination">
-                  <button 
-                    className="pagination-btn"
-                    disabled={currentPage === 0}
-                    onClick={() => this.setState({ friendsListPage: Math.max(0, currentPage - 1) })}
-                    title="Trang trước"
-                  >
-                    <IonIcon icon={chevronUpOutline} />
-                  </button>
-                  <span className="pagination-text">{currentPage + 1} / {totalPages}</span>
-                  <button 
-                    className="pagination-btn"
-                    disabled={currentPage >= totalPages - 1}
-                    onClick={() => this.setState({ friendsListPage: Math.min(totalPages - 1, currentPage + 1) })}
-                    title="Trang sau"
-                  >
-                    <IonIcon icon={chevronDownOutline} />
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        <DesktopFriendsWidget friends={this.props.friends} />
 
         {/* Nút START Focus và Rank ở góc dưới bên phải */}
-        <div className="desktop-focus-control-center">
-
-          {/* Panel hiển thị danh sách các mốc Rank */}
-          {this.state.isRankListOpen && (
-            <div className="rank-list-popover">
-              <div className="popover-header">
-                <button 
-                  className="popover-nav-btn" 
-                  disabled={this.state.rankListPage === 0}
-                  onClick={(e) => { e.stopPropagation(); this.setState(prev => ({ rankListPage: Math.max(0, prev.rankListPage - 1) })); }}
-                >
-                  <IonIcon icon={chevronBackOutline} />
-                </button>
-                <span className="popover-title">{t('dashboard.rank_milestones')}</span>
-                <button 
-                  className="popover-nav-btn" 
-                  disabled={this.state.rankListPage === 1}
-                  onClick={(e) => { e.stopPropagation(); this.setState(prev => ({ rankListPage: Math.min(1, prev.rankListPage + 1) })); }}
-                >
-                  <IonIcon icon={chevronForwardOutline} />
-                </button>
-              </div>
-              <div className="popover-body">
-                {RANK_LIST_DATA.slice(this.state.rankListPage * 3, (this.state.rankListPage + 1) * 3).map((item) => (
-                  <div key={item.tier} className="popover-rank-item">
-                    <RankBadge tier={item.tier} size={32} />
-                    <div className="popover-rank-info">
-                      <span className="popover-rank-name">{t(item.nameKey)}</span>
-                      <span className="popover-rank-rp">{item.rp} RP</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div 
-            className="rank-display-box" 
-            onClick={() => this.setState(prev => ({ isRankListOpen: !prev.isRankListOpen }))}
-            style={{ cursor: 'pointer' }}
-            title="Xem các cột mốc rank"
-          >
-            <div className="rank-badge-and-info">
-              <RankBadge tier={currentRank} size={48} />
-              <div className="rank-info-column">
-                <div className="rank-display-header">
-                  <div className="rank-title-group">
-                    <span className={`rank-title rank-${currentRank}`}>{rankInfo.label}</span>
-                    <span className="rank-rp-text">({rp} RP)</span>
-                  </div>
-                </div>
-                {rankInfo.tier !== 'master' && (
-                  <div className="rank-mini-progress-container">
-                    <div className="rank-mini-progress">
-                      <div
-                        className="rank-mini-progress-fill"
-                        style={{ width: `${rankInfo.progress}%`, background: getRankProgressColor(currentRank) }}
-                      />
-                    </div>
-                    <span className="rank-mini-progress-text">{rankInfo.rpInDiv}/{rankInfo.rangeRP} RP</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className={`lq-start-container ${this.state.isFocusRankMode ? 'mode-rank' : 'mode-casual'}`}>
-            {/* Bộ chọn chế độ Casual / Rank ngay trên nút */}
-            <div className="lq-mode-selector">
-              <button 
-                className={`lq-mode-option casual ${!this.state.isFocusRankMode ? 'active' : ''}`}
-                onClick={() => this.setState({ isFocusRankMode: false })}
-              >
-                Casual
-              </button>
-              <button 
-                className={`lq-mode-option rank ${this.state.isFocusRankMode ? 'active' : ''}`}
-                onClick={() => this.setState({ isFocusRankMode: true })}
-              >
-                Rank
-              </button>
-            </div>
-
-            <button 
-              className={`lq-start-button ${this.state.isFocusRankMode ? 'mode-rank' : 'mode-casual'} ${this.state.isFocusPanelOpen ? 'active' : ''}`}
-              onClick={() => this.setState(prev => ({ isFocusPanelOpen: !prev.isFocusPanelOpen }))}
-            >
-              <div className="lq-button-shiny-line"></div>
-              <div className="lq-start-inner">
-                <span className="lq-start-text">
-                  <IonIcon icon={shieldCheckmarkOutline} style={{ marginRight: 6, fontSize: 18, verticalAlign: 'middle' }} />
-                  START
-                </span>
-                <span className="lq-start-sub">{this.state.isFocusRankMode ? 'Ranked Match' : 'Casual Match'}</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Panel Focus nhỏ ở góc phải màn hình */}
+        <DesktopFocusControl
+          currentRank={currentRank}
+          rankInfo={rankInfo}
+          rp={rp}
+          isRankListOpen={this.state.isRankListOpen}
+          rankListPage={this.state.rankListPage}
+          isRankMode={this.state.isFocusRankMode}
+          isPanelOpen={this.state.isFocusPanelOpen}
+          onToggleRankList={() => this.setState((prev) => ({ isRankListOpen: !prev.isRankListOpen }))}
+          onRankListPageChange={(rankListPage) => this.setState({ rankListPage })}
+          onModeChange={(isFocusRankMode) => this.setState({ isFocusRankMode })}
+          onTogglePanel={() => this.setState((prev) => ({ isFocusPanelOpen: !prev.isFocusPanelOpen }))}
+        />
         {this.state.isFocusPanelOpen && (
           <div className="desktop-focus-sidebar">
             <div className="focus-sidebar-header">
@@ -1252,6 +1088,7 @@ const mapStateToProps = (state) => ({
   userProfile: state.profile.userProfile,
   dailyQuests: state.quest.daily,
   friends: state.social.items || [],
+  socialLoaded: state.social.hasMore === false || (state.social.items?.length || 0) > 0,
 });
 
 const mapDispatchToProps = (dispatch) => ({

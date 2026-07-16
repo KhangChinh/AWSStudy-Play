@@ -299,7 +299,7 @@ class SocialApp extends Component {
             <div className="friend-info">
               <div className="name-row">
                 <span className="friend-name">{friend.friendName || 'Unknown'}</span>
-                {friend.level && <span className="friend-rank">{this.props.t('social.level_short')}{friend.level}</span>}
+                {friend.level && <span className="friend-rank">Lv.{friend.level}</span>}
               </div>
             </div>
             <div className="friend-actions">

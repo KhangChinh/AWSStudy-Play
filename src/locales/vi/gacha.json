@@ -1,0 +1,21 @@
+{
+  "pull": "Lượt",
+  "event": "Sự kiện",
+  "remaining": "Còn lại",
+  "details": "Chi tiết",
+  "guaranteed": "chắc chắn ra",
+  "single_roll": "Quay 1 lần",
+  "featured_guaranteed": "Chắc chắn 5★ giới hạn",
+  "ten_rolls": "Quay 10 lần",
+  "page": "Trang",
+  "no_items": "Chưa có vật phẩm nào.",
+  "history": "Lịch sử",
+  "rate_up_desc": "Tăng tỷ lệ cho vật phẩm <span class=\"text-purple\">4★</span> và <span class=\"text-gold\">5★ giới hạn</span>!",
+  "featured_5_star": "5★",
+  "featured_4_star": "4★",
+  "infinite_time": "∞",
+  "empty_rewards_error": "Gacha không trả về phần thưởng nào.",
+  "missing_core_confirm": "Thiếu <number>{{missingCore}}</number> Lõi tri thức. Bạn có muốn dùng <number>{{pointCost}}</number> Điểm tri thức để mua không?",
+  "item_rates": "Details",
+  "duplicate": "Trùng lặp"
+}
