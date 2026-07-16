@@ -761,3 +761,56 @@
   &.ok { filter: none; }
   &.warn { animation: paused-blink 1.2s ease-in-out infinite; }
 }
+
+.fg-custom-duration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 0 12px;
+  transition: all 0.2s ease;
+  
+  &:focus-within {
+    border-color: rgba(139, 92, 246, 0.4);
+    background: rgba(139, 92, 246, 0.08);
+  }
+  
+  &.active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.2));
+    border-color: #8b5cf6;
+  }
+
+  .fg-duration-input {
+    width: 32px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+    
+    &::placeholder {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    
+    /* Hide spin arrows */
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    -moz-appearance: textfield;
+  }
+
+  .fg-custom-min-label {
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    margin-left: 2px;
+  }
+}

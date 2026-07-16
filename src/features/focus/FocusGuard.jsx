@@ -10,7 +10,8 @@ import { ingestServerData } from '../../services/syncService';
 import { startTracking, stopTracking, reattachVideo, pauseTracking, resumeTracking } from './faceTracker';
 import './FocusGuard.scss';
 
-const DURATIONS = [1, 15, 25, 45, 60];
+const CASUAL_DURATIONS = [15, 25, 45, 60];
+const RANK_DURATIONS = [30, 60];
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
@@ -57,6 +58,7 @@ const FocusGuard = (props) => {
   const [gateStatus, setGateStatus] = useState({
     blocked: false,
     missing: [],
+    connectedBrowsers: [],
     connected: false,
     noBrowserRunning: true,
   });
@@ -140,6 +142,7 @@ const FocusGuard = (props) => {
           setGateStatus({
             blocked: !!data.blocked,
             missing: Array.isArray(data.missing) ? data.missing : [],
+            connectedBrowsers: Array.isArray(data.connected) ? data.connected : [],
             connected: Array.isArray(data.connected) ? data.connected.length > 0 : false,
             noBrowserRunning: !!data.noBrowserRunning,
           });
@@ -370,11 +373,19 @@ const FocusGuard = (props) => {
               <div className="fg-status-row">
                 <div className="fg-status-badge">
                   <span className={`dot ${noBrowser ? 'gray' : (gateStatus.connected ? 'green' : 'red')}`} />
-                  {noBrowser ? t('focus_guard.no_browser') : (gateStatus.connected ? t('focus_guard.extension_ok') : t('focus_guard.checking'))}
+                  {noBrowser 
+                    ? t('focus_guard.no_browser') 
+                    : (gateStatus.connected 
+                        ? `${t('focus_guard.extension_ok')} (${gateStatus.connectedBrowsers.join(', ')})` 
+                        : t('focus_guard.checking')
+                      )}
                 </div>
                 <div className="fg-status-badge">
                   <span className={`dot ${aiReady ? 'green' : 'yellow'}`} />
-                  {aiReady ? t('focus_guard.ai_ready') : t('focus_guard.ai_not_ready')}
+                  {aiReady 
+                    ? `${t('focus_guard.ai_ready')} (${aiStat?.activeProvider ? aiStat.activeProvider.charAt(0).toUpperCase() + aiStat.activeProvider.slice(1) : ''})` 
+                    : t('focus_guard.ai_not_ready')
+                  }
                 </div>
               </div>
 
@@ -421,7 +432,7 @@ const FocusGuard = (props) => {
                 <>
                   <span className="fg-duration-label">{t('focus_guard.duration')}</span>
                   <div className="fg-duration-group">
-                    {DURATIONS.map((d) => (
+                    {(hardMode ? RANK_DURATIONS : CASUAL_DURATIONS).map((d) => (
                       <button
                         key={d}
                         className={`fg-duration-btn ${minutes === d ? 'active' : ''}`}
@@ -430,19 +441,52 @@ const FocusGuard = (props) => {
                         {d}m
                       </button>
                     ))}
+                    <div className={`fg-custom-duration ${!(hardMode ? RANK_DURATIONS : CASUAL_DURATIONS).includes(minutes) ? 'active' : ''}`}>
+                      <input 
+                        type="number" 
+                        min="60" 
+                        max="300"
+                        className={`fg-duration-input`}
+                        placeholder="..."
+                        value={(hardMode ? RANK_DURATIONS : CASUAL_DURATIONS).includes(minutes) ? '' : minutes}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val > 0) {
+                            setMinutes(val);
+                          } else if (e.target.value === '') {
+                            setMinutes(hardMode ? RANK_DURATIONS[0] : CASUAL_DURATIONS[0]);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!CASUAL_DURATIONS.includes(minutes) && !RANK_DURATIONS.includes(minutes)) {
+                            if (minutes < 60) setMinutes(60);
+                          }
+                        }}
+                      />
+                      <span className="fg-custom-min-label">m</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', marginTop: '-12px', marginBottom: '16px', textAlign: 'right' }}>
+                    * Custom tối thiểu 60 phút
                   </div>
 
                   <div className="fg-mode-toggle">
                     <button
                       className={`fg-mode-btn ${!hardMode ? 'active' : ''}`}
-                      onClick={() => setHardMode(false)}
+                      onClick={() => {
+                        setHardMode(false);
+                        if (!CASUAL_DURATIONS.includes(minutes)) setMinutes(CASUAL_DURATIONS[0]);
+                      }}
                     >
                       <span className="mode-label">{t('focus_guard.casual_mode')}</span>
                       <span className="mode-desc">{t('focus_guard.casual_desc')}</span>
                     </button>
                     <button
                       className={`fg-mode-btn ${hardMode ? 'active' : ''}`}
-                      onClick={() => setHardMode(true)}
+                      onClick={() => {
+                        setHardMode(true);
+                        if (!RANK_DURATIONS.includes(minutes)) setMinutes(RANK_DURATIONS[0]);
+                      }}
                     >
                       <span className="mode-label">{t('focus_guard.rank_mode')}</span>
                       <span className="mode-desc">{t('focus_guard.rank_desc')}</span>

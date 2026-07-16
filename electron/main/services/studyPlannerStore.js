@@ -164,7 +164,7 @@ const DEFAULT_STUDY_SETTINGS = {
   bedrockAccessKey: '',
   bedrockSecretKey: '',
   bedrockRegion: 'us-east-1',
-  bedrockModel: 'amazon.nova-micro-v1:0',
+  bedrockModel: 'amazon.nova-lite-v1:0',
   selectedModel: '',
 };
 
@@ -180,7 +180,7 @@ export function loadStudySettings() {
 
 export function saveStudySettings(settings) {
   try {
-    const modelName = settings?.aiProvider === 'bedrock' ? (settings?.bedrockModel || process.env.BEDROCK_MODEL || 'amazon.nova-micro-v1:0') : settings?.selectedModel;
+    const modelName = settings?.aiProvider === 'bedrock' ? (settings?.bedrockModel || process.env.BEDROCK_MODEL || 'amazon.nova-lite-v1:0') : settings?.selectedModel;
     console.log(`[StudyPlannerStore] 💾 Đã lưu cấu hình AI: Provider=${settings?.aiProvider}, Model=${modelName || 'N/A'}`);
 
     store.set('study_settings', encode(settings));

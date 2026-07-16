@@ -139,7 +139,7 @@ export async function bedrockConverse({
   accessKey  = process.env.BEDROCK_ACCESS_KEY,
   secretKey  = process.env.BEDROCK_SECRET_KEY,
   region     = process.env.BEDROCK_REGION || 'us-east-1',
-  modelId    = process.env.BEDROCK_MODEL || 'amazon.nova-micro-v1:0',
+  modelId    = process.env.BEDROCK_MODEL || 'amazon.nova-lite-v1:0',
   systemPrompt = '',
   messages = [],
   maxTokens = 1024,

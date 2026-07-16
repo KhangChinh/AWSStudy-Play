@@ -55,17 +55,19 @@ function ollamaRequest(path, body, timeoutMs = 120000) {
 // ===== System Prompts =====
 
 const CHAT_SYSTEM_PROMPT = `Ban la tro ly tu van hoc tap AI. Thu thap thong tin tu nguoi dung de tao ke hoach hoc tap.
-NGON NGU: Mac dinh Tieng Viet.
+NGON NGU YEU CAU: Ban CHI ho tro tieng Anh va tieng Viet. Hay tra loi bang ngon ngu ma nguoi dung dang su dung (uu tien tieng Viet). NEU nguoi dung dung ngon ngu khac (VD: tieng Trung, Nhat, Han, Phap...), HAY TU CHOI ho tro va yeu cau ho su dung tieng Anh hoac tieng Viet.
 BAN CAN THU THAP: 1.Linh vuc 2.Chu de cu the 3.Trinh do 4.Muc tieu 5.Thoi gian du kien 6.Thoi gian hoc/ngay
 QUY TAC: Hoi tu nhien. Neu user cung cap du (it nhat 1,2,3) thi readyToGenerate=true. Ngan gon 3-4 cau.
 OUTPUT JSON (khong markdown): {"reply":"...","collectedInfo":{"subject":"","topic":"","level":"","goal":"","totalDuration":"","dailyHours":""},"readyToGenerate":false}
-Khi readyToGenerate=true, reply them: "Toi da co du thong tin. Ban co muon tao ke hoach hoc tap khong?"`;
+Khi readyToGenerate=true, reply them bang ngon ngu hien tai: "Toi da co du thong tin. Ban co muon tao ke hoach hoc tap khong?"`;
 
 const PLAN_SYSTEM_PROMPT = `Tao ke hoach hoc tap JSON. KHONG giai thich, CHI tra ve JSON.
+NGON NGU: Bat buoc phai dong bo voi ngon ngu ma nguoi dung da chat (thuong la tieng Viet hoac tieng Anh).
 Format: {"title":"...","description":"...","phases":[{"id":1,"name":"...","duration":"...","description":"...","topics":["..."],"resources":[{"name":"...","url":"https://...","type":"website"}],"completed":false}]}
 Tao 4-5 phases, 2-3 topics/phase, 1-2 resources/phase. Ngan gon.`;
 
 const QUIZ_SYSTEM_PROMPT = `Tao 10 cau hoi trac nghiem JSON. KHONG giai thich, CHI tra ve JSON.
+NGON NGU: Bắt buộc đồng bộ theo ngôn ngữ của Kế hoạch học tập hoặc chủ đề được truyền vào.
 Format: {"questions":[{"id":1,"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correctAnswer":"A"}]}
 10 cau, 4 dap an A/B/C/D.`;
 
@@ -81,11 +83,11 @@ async function getAiSettings() {
       bedrockAccessKey: s.bedrockAccessKey || '',
       bedrockSecretKey: s.bedrockSecretKey || '',
       bedrockRegion: s.bedrockRegion || 'us-east-1',
-      bedrockModel: s.bedrockModel || 'amazon.nova-micro-v1:0',
+      bedrockModel: s.bedrockModel || 'amazon.nova-lite-v1:0',
     };
   } catch {
     return { aiProvider: 'ollama', geminiKey: '', selectedModel: OLLAMA_MODEL_DEFAULT,
-             bedrockAccessKey: '', bedrockSecretKey: '', bedrockRegion: 'us-east-1', bedrockModel: 'amazon.nova-micro-v1:0' };
+             bedrockAccessKey: '', bedrockSecretKey: '', bedrockRegion: 'us-east-1', bedrockModel: 'amazon.nova-lite-v1:0' };
   }
 }
 
@@ -158,7 +160,7 @@ export async function chatWithAI(messages) {
       return { success: true, reply: content, collectedInfo: {}, readyToGenerate: false };
 
     } else if (config.aiProvider === 'bedrock') {
-      console.log(`[AIStudy] 🤖 Chat → Provider: Bedrock | Model: ${process.env.BEDROCK_MODEL || 'nova-micro'}`);
+      console.log(`[AIStudy] 🤖 Chat → Provider: Bedrock | Model: ${process.env.BEDROCK_MODEL || 'nova-lite'}`);
       let bedrockSystemPrompt = finalSystemPrompt;
       if (bedrockSystemPrompt.length > 2000) bedrockSystemPrompt = bedrockSystemPrompt.slice(0, 2000);
       const content = await bedrockChatJSON(bedrockSystemPrompt, messages, 1024);
@@ -230,7 +232,7 @@ export async function generateStudyPlan(collectedInfo) {
       return { success: false, error: 'Khong the parse ke hoach tu Gemini' };
 
     } else if (config.aiProvider === 'bedrock') {
-      console.log(`[AIStudy] 📋 Generate Plan → Bedrock | ${process.env.BEDROCK_MODEL || 'nova-micro'}`);
+      console.log(`[AIStudy] 📋 Generate Plan → Bedrock | ${process.env.BEDROCK_MODEL || 'nova-lite'}`);
       const content = await bedrockChatJSON(PLAN_SYSTEM_PROMPT, [{ role: 'user', content: userPrompt }], 2048);
       const plan = parseResponse(content);
       if (plan) return { success: true, plan };
@@ -265,8 +267,9 @@ export async function generateQuiz(phase, planTitle) {
     const config = await getAiSettings();
     const docContext = getContextForQuiz(phase.name, phase.topics);
     
-    let userPrompt = `Tao 10 cau hoi trac nghiem ve: ${phase.name}
-Chu de: ${(phase.topics || []).join(', ')}`;
+    let userPrompt = `Bối cảnh: Kế hoạch học tập "${planTitle}"
+Tạo 10 câu hỏi trắc nghiệm về giai đoạn: ${phase.name}
+Chủ đề cần tập trung: ${(phase.topics || []).join(', ')}`;
 
     if (docContext) {
       userPrompt += `\n\n=== NỘI DUNG TỪ TÀI LIỆU (${docContext.fileName}) ===\n${docContext.contentBlock}\n\nYÊU CẦU: Tạo câu hỏi bám sát 100% nội dung tài liệu này. Không bịa đặt kiến thức ngoài tài liệu.`;
@@ -291,7 +294,7 @@ Chu de: ${(phase.topics || []).join(', ')}`;
       return { success: false, error: 'Khong the parse quiz tu Gemini' };
 
     } else if (config.aiProvider === 'bedrock') {
-      console.log(`[AIStudy] 📝 Generate Quiz → Bedrock | ${process.env.BEDROCK_MODEL || 'nova-micro'}`);
+      console.log(`[AIStudy] 📝 Generate Quiz → Bedrock | ${process.env.BEDROCK_MODEL || 'nova-lite'}`);
       const content = await bedrockChatJSON(QUIZ_SYSTEM_PROMPT, [{ role: 'user', content: userPrompt }], 2048);
       const parsed = parseResponse(content);
       if (parsed && parsed.questions) return { success: true, questions: parsed.questions };
@@ -358,7 +361,7 @@ export async function summarizeDocument(chunks) {
       const systemPrompt = "Bạn là AI tóm tắt tài liệu. Đọc văn bản sau và tóm tắt trong khoảng 150-250 từ. Sau đó liệt kê các chủ đề chính. TRẢ VỀ ĐÚNG FORMAT JSON, KHÔNG GIẢI THÍCH THÊM.";
       const userMessage = `VĂN BẢN:\n${docText}\n\nFORMAT JSON:\n{"summary":"tóm tắt...","topics":["chủ đề 1","chủ đề 2"]}`;
 
-      console.log(`[AIStudy] 📄 Summarize Document → Bedrock | ${process.env.BEDROCK_MODEL || 'amazon.nova-micro-v1:0'}`);
+      console.log(`[AIStudy] 📄 Summarize Document → Bedrock | ${process.env.BEDROCK_MODEL || 'amazon.nova-lite-v1:0'}`);
       const content = await bedrockChatJSON(systemPrompt, [{ role: 'user', content: userMessage }], 1024);
       const parsed = parseResponse(content);
       if (parsed && parsed.summary) return { success: true, summary: parsed.summary, topics: parsed.topics || [] };

@@ -253,7 +253,7 @@ export async function classifyContent(metadata) {
   if (blockerConfig.provider === 'bedrock') {
     // Try Bedrock
     try {
-      const bedrockModel = process.env.BEDROCK_MODEL || blockerConfig.selectedModel || 'amazon.nova-micro-v1:0';
+      const bedrockModel = process.env.BEDROCK_MODEL || blockerConfig.selectedModel || 'amazon.nova-lite-v1:0';
       console.log(`[AI] 🔍 Classifying video with Bedrock | Model: ${bedrockModel} | Title: "${metadata.title || 'N/A'}"`);
       const userPrompt = buildUserPrompt(metadata);
       const bedrockRes = await bedrockConverse({
@@ -450,7 +450,7 @@ export async function classifyWebPage(metadata) {
   if (blockerConfig.provider === 'bedrock') {
     // Try Bedrock
     try {
-      const bedrockModel = process.env.BEDROCK_MODEL || blockerConfig.selectedModel || 'amazon.nova-micro-v1:0';
+      const bedrockModel = process.env.BEDROCK_MODEL || blockerConfig.selectedModel || 'amazon.nova-lite-v1:0';
       console.log(`[AI-Web] 🔍 Classifying web page with Bedrock | Model: ${bedrockModel} | Domain: ${metadata.domain}`);
       const userPrompt = buildWebUserPrompt(metadata);
       const bedrockRes = await bedrockConverse({
@@ -552,7 +552,7 @@ export async function getAiStatus() {
   };
   const bedrock = {
     available: !!(blockerConfig?.provider === 'bedrock'),
-    model: process.env.BEDROCK_MODEL || blockerConfig?.selectedModel || 'amazon.nova-micro-v1:0'
+    model: process.env.BEDROCK_MODEL || blockerConfig?.selectedModel || 'amazon.nova-lite-v1:0'
   };
 
   const [ollama, groq] = await Promise.all([checkOllama(), checkGroq()]);

@@ -383,7 +383,6 @@ const SettingsApp = ({
               <p className="section-desc">Configure local and cloud AI providers for application features.</p>
               
               <div className="ai-settings-list">
-                {renderAiRow('faceTracking', 'AI FaceTracking')}
                 {renderAiRow('blocker', 'AI YouTube Blocker')}
                 {renderAiRow('studyPlanner', 'AI StudyPlanner')}
               </div>
