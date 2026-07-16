@@ -158,12 +158,21 @@ export function deleteQuizResult(quizId) {
 //  SETTINGS (AI Provider)
 // ═══════════════════════════════════════════
 
+const DEFAULT_STUDY_SETTINGS = {
+  aiProvider: 'ollama',
+  geminiKey: '',
+  bedrockAccessKey: '',
+  bedrockSecretKey: '',
+  bedrockRegion: 'us-east-1',
+  bedrockModel: 'amazon.nova-micro-v1:0',
+  selectedModel: '',
+};
+
 export function loadStudySettings() {
   try {
-    const defaultSettings = { aiProvider: 'ollama', geminiKey: '' };
     const raw = store.get('study_settings');
-    if (!raw) return { success: true, data: defaultSettings };
-    return { success: true, data: { ...defaultSettings, ...decode(raw) } };
+    if (!raw) return { success: true, data: { ...DEFAULT_STUDY_SETTINGS } };
+    return { success: true, data: { ...DEFAULT_STUDY_SETTINGS, ...decode(raw) } };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -171,10 +180,9 @@ export function loadStudySettings() {
 
 export function saveStudySettings(settings) {
   try {
-    console.log('[StudyPlannerStore] Lưu cấu hình AI:', { 
-      provider: settings?.aiProvider,
-      hasGeminiKey: !!settings?.geminiKey
-    });
+    const modelName = settings?.aiProvider === 'bedrock' ? (settings?.bedrockModel || process.env.BEDROCK_MODEL || 'amazon.nova-micro-v1:0') : settings?.selectedModel;
+    console.log(`[StudyPlannerStore] 💾 Đã lưu cấu hình AI: Provider=${settings?.aiProvider}, Model=${modelName || 'N/A'}`);
+
     store.set('study_settings', encode(settings));
     return { success: true };
   } catch (err) {

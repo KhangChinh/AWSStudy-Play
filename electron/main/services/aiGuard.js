@@ -6,6 +6,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { geminiRequestWithFallback } from './geminiApi.js';
+import { bedrockConverse } from './bedrockApi.js';
 import { getAiSettingsFromStore } from './sharedStore.js';
 
 function getBlockerAiSettings() {
@@ -151,7 +152,7 @@ async function classifyWithGemini(metadata, apiKey, modelName, promptTemplate) {
     system_instruction: { parts: [{ text: promptTemplate || SYSTEM_PROMPT }] },
     contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
     generationConfig: {
-      responseMimeType: 'application/json',
+      
       temperature: 0.1,
     }
   };
@@ -249,13 +250,31 @@ export async function classifyContent(metadata) {
   let result;
   const blockerConfig = getBlockerAiSettings() || { provider: 'ollama' };
 
-  if (blockerConfig.provider === 'gemini' && blockerConfig.apiKey) {
+  if (blockerConfig.provider === 'bedrock') {
+    // Try Bedrock
+    try {
+      const bedrockModel = process.env.BEDROCK_MODEL || blockerConfig.selectedModel || 'amazon.nova-micro-v1:0';
+      console.log(`[AI] 🔍 Classifying video with Bedrock | Model: ${bedrockModel} | Title: "${metadata.title || 'N/A'}"`);
+      const userPrompt = buildUserPrompt(metadata);
+      const bedrockRes = await bedrockConverse({
+        systemPrompt: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userPrompt }],
+        maxTokens: 1024
+      });
+      const parsed = parseAiResponse(bedrockRes.text);
+      const usage = bedrockRes.usage || { inputTokens: 0, outputTokens: 0 };
+      console.log(`[AI] ✅ Bedrock result: ${parsed.result} — ${parsed.reason} (Tokens: In=${usage.inputTokens}, Out=${usage.outputTokens})`);
+      result = { ...parsed, provider: 'bedrock' };
+    } catch (e) {
+      console.warn('[AI] Bedrock classification failed:', e.message);
+    }
+  } else if (blockerConfig.provider === 'gemini' && blockerConfig.apiKey) {
     // Try Gemini
     try {
-      let geminiModel = blockerConfig.selectedModel || 'gemini-1.5-flash';
+      let geminiModel = blockerConfig.selectedModel || 'gemini-2.0-flash';
       // Safety check: if user switched to Gemini but UI retained an Ollama model name (e.g. qwen)
       if (!geminiModel.startsWith('gemini')) {
-        geminiModel = 'gemini-1.5-flash';
+        geminiModel = 'gemini-2.0-flash';
       }
       console.log(`[AI] 🔍 Classifying video with Gemini | Model: ${geminiModel} | Title: "${metadata.title || 'N/A'}"`);
       const geminiResultObj = await classifyWithGemini(metadata, blockerConfig.apiKey, geminiModel, SYSTEM_PROMPT);
@@ -428,20 +447,38 @@ export async function classifyWebPage(metadata) {
   let result;
   const blockerConfig = getBlockerAiSettings() || { provider: 'ollama' };
 
-  if (blockerConfig.provider === 'gemini' && blockerConfig.apiKey) {
+  if (blockerConfig.provider === 'bedrock') {
+    // Try Bedrock
+    try {
+      const bedrockModel = process.env.BEDROCK_MODEL || blockerConfig.selectedModel || 'amazon.nova-micro-v1:0';
+      console.log(`[AI-Web] 🔍 Classifying web page with Bedrock | Model: ${bedrockModel} | Domain: ${metadata.domain}`);
+      const userPrompt = buildWebUserPrompt(metadata);
+      const bedrockRes = await bedrockConverse({
+        systemPrompt: WEB_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userPrompt }],
+        maxTokens: 1024
+      });
+      const parsed = parseAiResponse(bedrockRes.text);
+      const usage = bedrockRes.usage || { inputTokens: 0, outputTokens: 0 };
+      console.log(`[AI-Web] ✅ Bedrock result: ${parsed.result} — ${parsed.reason} (Tokens: In=${usage.inputTokens}, Out=${usage.outputTokens})`);
+      result = { ...parsed, provider: 'bedrock' };
+    } catch (e) {
+      console.warn('[AI-Web] Bedrock classification failed:', e.message);
+    }
+  } else if (blockerConfig.provider === 'gemini' && blockerConfig.apiKey) {
     // Try Gemini
     try {
-      let geminiModel = blockerConfig.selectedModel || 'gemini-1.5-flash';
+      let geminiModel = blockerConfig.selectedModel || 'gemini-2.0-flash';
       // Safety check: if user switched to Gemini but UI retained an Ollama model name
       if (!geminiModel.startsWith('gemini')) {
-        geminiModel = 'gemini-1.5-flash';
+        geminiModel = 'gemini-2.0-flash';
       }
       console.log(`[AI-Web] 🔍 Classifying web page with Gemini | Model: ${geminiModel} | Domain: ${metadata.domain}`);
       const body = {
         system_instruction: { parts: [{ text: WEB_SYSTEM_PROMPT }] },
         contents: [{ role: 'user', parts: [{ text: buildWebUserPrompt(metadata) }] }],
         generationConfig: {
-          responseMimeType: 'application/json',
+          
           temperature: 0.1,
         }
       };
@@ -511,13 +548,19 @@ export async function getAiStatus() {
   const blockerConfig = getBlockerAiSettings();
   const gemini = {
     available: !!(blockerConfig?.provider === 'gemini' && blockerConfig?.apiKey),
-    model: blockerConfig?.selectedModel || 'gemini-1.5-flash'
+    model: blockerConfig?.selectedModel || 'gemini-2.0-flash'
+  };
+  const bedrock = {
+    available: !!(blockerConfig?.provider === 'bedrock'),
+    model: process.env.BEDROCK_MODEL || blockerConfig?.selectedModel || 'amazon.nova-micro-v1:0'
   };
 
   const [ollama, groq] = await Promise.all([checkOllama(), checkGroq()]);
   
   let activeProvider = 'none';
-  if (gemini.available) {
+  if (bedrock.available) {
+    activeProvider = 'bedrock';
+  } else if (gemini.available) {
     activeProvider = 'gemini';
   } else if (ollama.available && ollama.hasModel) {
     activeProvider = 'ollama';
@@ -526,6 +569,7 @@ export async function getAiStatus() {
   }
 
   return {
+    bedrock,
     gemini,
     ollama,
     groq,

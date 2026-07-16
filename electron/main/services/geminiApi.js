@@ -1,14 +1,11 @@
 
 
 const GEMINI_MODELS = [
-  'gemini-flash-latest', 
-  'gemini-flash-lite-latest', 
-  'gemini-2.5-flash', 
-  'gemini-2.5-flash-lite', 
-  'gemini-2.0-flash', 
+  'gemini-flash-latest',
+  'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b'
+  'gemini-2.5-flash',
+  'gemini-2.5-pro'
 ];
 
 /**
@@ -21,7 +18,7 @@ const GEMINI_MODELS = [
  * @param {number} retryCount 
  * @returns 
  */
-export async function geminiRequestWithFallback(apiKey, body, preferredModel = 'gemini-1.5-flash', timeoutMs = 120000, fallbackChain = null, retryCount = 0) {
+export async function geminiRequestWithFallback(apiKey, body, preferredModel = 'gemini-2.0-flash', timeoutMs = 120000, fallbackChain = null, retryCount = 0, globalRetry = 0) {
   // Initialize fallback chain on first call
   if (!fallbackChain) {
     // Put preferred model first, then add the rest of the available models (excluding the preferred one to avoid duplicates)
@@ -29,6 +26,11 @@ export async function geminiRequestWithFallback(apiKey, body, preferredModel = '
   }
 
   if (fallbackChain.length === 0) {
+    if (globalRetry < 2) {
+      console.log(`[Gemini API] All models failed. Waiting 15s before restarting the fallback chain (Global Retry ${globalRetry + 1}/2)...`);
+      await new Promise(r => setTimeout(r, 15000));
+      return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, null, 0, globalRetry + 1);
+    }
     throw new Error('All Gemini models are currently experiencing high demand or are unavailable. Please try again later.');
   }
   
@@ -61,10 +63,26 @@ export async function geminiRequestWithFallback(apiKey, body, preferredModel = '
       const isNotFound = parsed.error.code === 404 || String(parsed.error.message).includes('is not found');
       const isLimitZero = String(parsed.error.message).includes('limit: 0');
 
-      if (isOverloaded || isNotFound || isLimitZero) {
-        console.log(`[Gemini API] Model ${currentModel} is unavailable (Overloaded/NotFound/Limit 0), falling back to next...`);
-        // Remove current model from chain and try next
-        return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain.slice(1), 0);
+      if (isNotFound || isLimitZero) {
+        if (retryCount < 2) {
+          console.log(`[Gemini API] Model ${currentModel} error: "${parsed.error.message}". Retrying in 5s (Retry ${retryCount + 1}/2)...`);
+          await new Promise(r => setTimeout(r, 5000));
+          return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain, retryCount + 1, globalRetry);
+        } else {
+          console.log(`[Gemini API] Model ${currentModel} is unavailable (NotFound/Limit 0). Skipping to next model...`);
+          return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain.slice(1), 0, globalRetry);
+        }
+      }
+
+      if (isOverloaded) {
+        if (retryCount < 2) {
+          console.log(`[Gemini API] Model ${currentModel} is Overloaded (503). Retrying in 10s (Retry ${retryCount + 1}/2)...`);
+          await new Promise(r => setTimeout(r, 10000));
+          return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain, retryCount + 1, globalRetry);
+        } else {
+          console.log(`[Gemini API] Model ${currentModel} overloaded after retries, falling back to next...`);
+          return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain.slice(1), 0, globalRetry);
+        }
       }
 
       // Check for Rate Limit (Quota exceeded)
@@ -77,10 +95,10 @@ export async function geminiRequestWithFallback(apiKey, body, preferredModel = '
           }
           console.log(`[Gemini API] Rate limit hit on ${currentModel}. Retrying in ${waitSecs.toFixed(1)}s (Retry ${retryCount + 1}/2)...`);
           await new Promise(r => setTimeout(r, waitSecs * 1000));
-          return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain, retryCount + 1);
+          return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain, retryCount + 1, globalRetry);
         } else {
           console.log(`[Gemini API] Model ${currentModel} rate limited after retries, falling back to next...`);
-          return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain.slice(1), 0);
+          return await geminiRequestWithFallback(apiKey, body, preferredModel, timeoutMs, fallbackChain.slice(1), 0, globalRetry);
         }
       }
       

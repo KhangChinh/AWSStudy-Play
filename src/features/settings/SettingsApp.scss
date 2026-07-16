@@ -345,6 +345,7 @@
       background: #020617;
       border-radius: 8px;
       padding: 4px;
+      gap: 2px;
 
       .toggle-btn {
         background: #0f172a;
@@ -354,12 +355,20 @@
         border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
+        font-size: 12px;
         transition: all 0.2s;
 
         &.active {
           background: #c084fc;
           color: #fff;
           box-shadow: 0 2px 8px rgba(192, 132, 252, 0.4);
+        }
+
+        // Nút Bedrock có màu AWS orange khi active
+        &.bedrock.active {
+          background: linear-gradient(135deg, #ff6b35 0%, #ff9f43 100%);
+          color: #fff;
+          box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
         }
       }
     }
@@ -398,8 +407,32 @@
         }
       }
     }
+
+    // Form Bedrock: 2 ô key xếp dọc + 1 hàng ngang region & model
+    .bedrock-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .input-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .bedrock-note {
+        margin: 0;
+        font-size: 11px;
+        color: #64748b;
+        padding: 8px 10px;
+        background: rgba(255, 107, 53, 0.06);
+        border: 1px solid rgba(255, 107, 53, 0.15);
+        border-radius: 6px;
+      }
+    }
   }
 }
+
 
 .ai-settings-actions {
   margin-top: 24px;

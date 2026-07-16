@@ -6,6 +6,7 @@ import http from 'node:http';
 import https from 'node:https';
 import { loadStudySettings } from './studyPlannerStore.js';
 import { geminiRequestWithFallback } from './geminiApi.js';
+import { bedrockConverse } from './bedrockApi.js';
 import { getContextForQuery, getContextForPlan, getContextForQuiz } from './documentContext.js';
 
 // Models known to be too small to reliably output JSON
@@ -71,17 +72,32 @@ Format: {"questions":[{"id":1,"question":"...","options":["A. ...","B. ...","C. 
 // Load AI settings from the main electron-store (saved by storeIpc aiSettings)
 async function getAiSettings() {
   try {
-    // studyPlannerStore settings (legacy: aiProvider + geminiKey)
     const settingsResult = loadStudySettings();
-    const legacy = (settingsResult.success && settingsResult.data) ? settingsResult.data : {};
+    const s = (settingsResult.success && settingsResult.data) ? settingsResult.data : {};
     return {
-      aiProvider: legacy.aiProvider || 'ollama',
-      geminiKey: legacy.geminiKey || '',
-      selectedModel: legacy.selectedModel || OLLAMA_MODEL_DEFAULT,
+      aiProvider: s.aiProvider || 'ollama',
+      geminiKey: s.geminiKey || '',
+      selectedModel: s.selectedModel || OLLAMA_MODEL_DEFAULT,
+      bedrockAccessKey: s.bedrockAccessKey || '',
+      bedrockSecretKey: s.bedrockSecretKey || '',
+      bedrockRegion: s.bedrockRegion || 'us-east-1',
+      bedrockModel: s.bedrockModel || 'amazon.nova-micro-v1:0',
     };
   } catch {
-    return { aiProvider: 'ollama', geminiKey: '', selectedModel: OLLAMA_MODEL_DEFAULT };
+    return { aiProvider: 'ollama', geminiKey: '', selectedModel: OLLAMA_MODEL_DEFAULT,
+             bedrockAccessKey: '', bedrockSecretKey: '', bedrockRegion: 'us-east-1', bedrockModel: 'amazon.nova-micro-v1:0' };
   }
+}
+
+/**
+ * Gọi Bedrock (sử dụng credentials từ .env, không cần truyền key)
+ */
+async function bedrockChatJSON(systemPrompt, messages, maxTokens = 1024) {
+  const { text, usage } = await bedrockConverse({ systemPrompt, messages, maxTokens, timeoutMs: 120000 });
+  const inTokens = usage?.inputTokens || 0;
+  const outTokens = usage?.outputTokens || 0;
+  console.log(`[AIStudy] 📊 Bedrock Tokens (StudyPlanner): In=${inTokens}, Out=${outTokens}`);
+  return text;
 }
 
 function warnIfWeakModel(model) {
@@ -126,76 +142,54 @@ export async function chatWithAI(messages) {
     }
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
-      let geminiModel = config.selectedModel || 'gemini-1.5-flash';
-      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-1.5-flash';
-      console.log(`[AIStudy] 🤖 Chat → Provider: Gemini (Cloud) | Preferred Model: ${geminiModel}`);
-      // --- GEMINI FLOW ---
+      let geminiModel = config.selectedModel || 'gemini-2.0-flash';
+      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-2.0-flash';
+      console.log(`[AIStudy] 🤖 Chat → Provider: Gemini | Model: ${geminiModel}`);
       const geminiBody = {
         system_instruction: { parts: [{ text: finalSystemPrompt }] },
         contents: formatGeminiMessages(messages),
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.7,
-        }
+        generationConfig: { temperature: 0.7 }
       };
-
       const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 120000);
       if (result.error) throw new Error(result.error.message || 'Gemini API Error');
-      
       const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
       const parsed = parseResponse(content);
-      if (parsed) {
-        return {
-          success: true,
-          reply: parsed.reply || content,
-          collectedInfo: parsed.collectedInfo || {},
-          readyToGenerate: parsed.readyToGenerate || false,
-        };
-      }
+      if (parsed) return { success: true, reply: parsed.reply || content, collectedInfo: parsed.collectedInfo || {}, readyToGenerate: parsed.readyToGenerate || false };
+      return { success: true, reply: content, collectedInfo: {}, readyToGenerate: false };
+
+    } else if (config.aiProvider === 'bedrock') {
+      console.log(`[AIStudy] 🤖 Chat → Provider: Bedrock | Model: ${process.env.BEDROCK_MODEL || 'nova-micro'}`);
+      let bedrockSystemPrompt = finalSystemPrompt;
+      if (bedrockSystemPrompt.length > 2000) bedrockSystemPrompt = bedrockSystemPrompt.slice(0, 2000);
+      const content = await bedrockChatJSON(bedrockSystemPrompt, messages, 1024);
+      const parsed = parseResponse(content);
+      if (parsed) return { success: true, reply: parsed.reply || content, collectedInfo: parsed.collectedInfo || {}, readyToGenerate: parsed.readyToGenerate || false };
       return { success: true, reply: content, collectedInfo: {}, readyToGenerate: false };
 
     } else {
       const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
-      console.log(`[AIStudy] 🤖 Chat → Provider: Ollama (Local) | Model: ${ollamaModel}`);
+      console.log(`[AIStudy] 🤖 Chat → Provider: Ollama | Model: ${ollamaModel}`);
       warnIfWeakModel(ollamaModel);
-
-      // Ollama: chỉ inject summary ngắn gọn — tránh tràn context, giảm thời gian phản hồi
       let ollamaSystemPrompt = CHAT_SYSTEM_PROMPT;
       if (docContext && docContext.summaryBlock) {
-        const shortSummary = docContext.summaryBlock.slice(0, 600); // giới hạn 600 ký tự
+        const shortSummary = docContext.summaryBlock.slice(0, 600);
         ollamaSystemPrompt += `\n\nTÀI LIỆU ĐÍNH KÈM (tóm tắt ngắn): ${shortSummary}`;
       }
-
-      // --- OLLAMA FLOW ---
       const ollamaMessages = [
         { role: 'system', content: ollamaSystemPrompt },
         ...messages.map(m => ({ role: m.role, content: m.content })),
       ];
-
       const result = await ollamaRequest('/api/chat', {
-        model: ollamaModel,
-        messages: ollamaMessages,
-        stream: false,
-        format: 'json',
+        model: ollamaModel, messages: ollamaMessages, stream: false, format: 'json',
         options: { temperature: 0.7, num_predict: 1024, num_ctx: 4096 },
-      }, 300000); // 5 phút timeout cho local AI
-
+      }, 300000);
       const content = result.message?.content || '';
       const parsed = parseResponse(content);
-      if (parsed) {
-        return {
-          success: true,
-          reply: parsed.reply || content,
-          collectedInfo: parsed.collectedInfo || {},
-          readyToGenerate: parsed.readyToGenerate || false,
-        };
-      }
+      if (parsed) return { success: true, reply: parsed.reply || content, collectedInfo: parsed.collectedInfo || {}, readyToGenerate: parsed.readyToGenerate || false };
       return { success: true, reply: content, collectedInfo: {}, readyToGenerate: false };
     }
   } catch (error) {
-    if (!error.message.includes('ECONNREFUSED')) {
-      console.error('[AIStudy] Chat error:', error.message);
-    }
+    if (!error.message.includes('ECONNREFUSED')) console.error('[AIStudy] Chat error:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -220,50 +214,43 @@ export async function generateStudyPlan(collectedInfo) {
     userPrompt += `\nCHI TRA VE JSON.`;
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
-      let geminiModel = config.selectedModel || 'gemini-1.5-flash';
-      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-1.5-flash';
-      console.log(`[AIStudy] 📋 Generate Plan → Provider: Gemini (Cloud) | Preferred Model: ${geminiModel}`);
-      // --- GEMINI FLOW ---
+      let geminiModel = config.selectedModel || 'gemini-2.0-flash';
+      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-2.0-flash';
+      console.log(`[AIStudy] 📋 Generate Plan → Gemini | ${geminiModel}`);
       const geminiBody = {
         system_instruction: { parts: [{ text: PLAN_SYSTEM_PROMPT }] },
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.6,
-        }
+        generationConfig: { temperature: 0.6 }
       };
-
-      const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000); // 1m for Gemini
+      const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000);
       if (result.error) throw new Error(result.error.message || 'Gemini API Error');
-      
       const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
       const plan = parseResponse(content);
       if (plan) return { success: true, plan };
       return { success: false, error: 'Khong the parse ke hoach tu Gemini' };
 
-    } else {
-      const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
-      console.log(`[AIStudy] 📋 Generate Plan → Provider: Ollama (Local) | Model: ${ollamaModel}`);
-      warnIfWeakModel(ollamaModel);
-      // --- OLLAMA FLOW ---
-      const result = await ollamaRequest('/api/chat', {
-        model: ollamaModel,
-        messages: [
-          { role: 'system', content: PLAN_SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt },
-        ],
-        stream: false,
-        format: 'json',
-        options: { temperature: 0.6, num_predict: 2048 },
-      }, 600000); // 10 min timeout
-
-      const content = result.message?.content || '';
-      console.log('[AIStudy] 📋 Raw plan response (first 200 chars):', content.substring(0, 200));
+    } else if (config.aiProvider === 'bedrock') {
+      console.log(`[AIStudy] 📋 Generate Plan → Bedrock | ${process.env.BEDROCK_MODEL || 'nova-micro'}`);
+      const content = await bedrockChatJSON(PLAN_SYSTEM_PROMPT, [{ role: 'user', content: userPrompt }], 2048);
       const plan = parseResponse(content);
       if (plan) return { success: true, plan };
-      console.error('[AIStudy] ❌ Could not parse plan JSON from model output.');
-      return { success: false, error: 'Khong the parse ke hoach tu Ollama' };
+      return { success: false, error: 'Bedrock: Khong the parse ke hoach' };
 
+    } else {
+      const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
+      console.log(`[AIStudy] 📋 Generate Plan → Ollama | ${ollamaModel}`);
+      warnIfWeakModel(ollamaModel);
+      const result = await ollamaRequest('/api/chat', {
+        model: ollamaModel,
+        messages: [{ role: 'system', content: PLAN_SYSTEM_PROMPT }, { role: 'user', content: userPrompt }],
+        stream: false, format: 'json',
+        options: { temperature: 0.6, num_predict: 2048 },
+      }, 600000);
+      const content = result.message?.content || '';
+      console.log('[AIStudy] 📋 Raw plan (200 chars):', content.substring(0, 200));
+      const plan = parseResponse(content);
+      if (plan) return { success: true, plan };
+      return { success: false, error: 'Ollama: Khong the parse ke hoach' };
     }
   } catch (error) {
     if (!error.message.includes('ECONNREFUSED')) {
@@ -288,32 +275,32 @@ Chu de: ${(phase.topics || []).join(', ')}`;
     userPrompt += `\nCHI TRA VE JSON.`;
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
-      let geminiModel = config.selectedModel || 'gemini-1.5-flash';
-      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-1.5-flash';
-      console.log(`[AIStudy] 📝 Generate Quiz → Provider: Gemini (Cloud) | Preferred Model: ${geminiModel}`);
-      // --- GEMINI FLOW ---
+      let geminiModel = config.selectedModel || 'gemini-2.0-flash';
+      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-2.0-flash';
+      console.log(`[AIStudy] 📝 Generate Quiz → Gemini | ${geminiModel}`);
       const geminiBody = {
         system_instruction: { parts: [{ text: QUIZ_SYSTEM_PROMPT }] },
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.7,
-        }
+        generationConfig: { temperature: 0.7 }
       };
-
       const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000);
       if (result.error) throw new Error(result.error.message || 'Gemini API Error');
-      
       const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
       const parsed = parseResponse(content);
       if (parsed && parsed.questions) return { success: true, questions: parsed.questions };
       return { success: false, error: 'Khong the parse quiz tu Gemini' };
 
+    } else if (config.aiProvider === 'bedrock') {
+      console.log(`[AIStudy] 📝 Generate Quiz → Bedrock | ${process.env.BEDROCK_MODEL || 'nova-micro'}`);
+      const content = await bedrockChatJSON(QUIZ_SYSTEM_PROMPT, [{ role: 'user', content: userPrompt }], 2048);
+      const parsed = parseResponse(content);
+      if (parsed && parsed.questions) return { success: true, questions: parsed.questions };
+      return { success: false, error: 'Bedrock: Khong the parse quiz' };
+
     } else {
       const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
-      console.log(`[AIStudy] 📝 Generate Quiz → Provider: Ollama (Local) | Model: ${ollamaModel}`);
+      console.log(`[AIStudy] 📝 Generate Quiz → Ollama | ${ollamaModel}`);
       warnIfWeakModel(ollamaModel);
-      // --- OLLAMA FLOW ---
       const result = await ollamaRequest('/api/chat', {
         model: ollamaModel,
         messages: [
@@ -349,12 +336,12 @@ export async function summarizeDocument(chunks) {
       const docText = chunks.map(c => `[${c.section}]\n${c.content}`).join('\n\n');
       const prompt = `Tóm tắt tài liệu sau trong khoảng 200-300 từ. Sau đó liệt kê các chủ đề chính.\nTÀI LIỆU:\n${docText}\n\nYÊU CẦU OUTPUT JSON: {"summary":"...","topics":["...","..."]}`;
 
-      let geminiModel = config.selectedModel || 'gemini-1.5-flash';
-      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-1.5-flash';
+      let geminiModel = config.selectedModel || 'gemini-2.0-flash';
+      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-2.0-flash';
       
       const geminiBody = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
+        generationConfig: { temperature: 0.2 }
       };
 
       const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000);
@@ -364,6 +351,18 @@ export async function summarizeDocument(chunks) {
       const parsed = parseResponse(content);
       if (parsed && parsed.summary) return { success: true, summary: parsed.summary, topics: parsed.topics || [] };
       console.error('[AIStudy] Gemini không trả về JSON hợp lệ:', content.slice(0, 200));
+
+    } else if (config.aiProvider === 'bedrock') {
+      // === BEDROCK: có thể nhận text dài ===
+      const docText = chunks.map(c => `[${c.section}]\n${c.content}`).join('\n\n');
+      const systemPrompt = "Bạn là AI tóm tắt tài liệu. Đọc văn bản sau và tóm tắt trong khoảng 150-250 từ. Sau đó liệt kê các chủ đề chính. TRẢ VỀ ĐÚNG FORMAT JSON, KHÔNG GIẢI THÍCH THÊM.";
+      const userMessage = `VĂN BẢN:\n${docText}\n\nFORMAT JSON:\n{"summary":"tóm tắt...","topics":["chủ đề 1","chủ đề 2"]}`;
+
+      console.log(`[AIStudy] 📄 Summarize Document → Bedrock | ${process.env.BEDROCK_MODEL || 'amazon.nova-micro-v1:0'}`);
+      const content = await bedrockChatJSON(systemPrompt, [{ role: 'user', content: userMessage }], 1024);
+      const parsed = parseResponse(content);
+      if (parsed && parsed.summary) return { success: true, summary: parsed.summary, topics: parsed.topics || [] };
+      console.error('[AIStudy] Bedrock không trả về JSON hợp lệ:', content.slice(0, 200));
 
     } else {
       // === OLLAMA LOCAL: giới hạn text rất nghiêm để tránh tràn context ===

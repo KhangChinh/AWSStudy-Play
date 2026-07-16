@@ -373,6 +373,21 @@ export function registerStoreIPC(ipcMain) {
   // ═══ AI Settings ═══
   ipcMain.handle('store:saveAiSettings', async (_event, settings) => {
     try {
+      console.log('\n[Settings] 💾 Đang lưu AI Settings...');
+      if (settings) {
+        if (settings.faceTracking) {
+          console.log(`  - FaceTracking: ${settings.faceTracking.provider} (Model: ${settings.faceTracking.selectedModel || 'N/A'})`);
+        }
+        if (settings.blocker) {
+          console.log(`  - YouTube Blocker: ${settings.blocker.provider} (Model: ${settings.blocker.selectedModel || 'N/A'})`);
+        }
+        if (settings.studyPlanner) {
+          const sp = settings.studyPlanner;
+          const modelName = sp.provider === 'bedrock' ? (sp.bedrockModel || process.env.BEDROCK_MODEL || 'amazon.nova-micro-v1:0') : sp.selectedModel;
+          console.log(`  - StudyPlanner: ${sp.provider} (Model: ${modelName || 'N/A'})`);
+        }
+      }
+
       const encrypted = encodeBase64(settings);
       store.set('aiSettings', encrypted);
       
@@ -386,6 +401,7 @@ export function registerStoreIPC(ipcMain) {
         saveStudySettings(studyConfig);
       }
       
+      console.log('[Settings] ✅ Lưu AI Settings thành công!\n');
       return { success: true };
     } catch (err) {
       console.error('[storeIpc] store:saveAiSettings failed:', err);

@@ -381,7 +381,12 @@ const FocusGuard = (props) => {
               {!aiReady && !isActive && (
                 <div className="fg-ai-hint required">
                   <div className="fg-ai-providers">
-                    {aiStat?.gemini?.available ? (
+                    {aiStat?.bedrock?.available ? (
+                      <div className="fg-ai-item">
+                        <span>Bedrock (AWS)</span>
+                        <span className="fg-ai-badge on">Ready</span>
+                      </div>
+                    ) : aiStat?.gemini?.available ? (
                       <div className="fg-ai-item">
                         <span>Gemini (Cloud)</span>
                         <span className="fg-ai-badge on">Ready</span>
@@ -398,14 +403,14 @@ const FocusGuard = (props) => {
                           <span className="fg-ai-badge off">{t('focus_guard.not_enabled')}</span>
                         </div>
                         <div className="fg-ai-item">
-                          <span>Gemini (Cloud)</span>
+                          <span>Cloud AI (AWS/Gemini)</span>
                           <span className="fg-ai-badge off">No API Key</span>
                         </div>
                       </>
                     )}
                   </div>
                   <p className="fg-ai-note" dangerouslySetInnerHTML={{ __html:
-                    aiStat?.gemini?.available || aiStat?.ollama?.available
+                    aiStat?.bedrock?.available || aiStat?.gemini?.available || aiStat?.ollama?.available
                       ? 'AI is initializing, please wait...'
                       : t('focus_guard.ai_required_note')
                   }} />

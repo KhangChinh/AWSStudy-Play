@@ -163,6 +163,19 @@ const SettingsApp = ({
     dispatchSetAiSettings(localAiSettings);
     if (window.api?.invoke) {
       const res = await window.api.invoke('store:saveAiSettings', localAiSettings);
+      // Sync Bedrock + Gemini key cho StudyPlanner
+      const sp = localAiSettings.studyPlanner || {};
+      const blocker = localAiSettings.blocker || {};
+      const spProviderMap = { gemini: 'gemini', bedrock: 'bedrock', ollama: 'ollama' };
+      await window.api.invoke('study:saveSettings', {
+        aiProvider: spProviderMap[sp.provider] || 'ollama',
+        geminiKey: sp.apiKey || '',
+        selectedModel: sp.selectedModel || '',
+        bedrockAccessKey: sp.bedrockAccessKey || '',
+        bedrockSecretKey: sp.bedrockSecretKey || '',
+        bedrockRegion: sp.bedrockRegion || 'us-east-1',
+        bedrockModel: sp.bedrockModel || 'amazon.nova-micro-v1:0',
+      });
       if (res?.success) {
         toast.success(t('settings.ai_saved') || 'AI settings saved successfully');
       } else {
@@ -178,26 +191,32 @@ const SettingsApp = ({
         <div className="ai-row-header">
           <h4>{label}</h4>
           <div className="ai-toggle">
-            <button 
-              className={`toggle-btn ${setting.provider === 'ollama' ? 'active' : ''}`} 
+            <button
+              className={`toggle-btn ${setting.provider === 'ollama' ? 'active' : ''}`}
               onClick={() => handleAiSettingChange(featureKey, 'provider', 'ollama')}
             >
               Ollama
             </button>
-            <button 
-              className={`toggle-btn ${setting.provider === 'gemini' ? 'active' : ''}`} 
+            <button
+              className={`toggle-btn ${setting.provider === 'gemini' ? 'active' : ''}`}
               onClick={() => handleAiSettingChange(featureKey, 'provider', 'gemini')}
             >
               Gemini
             </button>
+            <button
+              className={`toggle-btn bedrock ${setting.provider === 'bedrock' ? 'active' : ''}`}
+              onClick={() => handleAiSettingChange(featureKey, 'provider', 'bedrock')}
+            >
+              ☁️ Bedrock
+            </button>
           </div>
         </div>
         <div className="ai-row-content">
-          {setting.provider === 'ollama' ? (
+          {setting.provider === 'ollama' && (
             <div className="input-group">
               <label>Select Model</label>
-              <select 
-                value={setting.selectedModel} 
+              <select
+                value={setting.selectedModel}
                 onChange={(e) => handleAiSettingChange(featureKey, 'selectedModel', e.target.value)}
               >
                 <option value="">-- {isFetchingModels ? 'Scanning...' : 'Select a model'} --</option>
@@ -206,17 +225,28 @@ const SettingsApp = ({
                 ))}
               </select>
             </div>
-          ) : (
+          )}
+          {setting.provider === 'gemini' && (
             <div className="input-group">
-              <label>API Key</label>
-              <input 
-                type="password" 
-                placeholder="Enter Gemini API Key..." 
-                value={setting.apiKey} 
+              <label>Gemini API Key</label>
+              <input
+                type="password"
+                placeholder="Enter Gemini API Key..."
+                value={setting.apiKey}
                 onChange={(e) => handleAiSettingChange(featureKey, 'apiKey', e.target.value)}
               />
             </div>
           )}
+          {setting.provider === 'bedrock' && (
+            <div className="bedrock-ready">
+              <span className="bedrock-icon">☁️</span>
+              <div>
+                <p className="bedrock-ready-title">Amazon Bedrock — Sẵn sàng</p>
+                <p className="bedrock-ready-desc">Powered by <strong>Amazon Nova Micro</strong> (us-east-1). Không cần cấu hình thêm.</p>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     );
