@@ -12,9 +12,6 @@ import { handleStartSession, handleCheckSudokuStep, handleSubmitSudoku, handleGe
 import { setProfile } from '../../../../store/actions/profileActions';
 import { toast } from 'react-toastify';
 import './SudokuGame.scss';
-
-// ═══ Import Action Creators cho Log ═══
-// (Đảm bảo đường dẫn này trỏ đúng tới file minigameLogActions.js của bạn)
 import {
   clearMinigameLogs,
   addMinigameLog,
@@ -44,29 +41,33 @@ const getLevelIdFromSK = (sk) => {
   return match ? parseInt(match[1], 10) : 1;
 };
 
-const getDifficultyLabel = (levelId) => {
-  if (levelId <= 5) return 'Dễ';
-  if (levelId <= 10) return 'Trung bình';
-  if (levelId <= 15) return 'Khó';
-  return 'Chuyên gia';
-};
 
-const calculateRankPoints = (levelId, maxScoreCap, timeSpent) => {
-  let threshold = 600;
-  if (levelId >= 1 && levelId <= 5) threshold = 600;
-  else if (levelId >= 6 && levelId <= 10) threshold = 900;
-  else if (levelId >= 11 && levelId <= 15) threshold = 1200;
-  else if (levelId >= 16 && levelId <= 20) threshold = 1500;
+const calculateRankPoints = (maxScoreCap, timeSpentSeconds, emptyCellsCount, currentCheckCount) => {
+  if (!maxScoreCap) return 0;
 
-  if (timeSpent <= threshold) {
-    return maxScoreCap;
+  const effectivePenaltyTime = Math.max(0, timeSpentSeconds - emptyCellsCount * 5);
+
+  // 1. Công thức tính điểm cơ bản (đã sửa level.maxScoreCap thành maxScoreCap)
+  let score = maxScoreCap * (1 - Math.floor(effectivePenaltyTime / 10) * 0.01);
+
+  // 2. Điểm sàn 10%
+  const minScore = Math.floor(maxScoreCap * 0.1);
+  if (score < minScore) {
+    score = minScore;
   }
 
-  const secondsOver = timeSpent - threshold;
-  const penalty = secondsOver * 1.5;
-  const score = maxScoreCap - penalty;
-  const minScore = Math.floor(maxScoreCap * 0.1);
-  return Math.max(minScore, Math.floor(score));
+  // 3. Thưởng/Phạt theo checkCount
+  const maxCheckCount = 5;
+  if (currentCheckCount === maxCheckCount) {
+    // Thưởng 50% nếu không mất lượt check nào
+    score = Math.floor(score * 1.5);
+  } else {
+    // Giảm 5% cho mỗi lượt check bị mất
+    const lostChecks = maxCheckCount - currentCheckCount;
+    score = Math.floor(score * Math.pow(0.95, lostChecks));
+  }
+
+  return score;
 };
 
 const SudokuGame = ({ onClose }) => {
@@ -82,13 +83,19 @@ const SudokuGame = ({ onClose }) => {
     FRIENDS: { data: null, lastFetchedAt: null }
   });
   const userInfo = useSelector(state => state.userInfo || {});
-  const budget = userInfo.budget || {
-    knowledgePoint: 1500,
-    knowledgeCore: 10,
-    sanity: 5000,
-    eCoin: 300
+
+  // 1. Lấy dữ liệu profile chuẩn từ Redux (dựa theo cấu trúc state.profile.userProfile)
+  const userProfile = useSelector(state => state.profile?.userProfile || {});
+
+  // 2. Lấy budget từ userProfile, nếu chưa load kịp thì gán giá trị mặc định là 0 (không dùng số ảo nữa)
+  const budget = userProfile.budget || {
+    knowledgePoint: 0,
+    knowledgeCore: 0,
+    sanity: 0,
+    eCoin: 0
   };
-  const currentSanity = budget.sanity;
+
+  const currentSanity = budget.sanity || 0;
 
   // Leaderboard UI modal controls
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
@@ -113,7 +120,6 @@ const SudokuGame = ({ onClose }) => {
   const [wrongCells, setWrongCells] = useState(new Set());
   const [status, setStatus] = useState('idle');
   const [timer, setTimer] = useState(0);
-  const [hintsLeft, setHintsLeft] = useState(3);
 
   const levels = useSelector(state => state.minigame?.sudokuLevels || []);
 
@@ -134,8 +140,11 @@ const SudokuGame = ({ onClose }) => {
   }, [levels]);
 
   const totalAccumulatedScore = useMemo(() => {
-    return Object.values(levelHighscores).reduce((sum, entry) => sum + (entry.score || 0), 0);
-  }, [levelHighscores]);
+    return levels.reduce((sum, level) => {
+      // Nếu màn chơi có score, cộng personalBest vào tổng, ngược lại cộng 0
+      return sum + (level.score?.personalBest || 0);
+    }, 0);
+  }, [levels]);
 
   const fetchLeaderboard = useCallback(async (tab = leaderboardTab, forceRefresh = false) => {
     const cache = sudokuLeaderboard[tab];
@@ -199,22 +208,21 @@ const SudokuGame = ({ onClose }) => {
     setCheckCount(serverCheckCount);
     setWrongCells(new Set());
     setTimer(0);
-    setHintsLeft(3);
     setSelectedCell(null);
     setSelectedLevel(level);
     setSanityCostPaid(costPaid);
     setIsSelectingLevel(false);
     setStatus('playing');
-    toast.info(`Màn ${level.levelId || getLevelIdFromSK(level.SK)} bắt đầu!`);
+    toast.info(`Màn ${level.name} bắt đầu!`);
   };
 
   const handleLevelSelect = async (level) => {
-    const displayLevelId = level.levelId || getLevelIdFromSK(level.SK);
+    const displayLevelId = getLevelIdFromSK(level.SK);
     const targetSK = level.SK;
     const cost = level.sanityCost || level.unlockCostSanity || 0;
 
     try {
-      toast.info(`Đang tạo ván đấu Màn ${displayLevelId}...`);
+      toast.info(`Đang tạo ván đấu ${displayLevelId}...`);
       const response = await handleStartSession('sudoku', targetSK);
 
       if (response && (response.success || response.errCode === 0)) {
@@ -556,10 +564,16 @@ const SudokuGame = ({ onClose }) => {
                   <div className="levels-loading">Không có dữ liệu màn chơi. Vui lòng thử lại!</div>
                 ) : (
                   levels.map(level => {
-                    const levelId = getLevelIdFromSK(level.SK);
-                    const hsData = levelHighscores[levelId];
+                    // Lấy dữ liệu TRỰC TIẾP từ object level thay vì thông qua levelHighscores
+                    const hasScore = !!level.score;
+                    const personalBest = level.score?.personalBest || 0;
+                    const achievedAt = level.score?.achievedAt
+                      ? new Date(level.score.achievedAt * 1000).toLocaleDateString("vi-VN")
+                      : null;
+
                     const cost = level.sanityCost || 0;
 
+                    // Logic kiểm tra khóa màn chơi
                     let isLocked = false;
                     if (level.requiredLevel) {
                       const reqLvl = levels.find(l => l.SK === level.requiredLevel);
@@ -571,7 +585,7 @@ const SudokuGame = ({ onClose }) => {
                     return (
                       <button
                         key={level.SK}
-                        className={`btn-level ${hsData ? 'cleared' : ''} ${isLocked ? 'locked' : ''}`}
+                        className={`btn-level ${hasScore ? 'cleared' : ''} ${isLocked ? 'locked' : ''}`}
                         onClick={() => {
                           if (isLocked) {
                             toast.warn("Bạn cần vượt qua màn chơi trước đó để mở khóa màn này!");
@@ -595,16 +609,19 @@ const SudokuGame = ({ onClose }) => {
                         <span className="level-name" style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '8px', color: '#fff' }}>
                           {level.name}
                         </span>
-                        {hsData ? (
+
+                        {/* RENDER ĐIỂM KỶ LỤC CÁ NHÂN (PERSONAL BEST) CHÍNH XÁC CỦA MÀN NÀY */}
+                        {hasScore ? (
                           <span className="level-highscore">
-                            <span className="hs-score">🏆 {hsData.score.toLocaleString()}</span>
-                            <span className="hs-date">{hsData.achievedAt}</span>
+                            <span className="hs-score">🏆 {personalBest.toLocaleString()}</span>
+                            <span className="hs-date">{achievedAt}</span>
                           </span>
                         ) : (
                           <span className="level-no-record" style={{ color: isLocked ? '#94a3b8' : '#fca5a5' }}>
                             Chưa vượt qua
                           </span>
                         )}
+
                         {cost > 0 && (
                           <span className="level-cost" style={{ marginTop: '5px' }}>
                             <IonIcon icon={flashOutline} /> Phí: {cost}
@@ -622,7 +639,7 @@ const SudokuGame = ({ onClose }) => {
             <div className="sudoku-stats">
               <div className="stat-card">
                 <span className="label">Độ khó</span>
-                <span className="value text-gradient">MÀN {selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1} - {getDifficultyLabel(selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1).toUpperCase()}</span>
+                <span className="value text-gradient">Level {selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1}</span>
               </div>
               <div className="stat-card">
                 <span className="label"><IonIcon icon={timeOutline} /> Thời gian</span>
@@ -635,8 +652,25 @@ const SudokuGame = ({ onClose }) => {
                 </span>
               </div>
               <div className="stat-card">
-                <span className="label"><IonIcon icon={trophyOutline} /> Điểm Rank</span>
-                <span className="value coins">🏆 {calculateRankPoints(selectedLevel ? getLevelIdFromSK(selectedLevel.SK) : 1, selectedLevel ? selectedLevel.maxScoreCap : 1000, timer).toLocaleString()}</span>
+                <span className="label"><IonIcon icon={trophyOutline} /> Điểm </span>
+                <span className="value coins">
+                  🏆 {(() => {
+                    // Đếm số ô trống từ initialBoard
+                    const emptyCellsCount = initialBoard
+                      ? initialBoard.reduce((acc, row) => acc + row.filter(val => val === 0).length, 0)
+                      : 0;
+
+                    // Gọi hàm tính điểm mới
+                    const currentScore = calculateRankPoints(
+                      selectedLevel ? selectedLevel.maxScoreCap : 1000,
+                      timer,
+                      emptyCellsCount,
+                      checkCount
+                    );
+
+                    return currentScore.toLocaleString();
+                  })()}
+                </span>
               </div>
             </div>
 
@@ -677,7 +711,7 @@ const SudokuGame = ({ onClose }) => {
                   <div className="board-overlay glass won-overlay animate-bounce-in">
                     <IonIcon icon={trophyOutline} style={{ fontSize: 60, color: '#fbbf24' }} />
                     <h3 className="text-gradient">Chiến Thắng!</h3>
-                    <p>Bạn đã hoàn thành Màn {selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : 1} ({getDifficultyLabel(selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : 1)}) trong {formatTime(timer)} với {checkCount} lần kiểm tra!</p>
+                    <p>Bạn đã hoàn thành Màn {selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : 1}  trong {formatTime(timer)} với {checkCount} lần kiểm tra!</p>
                     <p className="earned-pcoin">🏆 +{earnedScore.toLocaleString()} Điểm Rank</p>
                     {earnedCoin > 0 && (
                       <p className="earned-entain">💎 +{earnedCoin.toLocaleString()} eCoin</p>

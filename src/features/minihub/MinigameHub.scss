@@ -3,14 +3,99 @@
 .minigame-hub {
   .arcade-list {
     margin-bottom: 24px;
-    
+
     h3 {
-      font-size: 16px;
+      font-size: 18px;
       color: #e2e8f0;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* --- PHẦN CSS BỔ SUNG CHO ARCADE LIST --- */
+    .store-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .store-item {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      transition: transform 0.2s ease, background 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-2px);
+      }
+
+      .item-cover {
+        font-size: 40px;
+        width: 72px;
+        height: 72px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+      }
+
+      .item-info {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        gap: 6px;
+
+        .item-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .item-price {
+          font-size: 13px;
+          color: #fbbf24;
+          /* Màu vàng nổi bật cho giá tiền */
+          font-weight: 500;
+        }
+
+        button {
+          margin-top: 6px;
+          padding: 8px 12px;
+          border: none;
+          border-radius: 6px;
+          background: #3b82f6;
+          color: #ffffff;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: background 0.2s ease;
+
+          &:hover:not(:disabled) {
+            background: #2563eb;
+          }
+
+          &:disabled {
+            background: #475569 !important;
+            /* Ghi đè inline style nếu cần */
+            cursor: not-allowed !important;
+            opacity: 0.6;
+          }
+        }
+      }
     }
   }
 
+  /* --- PHẦN LEADERBOARD (Giữ nguyên của bạn) --- */
   .leaderboard-section {
     .rank-item {
       display: flex;
@@ -19,24 +104,24 @@
       background: rgba(255, 255, 255, 0.05);
       border-radius: 8px;
       margin-bottom: 8px;
-      
+
       .name-with-title {
         display: flex;
         align-items: center;
         gap: 8px;
-        
+
         .player-name {
           font-weight: 600;
           color: #fff;
         }
-        
+
         .player-title {
           font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.5px;
         }
       }
-      
+
       .player-rank-title {
         font-size: 11px;
         color: #94a3b8;
