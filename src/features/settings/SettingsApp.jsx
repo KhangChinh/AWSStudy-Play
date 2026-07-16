@@ -242,7 +242,6 @@ const SettingsApp = ({
               <span className="bedrock-icon">☁️</span>
               <div>
                 <p className="bedrock-ready-title">Amazon Bedrock — Sẵn sàng</p>
-                <p className="bedrock-ready-desc">Powered by <strong>Amazon Nova Micro</strong> (us-east-1). Không cần cấu hình thêm.</p>
               </div>
             </div>
           )}

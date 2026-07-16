@@ -2611,4 +2611,18 @@
 .os-window:focus-visible {
   outline: 3px solid #f8fafc;
   outline-offset: 3px;
+}.desktop-left-column {
+  position: absolute;
+  top: 132px;
+  left: 24px;
+  bottom: 80px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 5;
+  pointer-events: none; /* Let clicks pass through empty areas */
+}
+.desktop-left-column > * {
+  pointer-events: auto; /* Re-enable clicks for children */
 }

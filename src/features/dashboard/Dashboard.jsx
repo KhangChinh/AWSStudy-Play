@@ -24,6 +24,7 @@ import { handleLogoutApi } from '../../services/authService';
 import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticServices';
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
+import MinigameWidget from '../minihub/MinigameWidget';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
@@ -855,7 +856,8 @@ class Dashboard extends Component {
           </div>
         </div>
 
-        <QuestWidget
+        <div className="desktop-left-column">
+          <QuestWidget
           quests={this.props.dailyQuests?.quests ?
             Object.entries(this.props.dailyQuests.quests)
               .filter(([key]) => key !== 'all_daily')
@@ -887,7 +889,8 @@ class Dashboard extends Component {
           t={t}
         />
 
-
+        <MinigameWidget onOpenMinigame={() => this.openApp('minigame')} />
+        </div>
 
         {openApps.map(appId => {
           const app = APPS.find(a => a.id === appId);

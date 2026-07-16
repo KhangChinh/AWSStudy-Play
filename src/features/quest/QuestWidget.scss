@@ -1,8 +1,8 @@
-.quest-widget {
-  position: absolute;
-  top: 132px;
-  left: 24px;
-  width: 280px;
+﻿.quest-widget {
+  
+  
+  
+  width: 100%;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -297,5 +297,23 @@
       opacity: 0.6;
       filter: grayscale(0.4);
     }
+  }
+}
+.quest-widget {
+  overflow: hidden;
+  flex: 0 1 auto; /* Allow shrink but use only needed space */
+  max-height: 100%;
+}
+.quest-mini-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 50px;
+  
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
   }
 }
