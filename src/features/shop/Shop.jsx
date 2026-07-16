@@ -32,6 +32,9 @@ const getBudgetValue = (profile, keys) => {
 };
 
 class Shop extends Component {
+  coreModalRef = React.createRef();
+  coreModalTriggerRef = React.createRef();
+
   state = {
     coreAmount: 1,
     isLoadingShop: false,
@@ -41,6 +44,11 @@ class Shop extends Component {
 
   componentDidMount() {
     this.loadShop();
+    document.addEventListener('keydown', this.handleModalKeyDown);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.handleModalKeyDown);
   }
 
   componentDidUpdate(prevProps) {
@@ -68,18 +76,25 @@ class Shop extends Component {
     this.setState({ coreAmount: value });
   };
 
+  handleModalKeyDown = (event) => {
+    if (event.key === 'Escape' && this.state.isCoreModalOpen) this.closeCoreModal();
+  };
+
   openCoreModal = () => {
     const maxAmount = this.getMaxCoreAmount();
     if (maxAmount <= 0) {
       toast.error(this.props.t('store.not_enough_knowledge_points'));
       return;
     }
-    this.setState({ isCoreModalOpen: true, coreAmount: Math.min(this.state.coreAmount, maxAmount) || 1 });
+    this.setState(
+      { isCoreModalOpen: true, coreAmount: Math.min(this.state.coreAmount, maxAmount) || 1 },
+      () => this.coreModalRef.current?.focus(),
+    );
   };
 
   closeCoreModal = () => {
     if (this.state.buyingKey === 'knowledgeCore') return;
-    this.setState({ isCoreModalOpen: false });
+    this.setState({ isCoreModalOpen: false }, () => this.coreModalTriggerRef.current?.focus());
   };
 
   handleBuyCore = async () => {
@@ -157,7 +172,7 @@ class Shop extends Component {
         <div className="item-info">
           <span className="item-title">{t('store.items.knowledge_core')}</span>
           <span className="item-price price-with-icon"><img src={currencyAssets.knowledgePoint} alt={t('common.knowledge_points')} /> {CORE_PRICE.toLocaleString()} {t('common.knowledge_points')}</span>
-          <button onClick={this.openCoreModal} disabled={disabled}>
+          <button ref={this.coreModalTriggerRef} type="button" onClick={this.openCoreModal} disabled={disabled}>
             <IonIcon icon={cart} /> {t('store.purchase')}
           </button>
         </div>
@@ -176,13 +191,13 @@ class Shop extends Component {
 
     return (
       <div className="shop-modal-backdrop" role="presentation" onMouseDown={this.closeCoreModal}>
-        <div className="shop-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+        <div ref={this.coreModalRef} className="shop-modal" role="dialog" aria-modal="true" aria-labelledby="knowledge-core-modal-title" tabIndex="-1" onMouseDown={(event) => event.stopPropagation()}>
           <div className="shop-modal-header">
             <div>
-              <h3>{t('store.items.knowledge_core')}</h3>
+              <h3 id="knowledge-core-modal-title">{t('store.items.knowledge_core')}</h3>
               <p className="price-with-icon"><img src={currencyAssets.knowledgePoint} alt={t('common.knowledge_points')} /> {CORE_PRICE.toLocaleString()} {t('common.knowledge_points')} / 1</p>
             </div>
-            <button className="modal-close" type="button" onClick={this.closeCoreModal} disabled={isPurchasing}>x</button>
+            <button className="modal-close" type="button" aria-label={t('common.close')} onClick={this.closeCoreModal} disabled={isPurchasing}>x</button>
           </div>
 
           <div className="quantity-panel modal-quantity-panel">
@@ -192,6 +207,7 @@ class Shop extends Component {
             </div>
             <input
               type="range"
+              aria-label={t('store.quantity')}
               min="1"
               max={Math.max(1, maxAmount)}
               value={amount}

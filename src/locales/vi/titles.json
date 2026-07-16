@@ -1,0 +1,22 @@
+{
+  "unlocked": "Đã mở",
+  "locked": "Chưa mở",
+  "newbie": {
+    "name": "Tân Thủ"
+  },
+  "scholar": {
+    "name": "Học Giả"
+  },
+  "legend": {
+    "name": "Huyền Thoại"
+  },
+  "admin": {
+    "name": "Quản Trị Viên"
+  },
+  "collector": {
+    "name": "Nhà Sưu Tầm"
+  },
+  "speedrun": {
+    "name": "Thần Tốc"
+  }
+}

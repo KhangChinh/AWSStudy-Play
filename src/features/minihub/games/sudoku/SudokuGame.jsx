@@ -8,7 +8,8 @@ import {
   checkmarkDoneOutline, flashOutline, lockClosedOutline, bugOutline
 } from 'ionicons/icons';
 
-import { handleStartSession, handleCheckSudokuStep, handleSubmitSudoku } from '../../../../services/minigameServices';
+import { handleStartSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi } from '../../../../services/minigameServices';
+import { setProfile } from '../../../../store/actions/profileActions';
 import { toast } from 'react-toastify';
 import './SudokuGame.scss';
 
@@ -148,21 +149,14 @@ const SudokuGame = ({ onClose }) => {
 
     try {
       setLoadingLeaderboard(true);
-      const response = await apiCall('/sudoku/leaderboard', {
-        method: 'POST',
-        body: JSON.stringify({
-          userId: userInfo.UserId || 'usr_local',
-          gameId: 'sudoku',
-          type: tab
-        })
-      });
+      const response = await handleGetLeaderboardApi('sudoku');
 
-      if (response && response.errCode === 0) {
+      if (response?.success) {
         dispatch({
           type: 'SET_SUDOKU_LEADERBOARD',
           payload: {
             type: tab,
-            data: response.leaderboard || [],
+            data: response.topPlayers || [],
             timestamp: Date.now()
           }
         });
@@ -227,7 +221,7 @@ const SudokuGame = ({ onClose }) => {
         const newBudget = response.profile?.budget || response.budget;
         if (newBudget) {
           const nextUserInfo = { ...userInfo, budget: newBudget };
-          dispatch(userLogin(nextUserInfo));
+          dispatch(setProfile(nextUserInfo));
         }
         const puzzleGrid = response.sessionData?.puzzleGrid || response.sessionData?.seed || response.initialGrid;
         const initialCheckCount = response.sessionData?.checkCount;

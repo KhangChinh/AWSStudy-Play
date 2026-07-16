@@ -1,0 +1,16 @@
+{
+  "title": "Cosmetics Store",
+  "purchase": "Purchase",
+  "purchasing": "Purchasing...",
+  "purchase_success": "Purchase successful!",
+  "purchase_failed": "Purchase failed.",
+  "owned": "Owned",
+  "quantity": "Quantity",
+  "max": "Max",
+  "total": "Total",
+  "not_enough_knowledge_points": "Not enough Knowledge Points.",
+  "not_enough_ecoin": "Not enough eCoin.",
+  "items": {
+    "knowledge_core": "Knowledge Core"
+  }
+}

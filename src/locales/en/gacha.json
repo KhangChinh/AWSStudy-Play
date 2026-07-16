@@ -1,0 +1,21 @@
+{
+  "pull": "Pull",
+  "event": "Event",
+  "remaining": "Remaining",
+  "details": "Details",
+  "guaranteed": "Guaranteed",
+  "single_roll": "Single Roll",
+  "featured_guaranteed": "Featured 5★ guaranteed",
+  "ten_rolls": "10 Rolls",
+  "page": "Page",
+  "no_items": "No items yet.",
+  "history": "History",
+  "item_rates": "Details",
+  "rate_up_desc": "Rate up for selected <span class=\"text-purple\">4★</span> and <span class=\"text-gold\">Limited 5★</span> items!",
+  "featured_5_star": "5★",
+  "featured_4_star": "4★",
+  "infinite_time": "∞",
+  "empty_rewards_error": "Gacha did not return any rewards.",
+  "missing_core_confirm": "Missing <number>{{missingCore}}</number> Knowledge Core. Use <number>{{pointCost}}</number> Knowledge Points to buy them?",
+  "duplicate": "Duplicate"
+}

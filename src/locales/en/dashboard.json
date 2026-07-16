@@ -1,0 +1,16 @@
+{
+  "rank": "Rank",
+  "rank_milestones": "Rank Milestones",
+  "missions": "Missions",
+  "cleanup": "Cleanup",
+  "minimize_all": "Minimize All",
+  "restore": "Restore",
+  "maximize": "Maximize",
+  "system_cleanup_complete": "System cleanup complete!",
+  "logout_confirm": "Are you sure you want to logout?",
+  "logout_success": "Logged out successfully!",
+  "logout_failed": "Logout failed. Please try again!",
+  "minimize": "Minimize",
+  "previous_page": "Previous apps",
+  "next_page": "Next apps"
+}

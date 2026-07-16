@@ -1,0 +1,20 @@
+{
+  "user_preferences": "User Preferences",
+  "profile_avatar": "Profile Avatar",
+  "upload_avatar": "Upload new avatar",
+  "upload_note": "Optimal size 256x256. Max 2MB.",
+  "avatar_change_cost": "* Changing avatar costs {{cost}} eCoin",
+  "account_details": "Account Details",
+  "preferences": "Preferences",
+  "preferences_desc": "Quick adjustments for your experience.",
+  "language": "Language",
+  "app_animations": "App Animations",
+  "rename_cost": "* Rename costs {{cost}} Sanity",
+  "rename_insufficient_sanity": "You need at least {{cost}} Sanity to rename.",
+  "rename_success": "Name updated. {{cost}} Sanity has been deducted.",
+  "english": "English",
+  "vietnamese": "Vietnamese",
+  "rename_error": "Failed to update name. Please try again!",
+  "change_image": "Change Image",
+  "ai_saved": "AI settings saved successfully."
+}

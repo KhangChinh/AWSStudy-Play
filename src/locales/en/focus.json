@@ -1,0 +1,11 @@
+{
+  "title": "Focus Mode Settings",
+  "desc": "Select applications to restrict during your session:",
+  "start": "Start Focus Session",
+  "started": "Focus session started!",
+  "error": "Failed to start focus session!",
+  "toggle": "Toggle focus panel",
+  "select_apps_to_block": "Select applications to block:",
+  "social_media": "Social Media",
+  "web_browser": "Web Browser"
+}

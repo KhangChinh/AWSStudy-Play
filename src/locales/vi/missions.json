@@ -1,0 +1,22 @@
+{
+  "claim": "Nhận",
+  "claim_all": "Nhận hết",
+  "rewards_claimed": "Đã nhận tất cả phần thưởng!",
+  "no_missions": "Chưa có nhiệm vụ nào",
+  "mission_1": {
+    "title": "Bước đầu",
+    "desc": "Chào mừng bạn đến với thế giới"
+  },
+  "mission_2": {
+    "title": "Thử thách tân thủ",
+    "desc": "Hoàn thành các nhiệm vụ đầu tiên"
+  },
+  "mission_3": {
+    "title": "Nhà sưu tầm",
+    "desc": "Sở hữu nhiều vật phẩm khác nhau"
+  },
+  "mission_4": {
+    "title": "Đại gia",
+    "desc": "Tích lũy số lượng lớn P-Coin"
+  }
+}

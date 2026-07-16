@@ -370,9 +370,6 @@ class Profile extends Component {
           onClick={this.handleCoverEdit}
           onKeyDown={this.handleCoverKeyDown}
         >
-          <div className="profile-cover-edit" aria-hidden="true">
-            <IonIcon icon={imageOutline} />
-          </div>
           <div className="user-profile-section">
             <div className="avatar-container-simple">
               <RankFrame tier={tierFromFrame(currentFrame)} size={120} frameAssetUrl={equippedFrame?.frameAssetUrl}>

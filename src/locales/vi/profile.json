@@ -1,0 +1,21 @@
+{
+  "backgrounds": "Hình nền",
+  "titles": "Danh hiệu",
+  "frames": "Khung avatar",
+  "system_glyphs": "Biểu tượng hệ thống",
+  "equipped": "Đang dùng",
+  "add_file": "Thêm ảnh",
+  "unlock_hint": "Chiến thắng để mở khóa",
+  "change_background": "Đổi nền hồ sơ",
+  "crop_image": "Cắt ảnh đại diện",
+  "invalid_image_type": "Vui lòng chọn tệp hình ảnh (jpg, png,...)",
+  "image_too_large": "Kích thước ảnh vượt quá 2MB",
+  "avatar_updated": "Cập nhật ảnh đại diện thành công!",
+  "avatar_cooldown": "Chưa đủ thời gian để đổi ảnh đại diện (7 ngày/lần)",
+  "avatar_upload_url_failed": "Không lấy được URL upload",
+  "avatar_s3_upload_failed": "Upload ảnh lên S3 thất bại",
+  "avatar_confirm_failed": "Xác nhận ảnh đại diện thất bại",
+  "avatar_upload_failed": "Upload ảnh đại diện thất bại",
+  "zoom": "Phóng to",
+  "crop_hint": "Kéo để di chuyển, dùng thanh trượt để phóng to"
+}

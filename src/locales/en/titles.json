@@ -1,0 +1,22 @@
+{
+  "unlocked": "Unlocked",
+  "locked": "Locked",
+  "newbie": {
+    "name": "Newbie"
+  },
+  "scholar": {
+    "name": "Scholar"
+  },
+  "legend": {
+    "name": "Legend"
+  },
+  "admin": {
+    "name": "Admin"
+  },
+  "collector": {
+    "name": "Collector"
+  },
+  "speedrun": {
+    "name": "Speedrunner"
+  }
+}

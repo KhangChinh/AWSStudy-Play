@@ -4,7 +4,13 @@ import { setProfile, setGachaHistory, setSocial, setDailyQuests, setLastSyncAll 
 const API_URL = import.meta.env.VITE_API_URL;
 let syncAllPromise = null;
 let inventorySyncServerError = false;
-const SYNC_COOLDOWN = 60 * 1000; // 1 phút
+const SYNC_COOLDOWN = 5 * 60 * 1000;
+const LAST_SYNC_STORAGE_KEY = 'studyPlay:lastSuccessfulSyncAll';
+const getPersistedLastSyncAll = () => Number(localStorage.getItem(LAST_SYNC_STORAGE_KEY) || 0);
+const saveLastSyncAll = (timestamp) => {
+  localStorage.setItem(LAST_SYNC_STORAGE_KEY, String(timestamp));
+  store.dispatch(setLastSyncAll(timestamp));
+}; // 1 phút
 const hasInventorySyncServerError = () => inventorySyncServerError;
 const pickNumber = (...values) => {
   for (const value of values) {
@@ -195,7 +201,6 @@ const ingestServerData = async (payload) => {
   if (promises.length > 0) {
     await Promise.all(promises);
   }
-  store.dispatch(setLastSyncAll(Date.now()));
 };
 const handleSyncAllApi = async ({ force = false } = {}) => {
   if (syncAllPromise) {
@@ -204,24 +209,32 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
   }
   syncAllPromise = (async () => {
     try {
-      const currentState = store.getState();
-      const lastSyncAll = currentState.sync?.lastSyncAll;
+      // Hydrate local data first so startup can render without waiting for Lambda.
+      await hydrateSyncAllFromLocal();
+      const hydratedState = store.getState();
+      const lastSyncAll = Math.max(
+        Number(hydratedState.sync?.lastSyncAll || 0),
+        getPersistedLastSyncAll(),
+      );
       const now = Date.now();
-      if (!force && lastSyncAll && (now - lastSyncAll) < SYNC_COOLDOWN) {
-        await hydrateSyncAllFromLocal();
-        console.log('[syncService] SyncAll cooldown, dung cache Redux/Electron. Con', Math.round((SYNC_COOLDOWN - (now - lastSyncAll)) / 1000), 'giay');
-        return buildSyncSnapshot(store.getState());
-      }
-      if (!force) {
-        await hydrateSyncAllFromLocal();
+      const cacheIsFresh = lastSyncAll > 0 && (now - lastSyncAll) < SYNC_COOLDOWN;
+      const cacheIsComplete = Boolean(hydratedState.profile?.userProfile)
+        && Boolean(hydratedState.quest?.daily)
+        && inventoryHasLoadedData(hydratedState.inventory)
+        && historyHasLoadedData(hydratedState.gacha)
+        && socialHasLoadedData(hydratedState.social);
+      if (!force && cacheIsFresh && cacheIsComplete) {
+        console.log('[syncService] Using fresh local sync cache.');
+        return buildSyncSnapshot(hydratedState);
       }
 
-      const hydratedState = store.getState();
-      const getProfile = force || !hydratedState.profile?.userProfile;
-      const getDaily = force || !hydratedState.quest?.daily;
-      const getInventory = force || !inventoryHasLoadedData(hydratedState.inventory);
-      const getGachaHistory = force || !historyHasLoadedData(hydratedState.gacha);
-      const getSocial = force || !socialHasLoadedData(hydratedState.social);
+      // Refresh stale data with one aggregate request instead of per-screen calls.
+      const shouldRefresh = force || !cacheIsFresh;
+      const getProfile = shouldRefresh || !hydratedState.profile?.userProfile;
+      const getDaily = shouldRefresh || !hydratedState.quest?.daily;
+      const getInventory = shouldRefresh || !inventoryHasLoadedData(hydratedState.inventory);
+      const getGachaHistory = shouldRefresh || !historyHasLoadedData(hydratedState.gacha);
+      const getSocial = shouldRefresh || !socialHasLoadedData(hydratedState.social);
 
       if (!getProfile && !getDaily && !getInventory && !getGachaHistory && !getSocial) {
         console.log('[syncService] SyncAll dùng cache Redux/Electron, không gọi API.');
@@ -237,32 +250,7 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
         getGachaHistory,
         getSocial
       };
-      let syncResult;
-      let retryOptions = syncOptions;
-      try {
-        syncResult = await fetchSyncAll(token, retryOptions);
-      } catch (error) {
-        if (error.status !== 500) throw error;
-        if (retryOptions.getInventory) {
-          inventorySyncServerError = true;
-          retryOptions = { ...retryOptions, getInventory: false };
-          console.warn('[syncService] sync-all inventory failed, retry without inventory:', error.message);
-          try {
-            syncResult = await fetchSyncAll(token, retryOptions);
-          } catch (retryError) {
-            if (retryError.status !== 500 || !retryOptions.getProfile) throw retryError;
-            retryOptions = { ...retryOptions, getProfile: false };
-            console.warn('[syncService] sync-all profile failed, retry without profile:', retryError.message);
-            syncResult = await fetchSyncAll(token, retryOptions);
-          }
-        } else if (retryOptions.getProfile) {
-          retryOptions = { ...retryOptions, getProfile: false };
-          console.warn('[syncService] sync-all profile failed, retry without profile:', error.message);
-          syncResult = await fetchSyncAll(token, retryOptions);
-        } else {
-          throw error;
-        }
-      }
+      const syncResult = await fetchSyncAll(token, syncOptions);
       if (syncResult && syncResult.success) {
         const {
           profile,
@@ -313,11 +301,16 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
           }).catch(() => { });
         }
       }
-      store.dispatch(setLastSyncAll(Date.now()));
+      if (syncResult?.success) saveLastSyncAll(Date.now());
       return syncResult;
     } catch (e) {
       console.warn('[syncService] FAIL handleSyncAllApi:', e.message);
-      return null;
+      return {
+        ...buildSyncSnapshot(store.getState()),
+        success: false,
+        syncError: e.message,
+        status: e.status || null,
+      };
     }
   })();
   try {

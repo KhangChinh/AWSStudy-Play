@@ -1,0 +1,16 @@
+{
+  "rank": "Hạng",
+  "rank_milestones": "Cột mốc Rank",
+  "missions": "Nhiệm vụ",
+  "cleanup": "Dọn dẹp",
+  "minimize_all": "Thu nhỏ hết",
+  "restore": "Khôi phục",
+  "maximize": "Phóng to",
+  "system_cleanup_complete": "Dọn dẹp hệ thống hoàn tất!",
+  "logout_confirm": "Bạn có chắc muốn đăng xuất?",
+  "logout_success": "Đăng xuất thành công!",
+  "logout_failed": "Đăng xuất thất bại. Vui lòng thử lại!",
+  "minimize": "Thu nhỏ",
+  "previous_page": "Các ứng dụng trước",
+  "next_page": "Các ứng dụng tiếp theo"
+}

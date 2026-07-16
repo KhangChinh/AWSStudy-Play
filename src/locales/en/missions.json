@@ -1,0 +1,22 @@
+{
+  "claim": "Claim",
+  "claim_all": "Claim All",
+  "rewards_claimed": "All rewards claimed!",
+  "no_missions": "No missions yet",
+  "mission_1": {
+    "title": "First Step",
+    "desc": "Welcome to the world"
+  },
+  "mission_2": {
+    "title": "Newbie Trial",
+    "desc": "Complete your first tasks"
+  },
+  "mission_3": {
+    "title": "Collector",
+    "desc": "Own various items"
+  },
+  "mission_4": {
+    "title": "Whale",
+    "desc": "Accumulate a large amount of P-Coin"
+  }
+}

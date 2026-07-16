@@ -80,7 +80,7 @@ const SettingsApp = ({
       return;
     }
     if (currentSanity < RENAME_SANITY_COST) {
-      toast.error(t('settings.rename_insufficient_sanity'));
+      toast.error(t('settings.rename_insufficient_sanity', { cost: RENAME_SANITY_COST }));
       return;
     }
 
@@ -105,7 +105,7 @@ const SettingsApp = ({
           },
         });
         setIsEditingName(false);
-        toast.success(t('settings.rename_success'));
+        toast.success(t('settings.rename_success', { cost: RENAME_SANITY_COST }));
       }
     } catch (e) {
       toast.error(t('settings.rename_error') || 'Lỗi khi đổi tên');
@@ -338,7 +338,7 @@ const SettingsApp = ({
                       <span className="name">{displayName}</span>
                     )}
                   </div>
-                  <p className="note">{t('settings.rename_cost')}</p>
+                  <p className="note">{t('settings.rename_cost', { cost: RENAME_SANITY_COST })}</p>
                 </div>
                 {!isEditingName && (
                   <button className="btn-rename" onClick={() => setIsEditingName(true)}>{t('common.rename')}</button>

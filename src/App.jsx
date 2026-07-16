@@ -10,10 +10,9 @@ import Dashboard from './features/dashboard/Dashboard';
 import AuthPage from './features/auth/AuthPage';
 import Spinner from './components/Spinner';
 
-import { handleSyncAllApi, handleSyncProfileApi } from './services/syncService';
+import { handleSyncAllApi } from './services/syncService';
 import { handleLogoutApi } from './services/authService';
-import { initializeAuth, getValidAccessToken } from './services/tokenService';
-import { syncItemData } from './services/cosmeticServices';
+import { initializeAuth } from './services/tokenService';
 
 import './index.css';
 
@@ -26,11 +25,6 @@ class App extends Component {
   }
 
   async componentDidMount() {
-    try {
-      await syncItemData();
-    } catch (error) {
-      console.warn('[App] syncItemData failed:', error.message);
-    }
 
     try {
       if (window.api?.invoke) {
@@ -50,24 +44,8 @@ class App extends Component {
     } finally {
       this.setState({ isCheckingAuth: false });
     }
-
-    // Auto-refresh token every 5 minutes to keep backend in sync
-    this.tokenRefreshInterval = setInterval(async () => {
-      if (this.props.isLoggedIn) {
-         try {
-            await getValidAccessToken();
-         } catch(e) {
-            console.warn('[App] Auto token refresh failed', e);
-         }
-      }
-    }, 5 * 60 * 1000);
   }
 
-  componentWillUnmount() {
-    if (this.tokenRefreshInterval) {
-      clearInterval(this.tokenRefreshInterval);
-    }
-  }
 
   bootstrapSession = async () => {
     if (localStorage.getItem('manualLogoutAt')) {
@@ -80,21 +58,17 @@ class App extends Component {
       await handleLogoutApi({ resizeWindow: false });
       return;
     }
-    try {
-      const syncResult = await handleSyncAllApi({ force: true });
-      const profile = syncResult?.profile || this.props.userProfile || store.getState().profile?.userProfile;
-      if (!profile) {
-        const profileResult = await handleSyncProfileApi();
-        if (!profileResult?.profile) {
-          throw new Error(syncResult?.error || 'Failed to sync user data');
-        }
-      }
-      // Gửi IPC để main process resize cửa sổ sang kích thước Dashboard
-      if (window.api?.send) window.api.send('login-success');
-    } catch (error) {
-      console.warn('[App] Đồng bộ profile thất bại, đăng xuất...', error.message);
-      await handleLogoutApi({ resizeWindow: false });
+    const syncResult = await handleSyncAllApi();
+    const profile = syncResult?.profile || this.props.userProfile || store.getState().profile?.userProfile;
+    if (!profile) {
+      console.warn('[App] No cached profile is available; keeping the Cognito session for a later retry.');
+      return;
     }
+    // A temporary sync/network failure must not invalidate a valid Cognito session.
+    if (syncResult?.syncError) {
+      console.warn('[App] Using cached profile while background sync is unavailable:', syncResult.syncError);
+    }
+    if (window.api?.send) window.api.send('login-success');
   };
 
   render() {
