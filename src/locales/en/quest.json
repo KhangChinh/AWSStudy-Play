@@ -3,5 +3,35 @@
   "expires_at": "Expires at",
   "claimed": "Claimed",
   "loading": "Loading quests...",
-  "empty": "No daily quests yet."
+  "empty": "No daily quests yet.",
+  "items": {
+    "test_daily2": {
+      "name": "Focus 2",
+      "description": "Complete 2 minutes of study."
+    },
+    "quiz_correct_daily": {
+      "name": "Quiz Master",
+      "description": "Answer 3 quiz questions correctly in Study Planner."
+    },
+    "focus_daily": {
+      "name": "Study Every Day",
+      "description": "Complete 30 minutes of study."
+    },
+    "test_daily10": {
+      "name": "Focus 10",
+      "description": "Complete 10 minutes of study."
+    },
+    "all_daily": {
+      "name": "Unstoppable Effort",
+      "description": "Complete all daily quests."
+    },
+    "test_daily1": {
+      "name": "Focus 1",
+      "description": "Complete 1 minute of study."
+    },
+    "quiz_daily": {
+      "name": "Dedicated Review",
+      "description": "Complete 1 quiz in Study Planner."
+    }
+  }
 }

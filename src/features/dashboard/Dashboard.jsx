@@ -861,8 +861,8 @@ class Dashboard extends Component {
               .filter(([key]) => key !== 'all_daily')
               .map(([key, q]) => ({
                 id: key,
-                title: q.name,
-                description: q.description || '',
+                title: t(`quest.items.${key}.name`, { defaultValue: q.name }),
+                description: t(`quest.items.${key}.description`, { defaultValue: q.description || '' }),
                 type: q.type,
                 reward: q.knowledgePoint || 0,
                 status: `${q.progress || 0}/${q.target || 1}`,
@@ -872,7 +872,7 @@ class Dashboard extends Component {
               })) : []
           }
           allDaily={this.props.dailyQuests?.quests?.all_daily ? {
-            name: this.props.dailyQuests.quests.all_daily.name,
+            name: t('quest.items.all_daily.name', { defaultValue: this.props.dailyQuests.quests.all_daily.name }),
             reward: this.props.dailyQuests.quests.all_daily.knowledgePoint || 100,
             progress: this.props.dailyQuests.quests.all_daily.progress || 0,
             target: this.props.dailyQuests.quests.all_daily.target || 4,

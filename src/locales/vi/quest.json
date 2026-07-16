@@ -3,5 +3,35 @@
   "expires_at": "Hết hạn",
   "claimed": "Đã nhận",
   "loading": "Đang tải nhiệm vụ...",
-  "empty": "Chưa có nhiệm vụ ngày nào."
+  "empty": "Chưa có nhiệm vụ ngày nào.",
+  "items": {
+    "test_daily2": {
+      "name": "Tập trung 2",
+      "description": "Hoàn thành 2 phút học tập."
+    },
+    "quiz_correct_daily": {
+      "name": "Tuyệt đỉnh trí tuệ",
+      "description": "Trả lời đúng 3 câu hỏi trắc nghiệm trong Study Planner."
+    },
+    "focus_daily": {
+      "name": "Học mỗi ngày",
+      "description": "Hoàn thành 30 phút học tập."
+    },
+    "test_daily10": {
+      "name": "Tập trung 10",
+      "description": "Hoàn thành 10 phút học tập."
+    },
+    "all_daily": {
+      "name": "Nỗ lực không ngừng",
+      "description": "Hoàn thành tất cả nhiệm vụ ngày."
+    },
+    "test_daily1": {
+      "name": "Tập trung 1",
+      "description": "Hoàn thành 1 phút học tập."
+    },
+    "quiz_daily": {
+      "name": "Chăm chỉ ôn tập",
+      "description": "Hoàn thành 1 bài trắc nghiệm trong Study Planner."
+    }
+  }
 }
