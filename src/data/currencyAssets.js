@@ -1,7 +1,7 @@
-import eCoin from '../assets/ECoint.png';
-import knowledgeCore from '../assets/Knowledge_Core.png';
-import knowledgePoint from '../assets/Knowledge_Point.png';
-import sanity from '../assets/Sanity.png';
+const eCoin = '/assets/ECoint.png';
+const knowledgeCore = '/assets/Knowledge_Core.png';
+const knowledgePoint = '/assets/Knowledge_Point.png';
+const sanity = '/assets/Sanity.png';
 
 const currencyAssets = {
   eCoin,

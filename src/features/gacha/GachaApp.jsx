@@ -15,7 +15,7 @@ import { applyGachaResult, getGachaMasterItems, handleGachaApi } from '../../ser
 import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import { handleSyncGachaHistoryApi } from '../../services/syncService';
 import currencyAssets from '../../data/currencyAssets';
-import gachaItemFallback from '../../assets/gacha/OR7cQ.jpg';
+const gachaItemFallback = '/assets/gacha/OR7cQ.jpg';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
