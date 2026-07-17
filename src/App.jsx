@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { ToastContainer } from 'react-toastify';
@@ -15,6 +15,11 @@ import { handleLogoutApi } from './services/authService';
 import { initializeAuth } from './services/tokenService';
 
 import './index.css';
+
+const AuthPageWrapper = (props) => {
+  const navigate = useNavigate();
+  return <AuthPage {...props} navigate={navigate} />;
+};
 
 class App extends Component {
   constructor(props) {
@@ -95,11 +100,11 @@ class App extends Component {
     }
 
     return (
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route
             path="/login"
-            element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <AuthPage />}
+            element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <AuthPageWrapper />}
           />
           <Route
             path="/dashboard"
@@ -122,7 +127,7 @@ class App extends Component {
           pauseOnHover
           theme="dark"
         />
-      </BrowserRouter>
+      </HashRouter>
     );
   }
 }

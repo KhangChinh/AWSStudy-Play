@@ -48,6 +48,11 @@ function createWindow() {
   // Ngăn chặn web page thay đổi title của window
   win.on('page-title-updated', (e) => e.preventDefault());
 
+  // Log renderer process console output to terminal (helps debugging production builds)
+  win.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer Console] [Level ${level}] ${message} (from ${sourceId}:${line})`);
+  });
+
   const url = process.env.VITE_DEV_SERVER_URL;
   if (url) {
     win.loadURL(url);
