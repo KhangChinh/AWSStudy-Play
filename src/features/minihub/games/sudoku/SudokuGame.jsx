@@ -391,32 +391,21 @@ const SudokuGame = ({ onClose }) => {
 
     try {
       toast.info('Đang nộp bài lên server...');
-      const levelId = selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : "level_01";
+      const levelId = selectedLevel ? selectedLevel.SK : "level_01";
       const finalGridStr = board.flat().join('');
 
       // Gọi API nộp bài kèm logs
       const response = await handleSubmitSudoku(levelId, finalGridStr, reduxLogs, 'win');
 
-      if (response.success && response.result === 'win') {
-        setStatus('won');
-        setEarnedScore(response.score);
-        setEarnedCoin(response.eCoinReward);
-        setTimer(response.timeSpent);
-
-        toast.success(`🎉 Chúc mừng! Bạn đã thắng cuộc!`);
-        toast.success(`💎 Nhận +${response.eCoinReward} eCoin thưởng!`);
-
-        if (response.isPB) {
-          toast.success(`🌟 Kỷ lục mới: ${response.score.toLocaleString()} Điểm!`);
+      if (response.success) {
+        if (response.result === 'win') {
+          setStatus('won');
+          toast.success("Chúc mừng bạn đã thắng!");
         } else {
-          toast.info(`🏆 Điểm Rank: ${response.score.toLocaleString()}`);
+          // Backend trả về result: "lost" nếu giải sai
+          setStatus('lost');
+          toast.error("Bàn cờ chưa chính xác, bạn đã thua cuộc.");
         }
-
-        // Dọn dẹp logs trên Redux sau khi hoàn thành
-        dispatch(clearMinigameLogs());
-      } else {
-        setStatus('lost');
-        toast.error(response.message || '❌ Bàn cờ chưa chính xác. Bạn đã thua cuộc!');
         dispatch(clearMinigameLogs());
       }
     } catch (e) {
