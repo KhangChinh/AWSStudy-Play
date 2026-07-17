@@ -263,7 +263,6 @@ class Dashboard extends Component {
         // Cập nhật State Dashboard theo Cloud
         this.setEquippedStateFromProfile(profile);
 
-        console.log('[Dashboard] Cloud Sync hoàn tất:', profile);
       }
     } catch (e) {
       console.warn('[Dashboard] Cloud Sync thất bại:', e);
@@ -906,14 +905,6 @@ class Dashboard extends Component {
                 target: q.target || 1
               })) : []
           }
-          allDaily={this.props.dailyQuests?.quests?.all_daily ? {
-            name: t('quest.items.all_daily.name', { defaultValue: this.props.dailyQuests.quests.all_daily.name }),
-            reward: this.props.dailyQuests.quests.all_daily.knowledgePoint || 100,
-            progress: this.props.dailyQuests.quests.all_daily.progress || 0,
-            target: this.props.dailyQuests.quests.all_daily.target || 4,
-            isCompleted: this.props.dailyQuests.quests.all_daily.isCompleted,
-            isClaimed: this.props.dailyQuests.quests.all_daily.isClaimed
-          } : null}
           expiresAt={this.props.dailyQuests?.expiresAt || 0}
           isCollapsed={this.state.isQuestsCollapsed}
           onToggle={this.toggleQuests}

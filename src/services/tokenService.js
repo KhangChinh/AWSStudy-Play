@@ -76,7 +76,6 @@ async function getValidAccessToken() {
         currentAccessToken = newToken;
         token = newToken;
         window.api?.invoke('auth:save-token', newToken).catch(() => { });
-        console.log('[TokenService] Lấy session mới thành công.');
       } else {
         await triggerLogout();
         return null;

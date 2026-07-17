@@ -246,7 +246,6 @@ const syncItemData = async () => {
   const lastSync = Number(localStorage.getItem('lastMasterDataSyncTime') || 0);
   const now = Date.now();
   if (lastSync && (now - lastSync) < MASTER_DATA_COOLDOWN) {
-    console.log(`[Cosmetics] Bỏ qua gọi API /master-data (cooldown). Lần sync cuối: ${new Date(lastSync).toLocaleString()}`);
     return;
   }
 

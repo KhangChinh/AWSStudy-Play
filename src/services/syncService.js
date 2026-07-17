@@ -266,7 +266,6 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
         && historyHasLoadedData(hydratedState.gacha)
         && socialHasLoadedData(hydratedState.social);
       if (!force && cacheIsFresh && cacheIsComplete) {
-        console.log('[syncService] Using fresh local sync cache.');
         return buildSyncSnapshot(hydratedState);
       }
 

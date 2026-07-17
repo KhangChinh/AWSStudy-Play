@@ -36,9 +36,6 @@ class App extends Component {
       const versionResult = await checkAppVersion({
         onVersionChanged: () => handleLogoutApi(),
       });
-      if (versionResult.changed) {
-        console.info('[App] Data version changed; local data was cleared and the session was logged out.');
-      }
     } catch (error) {
       console.warn('[App] Version check failed; continuing with local data:', error?.message || error);
     }
@@ -71,7 +68,6 @@ class App extends Component {
 
     const hasValidSession = await initializeAuth();
     if (!hasValidSession) {
-      console.log('[App] Không có phiên Cognito hợp lệ hoặc đã hết hạn.');
       await handleLogoutApi();
       return;
     }

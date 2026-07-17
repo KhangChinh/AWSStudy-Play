@@ -225,7 +225,6 @@ class AuthPage extends Component {
         this.setState({ authMode: 'login', verificationCode: '', newPassword: '', confirmNewPassword: '' });
       }
     } catch (error) {
-      console.log('Error:', error);
       if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
         toast.info(t('auth.stale_session_cleanup'));
         try {
