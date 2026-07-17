@@ -18,7 +18,7 @@ let handleLoginApi = async () => {
   }
 };
 
-let handleLogoutApi = async ({ resizeWindow = true } = {}) => {
+let handleLogoutApi = async () => {
   try {
     await signOut().catch((err) => {
       console.warn('[AuthService] signOut failed, clearing local session anyway:', err?.message || err);
@@ -30,7 +30,7 @@ let handleLogoutApi = async ({ resizeWindow = true } = {}) => {
       console.warn('[AuthService] clearLoginData failed:', err?.message || err);
     });
     store.dispatch(logoutClearData());
-    if (resizeWindow) window.api?.send('logout');
+    window.api?.send('logout');
   }
 }
 
