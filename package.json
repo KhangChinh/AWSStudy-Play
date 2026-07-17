@@ -2,6 +2,7 @@
   "name": "study-play",
   "private": true,
   "version": "0.1.0",
+  "author": "Uchimi",
   "type": "module",
   "main": "electron/main/index.js",
   "scripts": {
@@ -24,6 +25,8 @@
       "output": "release"
     },
     "win": {
+      "icon": "build/icon.png",
+      "publisherName": "Uchimi",
       "target": [
         "nsis"
       ]
@@ -32,6 +35,12 @@
       "dist/**/*",
       "electron/**/*",
       ".env"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
     ]
   },
   "dependencies": {

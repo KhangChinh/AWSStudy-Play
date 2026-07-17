@@ -11,6 +11,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 config({ path: path.join(__dirname, '../../.env') });
 
+const appIconPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'icon.png')
+  : path.join(__dirname, '../../build/icon.png');
+
 // Ignore EPIPE errors on stdout/stderr to prevent crashes when piped logs break (e.g., Windows with concurrently)
 process.stdout.on('error', (err) => {
   if (err.code === 'EPIPE') return;
@@ -32,6 +36,7 @@ function createWindow() {
     resizable: false,
     frame: true, // Giữ frame để có nút đóng/thu nhỏ nếu muốn, hoặc set false nếu muốn custom hoàn toàn
     title: '', // Ẩn title ở thanh tiêu đề
+    icon: appIconPath,
     autoHideMenuBar: true, // Thử lại với true kết hợp removeMenu
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -113,6 +118,7 @@ function showMiniWidget() {
     skipTaskbar: true,
     focusable: true,
     hasShadow: true,
+    icon: appIconPath,
     webPreferences: {
       preload: path.join(__dirname, '../mini-widget/preload.js'),
       contextIsolation: true,

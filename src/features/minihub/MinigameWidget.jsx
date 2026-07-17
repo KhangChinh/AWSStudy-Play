@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { IonIcon } from '@ionic/react';
@@ -9,6 +9,7 @@ import './MinigameWidget.scss';
 
 const MinigameWidget = ({ onOpenMinigame }) => {
   const { t } = useTranslation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   
   const leaderboards = useSelector(state => state.minigame?.leaderboards);
 
@@ -32,12 +33,11 @@ const MinigameWidget = ({ onOpenMinigame }) => {
   };
 
   return (
-    <div className="minigame-widget-container">
-      <div className="mw-header">
-        <IonIcon icon={gameControllerOutline} />
-        <h4>{t('dashboard.minigames', 'Arcade')}</h4>
-      </div>
-      <div className="mw-list">
+    <div className={`minigame-widget-container ${isCollapsed ? 'collapsed' : ''}`}>
+      <button type="button" className="mw-header" onClick={() => setIsCollapsed(collapsed => !collapsed)} aria-expanded={!isCollapsed}>
+        <span className="mw-header-title"><IonIcon icon={gameControllerOutline} /><h4>{t('dashboard.minigames', 'Arcade')}</h4></span>
+      </button>
+      <div className="mw-list" aria-hidden={isCollapsed}>
         {games.map(game => {
           const lbData = leaderboards?.[game.id]?.data || [];
           const top3 = lbData.slice(0, 3);
