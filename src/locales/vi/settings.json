@@ -16,5 +16,17 @@
   "vietnamese": "Tiếng Việt",
   "rename_error": "Đổi tên thất bại. Vui lòng thử lại!",
   "change_image": "Đổi ảnh đại diện",
-  "ai_saved": "Đã lưu cài đặt AI."
+  "ai_saved": "Đã lưu cài đặt AI.",
+  "profile_tab": "Hồ sơ",
+  "ai_settings": "Cài đặt AI",
+  "ai_settings_desc": "Thiết lập nhà cung cấp AI cục bộ và đám mây cho các tính năng của ứng dụng.",
+  "ai_youtube_blocker": "AI chặn YouTube",
+  "ai_study_planner": "AI lập kế hoạch học tập",
+  "save_ai_settings": "Lưu cài đặt AI",
+  "select_model": "Chọn mô hình",
+  "scanning_models": "Đang quét...",
+  "select_a_model": "Chọn một mô hình",
+  "gemini_api_key": "Khóa API Gemini",
+  "gemini_api_key_placeholder": "Nhập khóa API Gemini...",
+  "bedrock_ready": "Amazon Bedrock — Sẵn sàng"
 }

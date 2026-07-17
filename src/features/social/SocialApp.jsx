@@ -10,7 +10,8 @@ import {
   checkmarkCircleOutline,
   closeCircleOutline,
   trashOutline,
-  closeOutline
+  closeOutline,
+  refreshOutline
 } from 'ionicons/icons';
 import { toast } from 'react-toastify';
 
@@ -78,14 +79,54 @@ class SocialApp extends Component {
       lastSearchTime: 0,
       searchHasRun: false,
       visibleSearchCount: 5,
+      refreshCooldownRemaining: 0,
     };
     this.searchTimeout = null;
+    this.refreshCooldownTimer = null;
     this.listRef = React.createRef();
   }
 
   componentDidMount() {
     this.initialSync();
   }
+
+  componentWillUnmount() {
+    if (this.refreshCooldownTimer) clearInterval(this.refreshCooldownTimer);
+  }
+
+  handleManualRefresh = async () => {
+    if (this.state.isLoading || this.state.refreshCooldownRemaining > 0) return;
+
+    this.setState({ refreshCooldownRemaining: 5 });
+    await this.fetchFriends(true);
+    this.refreshCooldownTimer = setInterval(() => {
+      this.setState((prev) => {
+        const remaining = Math.max(0, prev.refreshCooldownRemaining - 1);
+        if (remaining === 0 && this.refreshCooldownTimer) {
+          clearInterval(this.refreshCooldownTimer);
+          this.refreshCooldownTimer = null;
+        }
+        return { refreshCooldownRemaining: remaining };
+      });
+    }, 1000);
+  };
+
+  renderRefreshButton = () => (
+    <button
+      type="button"
+      className={`manual-refresh-btn ${this.state.isLoading ? 'refreshing' : ''}`}
+      onClick={this.handleManualRefresh}
+      disabled={this.state.isLoading || this.state.refreshCooldownRemaining > 0}
+      title={this.props.t('social.reload')}
+      aria-label={this.props.t('social.reload')}
+    >
+      <IonIcon icon={refreshOutline} />
+      <span>
+        {this.props.t('social.reload')}
+        {this.state.refreshCooldownRemaining > 0 ? ` (${this.state.refreshCooldownRemaining}s)` : ''}
+      </span>
+    </button>
+  );
 
   initialSync = async () => {
     const { friends } = this.props;
@@ -277,9 +318,6 @@ class SocialApp extends Component {
 
     // Tự động đồng bộ lại danh sách bạn bè sau khi thực hiện action thành công
     // (hoặc nếu action thất bại do state lệch, cũng nên sync lại)
-    if (type !== 'request') {
-      this.fetchFriends(true);
-    }
     this.setState({ isActionLoading: null });
   };
 
@@ -330,6 +368,7 @@ class SocialApp extends Component {
       <div className="social-tab-content requests-list">
         <div className="tab-header mb-2">
           <h3>{t('social.friend_requests')}</h3>
+          {this.renderRefreshButton()}
         </div>
         <div className="tab-section-header">{t('social.requests')} ({requestsIn.length})</div>
         <div className="list-container">
@@ -431,7 +470,7 @@ class SocialApp extends Component {
                   </div>
                   <div className="user-details">
                     <span className="user-name">{user.name}</span>
-                    <span className="user-meta">{t('common.streak')}: {user.streak || 0} - {user.titles?.[0] || t('titles.newbie.name')}</span>
+                    <span className="user-meta">{t('common.streak')}: {user.streak || 0}</span>
                   </div>
                   <button
                     className="add-btn"

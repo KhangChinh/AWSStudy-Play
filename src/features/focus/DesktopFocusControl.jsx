@@ -38,13 +38,13 @@ const DesktopFocusControl = ({ currentRank, rankInfo, rp, isRankListOpen, rankLi
         </div>
       )}
       <button type="button" className="rank-display-box" onClick={onToggleRankList} aria-expanded={isRankListOpen} title={t('dashboard.rank_milestones')}>
-        <div className="rank-badge-and-info"><RankBadge tier={currentRank} size={48} /><div className="rank-info-column"><div className="rank-display-header"><div className="rank-title-group"><span className={`rank-title rank-${currentRank}`}>{rankInfo.label}</span><span className="rank-rp-text">({rp} RP)</span></div></div>
+        <div className="rank-badge-and-info"><RankBadge tier={currentRank} size={48} /><div className="rank-info-column"><div className="rank-display-header"><div className="rank-title-group"><span className={`rank-title rank-${currentRank}`}>{t(`rank.${currentRank}`)}</span><span className="rank-rp-text">({rp} RP)</span></div></div>
           {rankInfo.tier !== 'master' && <div className="rank-mini-progress-container"><div className="rank-mini-progress"><div className="rank-mini-progress-fill" style={{ width: `${rankInfo.progress}%`, background: getRankProgressColor(currentRank) }} /></div><span className="rank-mini-progress-text">{rankInfo.rpInDiv}/{rankInfo.rangeRP} RP</span></div>}
         </div></div>
       </button>
       <div className={`lq-start-container ${isRankMode ? 'mode-rank' : 'mode-casual'}`}>
-        <div className="lq-mode-selector"><button type="button" className={`lq-mode-option casual ${!isRankMode ? 'active' : ''}`} onClick={() => onModeChange(false)}>Casual</button><button type="button" className={`lq-mode-option rank ${isRankMode ? 'active' : ''}`} onClick={() => onModeChange(true)}>Rank</button></div>
-        <button type="button" className={`lq-start-button ${isRankMode ? 'mode-rank' : 'mode-casual'} ${isPanelOpen ? 'active' : ''}`} onClick={onTogglePanel} aria-expanded={isPanelOpen}><span className="lq-button-shiny-line" /><span className="lq-start-inner"><span className="lq-start-text"><IonIcon icon={shieldCheckmarkOutline} aria-hidden="true" style={{ marginRight: 6, fontSize: 18, verticalAlign: 'middle' }} />START</span><span className="lq-start-sub">{isRankMode ? 'Ranked Match' : 'Casual Match'}</span></span></button>
+        <div className="lq-mode-selector"><button type="button" className={`lq-mode-option casual ${!isRankMode ? 'active' : ''}`} onClick={() => onModeChange(false)}>{t('focus_guard.casual_mode')}</button><button type="button" className={`lq-mode-option rank ${isRankMode ? 'active' : ''}`} onClick={() => onModeChange(true)}>{t('focus_guard.rank_mode_short')}</button></div>
+        <button type="button" className={`lq-start-button ${isRankMode ? 'mode-rank' : 'mode-casual'} ${isPanelOpen ? 'active' : ''}`} onClick={onTogglePanel} aria-expanded={isPanelOpen}><span className="lq-button-shiny-line" /><span className="lq-start-inner"><span className="lq-start-text"><IonIcon icon={shieldCheckmarkOutline} aria-hidden="true" style={{ marginRight: 6, fontSize: 18, verticalAlign: 'middle' }} />{t('focus_guard.start')}</span><span className="lq-start-sub">{t(isRankMode ? 'focus_guard.ranked_match' : 'focus_guard.casual_match')}</span></span></button>
       </div>
     </div>
   );

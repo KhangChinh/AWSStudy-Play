@@ -15,7 +15,7 @@ import { applyGachaResult, getGachaMasterItems, handleGachaApi } from '../../ser
 import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import { handleSyncGachaHistoryApi } from '../../services/syncService';
 import currencyAssets from '../../data/currencyAssets';
-import gachaItemFallback from '../../assets/gacha/OR7cQ.jpg';
+const gachaItemFallback = '/assets/gacha/OR7cQ.jpg';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
@@ -33,7 +33,6 @@ const resolveMasterItemImage = (item, fallback = '') => {
 
   if (item.imageUrl) return toAssetUrl(item.imageUrl);
   if (item.itemType === 'background') return toAssetUrl(`background/${item.SK}/${item.SK}.jpg`);
-  if (item.itemType === 'frame' && item.assets?.css) return toAssetUrl(item.assets.css.replace(/\.css(?:\?.*)?$/i, '.svg'));
   return fallback;
 };
 
@@ -58,6 +57,7 @@ class GachaApp extends Component {
       serverItems: [],
       guaranteedFiveStarItem: null,
       isLoadingHistory: false,
+      pendingGachaResult: null,
     };
     this.timer = null;
   }
@@ -180,6 +180,7 @@ class GachaApp extends Component {
 
 
   async componentDidMount() {
+    window.addEventListener('keydown', this.handleRollKeyDown, true);
     this.syncGachaStateFromProfile(this.props.userProfile);
     this.updateBannerTime();
     this.timer = window.setInterval(this.updateBannerTime, 1000);
@@ -197,7 +198,30 @@ class GachaApp extends Component {
 
   componentWillUnmount() {
     if (this.timer) window.clearInterval(this.timer);
+    window.removeEventListener('keydown', this.handleRollKeyDown, true);
   }
+
+  handleRollKeyDown = (event) => {
+    if (event.key !== 'Escape' || (!this.state.isPlaying && !this.state.isSubmitting)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+  };
+
+  handleAnimationComplete = async () => {
+    const result = this.state.pendingGachaResult;
+    try {
+      if (result) await applyGachaResult(result);
+    } catch (error) {
+      console.warn('[GachaApp] Could not apply completed roll result:', error.message);
+    } finally {
+      this.setState({
+        isPlaying: false,
+        pendingGachaResult: null,
+        historyItems: this.props.gachaHistory || [],
+      });
+    }
+  };
 
   pickRandomGuaranteedFiveStar = (items = this.state.serverItems) => {
     const candidates = items.filter(item => Number(item.rarity) === 5 && item.isLimited === true);
@@ -391,7 +415,6 @@ class GachaApp extends Component {
 
     try {
       const result = await handleGachaApi(count === 10);
-      await applyGachaResult(result);
       const rewards = (result?.pulledItems || []).map(this.normalizeServerReward);
 
       if (!rewards.length) {
@@ -405,6 +428,7 @@ class GachaApp extends Component {
         hasNewItem: rewards.some((reward) => reward.type !== 'currency' && !reward.isConverted),
         currentRarity: this.getHighestRarity(rewards),
         rewards,
+        pendingGachaResult: result,
       });
     } catch (error) {
       this.setState({ isSubmitting: false });
@@ -450,17 +474,14 @@ class GachaApp extends Component {
           <div className="banner-info-panel">
             <h1 className="banner-name">{activeBanner.name}</h1>
             <div className="banner-description">
-              <p dangerouslySetInnerHTML={{ __html: this.props.t('gacha.rate_up_desc') }} />
               <div className="featured-list">
                 {featuredFiveStar && (
                   <div className="featured-item gold">
-                    <img src={resolveMasterItemImage(featuredFiveStar, gachaItemFallback)} alt={featuredFiveStar.name} onError={this.handleBannerImageError} />
                     <span>{this.props.t('gacha.featured_5_star')}: {featuredFiveStar.name}</span>
                   </div>
                 )}
                 {displayedFourStars.map(item => (
                   <div key={item.SK || item.id} className="featured-item purple">
-                    <img src={resolveMasterItemImage(item, gachaItemFallback)} alt={item.name} onError={this.handleBannerImageError} />
                     <span>{this.props.t('gacha.featured_4_star')}: {item.name}</span>
                   </div>
                 ))}
@@ -622,10 +643,7 @@ class GachaApp extends Component {
           rarity={currentRarity}
           rewards={rewards}
           t={this.props.t}
-          onComplete={() => this.setState({
-            isPlaying: false,
-            historyItems: this.props.gachaHistory || [],
-          })}
+          onComplete={this.handleAnimationComplete}
         />
       </div>
     );

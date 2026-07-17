@@ -138,8 +138,14 @@ class CosmeticManager {
     const backgroundId = typeof background === 'string'
       ? background
       : background?.id || background?.SK;
-    const item = this.getCosmeticInfo('backgrounds', backgroundId);
-    const cssPath = item?.assets?.css;
+    const item = (background && typeof background === 'object' && background.assets?.css)
+      ? background
+      : this.getCosmeticInfo('backgrounds', backgroundId);
+    const cssPath = item?.assets?.css || (
+      backgroundId?.startsWith('bg_')
+        ? `background/${item?.assetFolder || backgroundId}/assets/${backgroundId}.css`
+        : ''
+    );
 
     this.removeExternalCSS();
     if (!cssPath) return;

@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { ToastContainer } from 'react-toastify';
@@ -17,6 +17,11 @@ import { initializeAuth } from './services/tokenService';
 
 import './index.css';
 
+const AuthPageWrapper = (props) => {
+  const navigate = useNavigate();
+  return <AuthPage {...props} navigate={navigate} />;
+};
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -29,7 +34,7 @@ class App extends Component {
 
     try {
       const versionResult = await checkAppVersion({
-        onVersionChanged: () => handleLogoutApi({ resizeWindow: false }),
+        onVersionChanged: () => handleLogoutApi(),
       });
       if (versionResult.changed) {
         console.info('[App] Data version changed; local data was cleared and the session was logged out.');
@@ -67,7 +72,7 @@ class App extends Component {
     const hasValidSession = await initializeAuth();
     if (!hasValidSession) {
       console.log('[App] Không có phiên Cognito hợp lệ hoặc đã hết hạn.');
-      await handleLogoutApi({ resizeWindow: false });
+      await handleLogoutApi();
       return;
     }
     const syncResult = await handleSyncAllApi();
@@ -108,11 +113,11 @@ class App extends Component {
     }
 
     return (
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route
             path="/login"
-            element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <AuthPage />}
+            element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <AuthPageWrapper />}
           />
           <Route
             path="/dashboard"
@@ -135,7 +140,7 @@ class App extends Component {
           pauseOnHover
           theme="dark"
         />
-      </BrowserRouter>
+      </HashRouter>
     );
   }
 }

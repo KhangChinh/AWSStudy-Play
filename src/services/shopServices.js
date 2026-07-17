@@ -91,7 +91,7 @@ export const buyShopItemApi = async ({ itemId }) => {
       body: JSON.stringify({ itemId }),
     });
     if (result?.success) {
-      await ingestServerData({ profile: result.profile, inventory: result.inventory });
+      await ingestServerData(result);
       if (result.shop) await ingestShopData(result.shop);
     }
     return result;

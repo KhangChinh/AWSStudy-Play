@@ -28,5 +28,6 @@
     "collapse_friends":  "Thu gọn danh sách bạn bè",
     "unknown_user":  "Không rõ",
     "previous_page":  "Trang trước",
-    "next_page":  "Trang sau"
+    "next_page":  "Trang sau",
+    "reload": "Tải lại"
 }

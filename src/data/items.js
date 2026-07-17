@@ -12,7 +12,7 @@ export const ITEMS = {
     rarity: 5,
     type: 'background',
     cosmeticId: 'bg_crimson_void',
-    icon: '/src/assets/gacha/OR7cQ.jpg'
+    icon: '/assets/gacha/OR7cQ.jpg'
   },
 
   // 4★ - Backgrounds
@@ -22,7 +22,7 @@ export const ITEMS = {
     rarity: 4,
     type: 'background',
     cosmeticId: 'bg_dark',
-    icon: '/src/assets/gacha/OR7cQ.jpg'
+    icon: '/assets/gacha/OR7cQ.jpg'
   },
   bg_light: {
     id: 'bg_light',
@@ -30,7 +30,7 @@ export const ITEMS = {
     rarity: 4,
     type: 'background',
     cosmeticId: 'bg_light',
-    icon: '/src/assets/gacha/OR7cQ.jpg'
+    icon: '/assets/gacha/OR7cQ.jpg'
   },
 
   // 3★ - Currency
@@ -39,6 +39,6 @@ export const ITEMS = {
     name: 'Sanity',
     rarity: 3,
     type: 'currency',
-    icon: '/src/assets/Sanity.png'
+    icon: '/assets/Sanity.png'
   }
 };

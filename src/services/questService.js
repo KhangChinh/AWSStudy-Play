@@ -1,5 +1,6 @@
 import { getValidAccessToken } from './tokenService';
 import { ingestErrorResponse } from './apiErrorService';
+import { ingestServerData } from './syncService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -52,6 +53,7 @@ export const claimQuestReward = async (questKey) => {
       return { success: false, error: errResult.message || `API Error: ${response.status}` };
     }
     const result = await response.json();
+    await ingestServerData(result);
     return result;
   } catch (error) {
     return { success: false, error: error.message };

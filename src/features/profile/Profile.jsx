@@ -6,7 +6,7 @@ import {
   personCircleOutline, starOutline, cubeOutline, imageOutline, pawOutline
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
-import { cosmeticManager, assetUrl } from '../../services/cosmeticServices';
+import { cosmeticManager, syncItemData, assetUrl } from '../../services/cosmeticServices';
 import { getInventoryItem } from '../../services/profileService';
 import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
 import './Profile.scss';
@@ -97,12 +97,22 @@ class Profile extends Component {
       activeTab: 'backgrounds',
       inventoryByType: {},
       loadingInventoryType: null,
+      catalogLoaded: false,
     };
   }
 
   componentDidMount() {
+    this.loadCosmeticCatalog();
     this.loadInventoryForTab(this.state.activeTab);
   }
+
+  loadCosmeticCatalog = async () => {
+    try {
+      await syncItemData();
+    } finally {
+      this.setState({ catalogLoaded: true });
+    }
+  };
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.activeTab !== this.state.activeTab) {
@@ -216,7 +226,7 @@ class Profile extends Component {
                 role="button"
                 aria-disabled={isLocked}
                 onClick={() => {
-                  if (!isLocked) onBackgroundChange?.(background.custom ? background : background.id);
+                  if (!isLocked) onBackgroundChange?.(background);
                 }}
               >
                 <div

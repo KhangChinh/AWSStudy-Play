@@ -229,7 +229,7 @@ class AuthPage extends Component {
       if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
         toast.info(t('auth.stale_session_cleanup'));
         try {
-          await handleLogoutApi({ resizeWindow: false });
+          await handleLogoutApi();
         } catch (logoutError) {
           console.error('Error during cleanup:', logoutError);
         }

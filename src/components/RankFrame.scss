@@ -105,8 +105,13 @@
   display: none;
 }
 
-.rank-frame-none .rf-crown {
-  display: none;
+.rank-frame-badge.rank-frame-none {
+  filter: none;
+
+  .rf-window {
+    border-radius: 18%;
+    background: transparent;
+  }
 }
 
 /* Local frame palette. Cloud inventory items with matching ids automatically

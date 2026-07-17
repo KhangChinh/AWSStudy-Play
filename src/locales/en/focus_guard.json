@@ -42,5 +42,9 @@
   "hard_mode_cannot_stop": "Hard Mode - Cannot stop",
   "stop_session": "Stop Session",
   "paused": "Paused",
-  "resume": "Resume"
+  "resume": "Resume",
+  "rank_mode_short": "Rank",
+  "start": "START",
+  "ranked_match": "RANKED MATCH",
+  "casual_match": "CASUAL MATCH"
 }

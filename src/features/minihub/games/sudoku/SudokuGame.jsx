@@ -10,6 +10,7 @@ import {
 
 import { handleStartSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi } from '../../../../services/minigameServices';
 import { setProfile } from '../../../../store/actions/profileActions';
+import UserAvatar from '../../../../components/UserAvatar';
 import { toast } from 'react-toastify';
 import './SudokuGame.scss';
 import {
@@ -390,32 +391,21 @@ const SudokuGame = ({ onClose }) => {
 
     try {
       toast.info('Đang nộp bài lên server...');
-      const levelId = selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : "level_01";
+      const levelId = selectedLevel ? selectedLevel.SK : "level_01";
       const finalGridStr = board.flat().join('');
 
       // Gọi API nộp bài kèm logs
       const response = await handleSubmitSudoku(levelId, finalGridStr, reduxLogs, 'win');
 
-      if (response.success && response.result === 'win') {
-        setStatus('won');
-        setEarnedScore(response.score);
-        setEarnedCoin(response.eCoinReward);
-        setTimer(response.timeSpent);
-
-        toast.success(`🎉 Chúc mừng! Bạn đã thắng cuộc!`);
-        toast.success(`💎 Nhận +${response.eCoinReward} eCoin thưởng!`);
-
-        if (response.isPB) {
-          toast.success(`🌟 Kỷ lục mới: ${response.score.toLocaleString()} Điểm!`);
+      if (response.success) {
+        if (response.result === 'win') {
+          setStatus('won');
+          toast.success("Chúc mừng bạn đã thắng!");
         } else {
-          toast.info(`🏆 Điểm Rank: ${response.score.toLocaleString()}`);
+          // Backend trả về result: "lost" nếu giải sai
+          setStatus('lost');
+          toast.error("Bàn cờ chưa chính xác, bạn đã thua cuộc.");
         }
-
-        // Dọn dẹp logs trên Redux sau khi hoàn thành
-        dispatch(clearMinigameLogs());
-      } else {
-        setStatus('lost');
-        toast.error(response.message || '❌ Bàn cờ chưa chính xác. Bạn đã thua cuộc!');
         dispatch(clearMinigameLogs());
       }
     } catch (e) {
@@ -879,19 +869,25 @@ const SudokuGame = ({ onClose }) => {
                             </td>
                           </tr>
                         ) : (
-                          sudokuLeaderboard[leaderboardTab].data.map((entry) => {
+                          sudokuLeaderboard[leaderboardTab].data.map((entry, index) => {
                             const isCurrentUser = entry.userId === userInfo.UserId;
+                            const rank = entry.rank ?? index + 1;
                             return (
                               <tr key={entry.userId} className={isCurrentUser ? 'current-user-row' : ''}>
                                 <td className="col-rank">
-                                  {entry.rank === 1 && <span className="rank-badge gold">1</span>}
-                                  {entry.rank === 2 && <span className="rank-badge silver">2</span>}
-                                  {entry.rank === 3 && <span className="rank-badge bronze">3</span>}
-                                  {entry.rank > 3 && entry.rank}
+                                  {rank === 1 && <span className="rank-badge gold">1</span>}
+                                  {rank === 2 && <span className="rank-badge silver">2</span>}
+                                  {rank === 3 && <span className="rank-badge bronze">3</span>}
+                                  {rank > 3 && rank}
                                 </td>
                                 <td className="col-username">
+                                  <UserAvatar
+                                    avatarUrl={entry.displayInfo?.avatarUrl}
+                                    alt={entry.displayInfo?.name || 'avatar'}
+                                    className="leaderboard-avatar"
+                                  />
                                   <span className="username-text">
-                                    {entry.displayInfo?.username || entry.userId || 'Vô danh'}
+                                    {entry.displayInfo?.name || entry.displayInfo?.username || entry.userId || 'Vô danh'}
                                   </span>
                                   {isCurrentUser && <span className="current-user-tag">Bạn</span>}
                                 </td>

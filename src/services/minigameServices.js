@@ -272,7 +272,7 @@ const handleGetLeaderboardApi = async (gameId) => {
         // 2. KIỂM TRA TRONG ELECTRON STORE
         // ==========================================
         try {
-            const localLeaderboard = await window.api?.invoke('store:get', `leaderboard_${gameId}`);
+            const localLeaderboard = await window.api?.invoke('store:get', `leaderboard_v2_${gameId}`);
 
             // Nếu có data và CHƯA HẾT HẠN
             if (localLeaderboard && localLeaderboard.expiresAt && localLeaderboard.expiresAt > nowSecs) {
@@ -333,7 +333,7 @@ const handleGetLeaderboardApi = async (gameId) => {
 
             // Ghi đè vào Electron Store
             await window.api?.invoke('store:set', {
-                key: `leaderboard_${gameId}`,
+                key: `leaderboard_v2_${gameId}`,
                 value: { data: result.topPlayers, expiresAt: serverExpiresAt }
             }).catch(() => { });
 
