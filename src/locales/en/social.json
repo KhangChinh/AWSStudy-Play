@@ -28,5 +28,6 @@
     "collapse_friends":  "Collapse friends",
     "unknown_user":  "Unknown",
     "previous_page":  "Previous page",
-    "next_page":  "Next page"
+    "next_page":  "Next page",
+    "reload": "Reload"
 }
