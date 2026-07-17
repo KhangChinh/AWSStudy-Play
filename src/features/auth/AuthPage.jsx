@@ -3,7 +3,7 @@ import { withTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { IonIcon } from '@ionic/react';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
-import { signIn, signUp, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, resendSignUpCode, resetPassword, confirmResetPassword, fetchAuthSession } from 'aws-amplify/auth';
 import './AuthPage.scss';
 import Spinner from '../../components/Spinner';
 import { handleLoginApi, handleLogoutApi } from '../../services/authService';
@@ -142,6 +142,16 @@ class AuthPage extends Component {
           toast.success(t('auth.login_success'));
           await handleLoginApi();
           localStorage.removeItem('manualLogoutAt');
+          
+          try {
+            const session = await fetchAuthSession();
+            if (session?.credentials && window.api?.invoke) {
+              await window.api.invoke('aws:setCredentials', session.credentials);
+            }
+          } catch (err) {
+            console.warn('[AuthPage] Failed to fetch AWS credentials:', err);
+          }
+
           if (window.api?.send) window.api.send('login-success');
           setTimeout(() => {
             this.props.navigate('/dashboard');

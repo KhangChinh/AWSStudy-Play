@@ -22,10 +22,17 @@ import {
   loadQuizHistory, saveQuizResult, deleteQuizResult, 
   loadStudySettings, saveStudySettings 
 } from './services/studyPlannerStore.js';
+import { setCognitoCredentials } from './services/bedrockApi.js';
 
 export function registerIpcHandlers(ipcMain, win) {
   // Set BrowserWindow reference for focusEngine renderer communication
   setFocusWin(win);
+
+  ipcMain.handle('aws:setCredentials', async (_event, creds) => {
+    setCognitoCredentials(creds);
+    console.log('[AWS] Received temporary Cognito credentials from renderer');
+    return { success: true };
+  });
 
   // ═══════════════════════════════════════════
   //  FOCUS ENGINE — Giám sát & chặn ứng dụng

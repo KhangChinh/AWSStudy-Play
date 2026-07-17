@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   // ═══ Gọi Main Process (request-response) ═══
   invoke: (channel, data) => {
     const validChannels = [
+      'aws:setCredentials',
       'focus:start',
       'focus:stop',
       'focus:status',

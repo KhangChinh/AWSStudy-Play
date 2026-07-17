@@ -54,22 +54,22 @@ function ollamaRequest(path, body, timeoutMs = 120000) {
 
 // ===== System Prompts =====
 
-const CHAT_SYSTEM_PROMPT = `Ban la tro ly tu van hoc tap AI. Thu thap thong tin tu nguoi dung de tao ke hoach hoc tap.
-NGON NGU YEU CAU: Ban CHI ho tro tieng Anh va tieng Viet. Hay tra loi bang ngon ngu ma nguoi dung dang su dung (uu tien tieng Viet). NEU nguoi dung dung ngon ngu khac (VD: tieng Trung, Nhat, Han, Phap...), HAY TU CHOI ho tro va yeu cau ho su dung tieng Anh hoac tieng Viet.
-BAN CAN THU THAP: 1.Linh vuc 2.Chu de cu the 3.Trinh do 4.Muc tieu 5.Thoi gian du kien 6.Thoi gian hoc/ngay
-QUY TAC: Hoi tu nhien. Neu user cung cap du (it nhat 1,2,3) thi readyToGenerate=true. Ngan gon 3-4 cau.
-OUTPUT JSON (khong markdown): {"reply":"...","collectedInfo":{"subject":"","topic":"","level":"","goal":"","totalDuration":"","dailyHours":""},"readyToGenerate":false}
-Khi readyToGenerate=true, reply them bang ngon ngu hien tai: "Toi da co du thong tin. Ban co muon tao ke hoach hoc tap khong?"`;
+const CHAT_SYSTEM_PROMPT = `You are an AI study consultant. Collect information from the user to create a study plan.
+Reply in the language the user is using (prioritize Vietnamese if unclear). You support ALL subjects and languages, including Chinese, Japanese, Korean, etc.
+YOU NEED TO COLLECT: 1. Subject 2. Specific topic 3. Current level 4. Goal 5. Total expected duration 6. Daily study hours
+RULES: Ask naturally. If the user provides enough info (at least 1, 2, and 3), set readyToGenerate=true. Keep responses brief (3-4 sentences).
+OUTPUT JSON ONLY (no markdown): {"reply":"...","collectedInfo":{"subject":"","topic":"","level":"","goal":"","totalDuration":"","dailyHours":""},"readyToGenerate":false}
+When readyToGenerate=true, add this to your reply in the current language: "I have enough information. Would you like me to generate your study plan now?"`;
 
-const PLAN_SYSTEM_PROMPT = `Tao ke hoach hoc tap JSON. KHONG giai thich, CHI tra ve JSON.
-NGON NGU: Bat buoc phai dong bo voi ngon ngu ma nguoi dung da chat (thuong la tieng Viet hoac tieng Anh).
+const PLAN_SYSTEM_PROMPT = `Create a study plan in JSON format. DO NOT explain, ONLY return JSON.
+CRITICAL LANGUAGE RULE: You MUST generate the content (title, description, phases, topics, etc.) in the SAME LANGUAGE as the user's inputs. If the user's inputs are in Vietnamese, the ENTIRE OUTPUT MUST BE IN VIETNAMESE.
 Format: {"title":"...","description":"...","phases":[{"id":1,"name":"...","duration":"...","description":"...","topics":["..."],"resources":[{"name":"...","url":"https://...","type":"website"}],"completed":false}]}
-Tao 4-5 phases, 2-3 topics/phase, 1-2 resources/phase. Ngan gon.`;
+Create 4-5 phases, 2-3 topics per phase, 1-2 resources per phase. Be concise.`;
 
-const QUIZ_SYSTEM_PROMPT = `Tao 10 cau hoi trac nghiem JSON. KHONG giai thich, CHI tra ve JSON.
-NGON NGU: Bắt buộc đồng bộ theo ngôn ngữ của Kế hoạch học tập hoặc chủ đề được truyền vào.
+const QUIZ_SYSTEM_PROMPT = `Create a 10-question multiple choice quiz in JSON format. DO NOT explain, ONLY return JSON.
+CRITICAL LANGUAGE RULE: You MUST generate the questions and options in the SAME LANGUAGE as the Phase name and Plan title. If they are in Vietnamese, the ENTIRE QUIZ MUST BE IN VIETNAMESE.
 Format: {"questions":[{"id":1,"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correctAnswer":"A"}]}
-10 cau, 4 dap an A/B/C/D.`;
+Generate exactly 10 questions, each with 4 options (A/B/C/D). Ensure all questions are unique, diverse, and do not repeat.`;
 
 // Load AI settings from the main electron-store (saved by storeIpc aiSettings)
 async function getAiSettings() {
@@ -140,7 +140,7 @@ export async function chatWithAI(messages) {
     
     let finalSystemPrompt = CHAT_SYSTEM_PROMPT;
     if (docContext) {
-      finalSystemPrompt += `\n\nNẾU USER HỎI VỀ BÀI HỌC/KIẾN THỨC, HÃY DỰA VÀO TÀI LIỆU SAU ĐỂ TRẢ LỜI. NẾU USER CHỈ CHAT CHÀO HỎI THÌ KHÔNG CẦN DÙNG.\n\n${docContext.summaryBlock}\n\n${docContext.chunksBlock}`;
+      finalSystemPrompt += `\n\nIF THE USER ASKS ABOUT STUDY MATERIALS OR KNOWLEDGE, PLEASE BASE YOUR ANSWER ON THE FOLLOWING DOCUMENT. IF THE USER IS JUST GREETING, YOU DON'T NEED TO USE IT.\n\n${docContext.summaryBlock}\n\n${docContext.chunksBlock}`;
     }
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
@@ -175,7 +175,7 @@ export async function chatWithAI(messages) {
       let ollamaSystemPrompt = CHAT_SYSTEM_PROMPT;
       if (docContext && docContext.summaryBlock) {
         const shortSummary = docContext.summaryBlock.slice(0, 600);
-        ollamaSystemPrompt += `\n\nTÀI LIỆU ĐÍNH KÈM (tóm tắt ngắn): ${shortSummary}`;
+        ollamaSystemPrompt += `\n\nATTACHED DOCUMENT (short summary): ${shortSummary}`;
       }
       const ollamaMessages = [
         { role: 'system', content: ollamaSystemPrompt },
@@ -201,19 +201,19 @@ export async function generateStudyPlan(collectedInfo) {
     const config = await getAiSettings();
     const docContext = getContextForPlan();
     
-    let userPrompt = `Tao ke hoach hoc tap:
-- Linh vuc: ${collectedInfo.subject || 'Chua ro'}
-- Chu de: ${collectedInfo.topic || 'Chua ro'}
-- Trinh do: ${collectedInfo.level || 'Moi bat dau'}
-- Muc tieu: ${collectedInfo.goal || 'Chua ro'}
-- Thoi gian: ${collectedInfo.totalDuration || 'Linh hoat'}
-- Hoc/ngay: ${collectedInfo.dailyHours || 'Linh hoat'}`;
+    let userPrompt = `Generate a study plan:
+- Subject: ${collectedInfo.subject || 'Unknown'}
+- Topic: ${collectedInfo.topic || 'Unknown'}
+- Current Level: ${collectedInfo.level || 'Beginner'}
+- Goal: ${collectedInfo.goal || 'Unknown'}
+- Total Duration: ${collectedInfo.totalDuration || 'Flexible'}
+- Daily Study Hours: ${collectedInfo.dailyHours || 'Flexible'}`;
 
     if (docContext) {
-      userPrompt += `\n\n=== TÀI LIỆU ĐÍNH KÈM ===\nTên tài liệu: ${docContext.fileName}\nTóm tắt: ${docContext.summary}\nCác chủ đề: ${docContext.topics.join(', ')}\nCấu trúc tài liệu:\n${docContext.structureBlock}\n\nYÊU CẦU ĐẶC BIỆT: Hãy tạo các phases bám sát Cấu trúc tài liệu này. Đảm bảo Kế hoạch học tập phản ánh chính xác nội dung tài liệu.`;
+      userPrompt += `\n\n=== ATTACHED DOCUMENT ===\nDocument Name: ${docContext.fileName}\nSummary: ${docContext.summary}\nTopics: ${docContext.topics.join(', ')}\nDocument Structure:\n${docContext.structureBlock}\n\nSPECIAL REQUIREMENT: Create phases that closely follow this Document Structure. Ensure the study plan accurately reflects the content of the document.`;
     }
     
-    userPrompt += `\nCHI TRA VE JSON.`;
+    userPrompt += `\nONLY RETURN JSON.`;
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
       let geminiModel = config.selectedModel || 'gemini-2.0-flash';
@@ -267,15 +267,15 @@ export async function generateQuiz(phase, planTitle) {
     const config = await getAiSettings();
     const docContext = getContextForQuiz(phase.name, phase.topics);
     
-    let userPrompt = `Bối cảnh: Kế hoạch học tập "${planTitle}"
-Tạo 10 câu hỏi trắc nghiệm về giai đoạn: ${phase.name}
-Chủ đề cần tập trung: ${(phase.topics || []).join(', ')}`;
+    let userPrompt = `Context: Study Plan "${planTitle}"
+Generate 10 multiple choice questions about the phase: ${phase.name}
+Topics to focus on: ${(phase.topics || []).join(', ')}`;
 
     if (docContext) {
-      userPrompt += `\n\n=== NỘI DUNG TỪ TÀI LIỆU (${docContext.fileName}) ===\n${docContext.contentBlock}\n\nYÊU CẦU: Tạo câu hỏi bám sát 100% nội dung tài liệu này. Không bịa đặt kiến thức ngoài tài liệu.`;
+      userPrompt += `\n\n=== CONTENT FROM DOCUMENT (${docContext.fileName}) ===\n${docContext.contentBlock}\n\nREQUIREMENT: Generate questions strictly based 100% on this document. Do not invent facts outside of the document.`;
     }
 
-    userPrompt += `\nCHI TRA VE JSON.`;
+    userPrompt += `\nONLY RETURN JSON.`;
 
     if (config.aiProvider === 'gemini' && config.geminiKey) {
       let geminiModel = config.selectedModel || 'gemini-2.0-flash';

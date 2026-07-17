@@ -4,6 +4,7 @@ import { Provider, connect } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 import { store, persistor } from './store';
 import Dashboard from './features/dashboard/Dashboard';
@@ -79,6 +80,18 @@ class App extends Component {
     if (syncResult?.syncError) {
       console.warn('[App] Using cached profile while background sync is unavailable:', syncResult.syncError);
     }
+    
+    // Fetch temporary AWS Credentials via Cognito Identity Pool
+    try {
+      const session = await fetchAuthSession();
+      if (session?.credentials && window.api?.invoke) {
+        await window.api.invoke('aws:setCredentials', session.credentials);
+        console.info('[App] Forwarded temporary AWS credentials to main process');
+      }
+    } catch (err) {
+      console.warn('[App] Failed to fetch AWS credentials:', err);
+    }
+
     if (window.api?.send) window.api.send('login-success');
   };
 

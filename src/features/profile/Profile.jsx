@@ -3,10 +3,10 @@ import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
-  personCircleOutline, starOutline, cubeOutline, imageOutline
+  personCircleOutline, starOutline, cubeOutline, imageOutline, pawOutline
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
-import { cosmeticManager } from '../../services/cosmeticServices';
+import { cosmeticManager, assetUrl } from '../../services/cosmeticServices';
 import { getInventoryItem } from '../../services/profileService';
 import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
 import './Profile.scss';
@@ -42,22 +42,6 @@ const backgroundId = (background) => cosmeticId(background);
 const resolveBackground = (background) => {
   if (background && typeof background === 'object') return background;
   return cosmeticManager.getCosmeticInfo('backgrounds', background);
-};
-
-const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
-
-const normalizeBase = (base) => (base || '').replace(/\/+$/, '');
-const normalizeAssetPath = (path) => (path || '').replace(/^\/+/, '').replace(/\\/g, '/');
-const assetUrl = (path) => {
-  if (!path) return '';
-  if (/^https?:\/\//i.test(path)) return path;
-
-  const normalizedPath = normalizeAssetPath(path).replace(/^public-assets\//, '');
-  const s3Path = normalizedPath.startsWith('items/')
-    ? normalizedPath
-    : `items/${normalizedPath}`;
-
-  return `${normalizeBase(S3_ASSETS_BASE)}/${s3Path}`;
 };
 
 const normalizeInventoryItemId = (item) => {
@@ -130,6 +114,7 @@ class Profile extends Component {
     backgrounds: 'background',
     frames: 'frame',
     titles: 'title',
+    pets: 'pet',
   })[tab] || null;
 
   loadInventoryForTab = async (tab) => {
@@ -204,10 +189,12 @@ class Profile extends Component {
       currentFrame,
       currentBackground,
       currentSystemIcon,
+      currentPet,
       onTitleChange,
       onFrameChange,
       onBackgroundChange,
       onSystemIconChange,
+      onPetChange,
       t,
     } = this.props;
     const translate = typeof t === 'function' ? t : (key) => key;
@@ -335,6 +322,69 @@ class Profile extends Component {
       );
     }
 
+    if (activeTab === 'pets') {
+      const equippedPet = currentPet !== undefined ? currentPet : (localStorage.getItem('equippedPet') || null);
+      
+      const dbPets = this.getEquippableCosmetics('pets', 'pet');
+      const combinedPets = [];
+      
+      dbPets.forEach(dbPet => {
+        combinedPets.push({
+          id: dbPet.id,
+          name: dbPet.name || dbPet.id,
+          width: dbPet.width || 32,
+          height: dbPet.height || 32,
+          backgroundImage: `url('${assetUrl(dbPet.assets?.sitting || dbPet.assets?.idle || dbPet.imageUrl)}')`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'left top',
+          backgroundSize: 'auto 100%',
+          isLocked: !dbPet.unlocked
+        });
+      });
+
+      return (
+        <div className="backgrounds-grid">
+          {combinedPets.map(pet => {
+            const isEquipped = equippedPet === pet.id;
+            return (
+              <div 
+                key={pet.id}
+                className={`background-card ${isEquipped ? 'equipped' : ''} ${pet.isLocked ? 'locked' : ''}`}
+                onClick={() => {
+                  if (pet.isLocked) return;
+                  if (onPetChange) {
+                    onPetChange(isEquipped ? null : pet.id);
+                  } else {
+                    localStorage.setItem('equippedPet', pet.id);
+                    window.dispatchEvent(new CustomEvent('petChanged', { detail: pet.id }));
+                  }
+                  this.forceUpdate();
+                }}
+              >
+                <div className="bg-preview" style={{ 
+                  display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#1e293b' 
+                }}>
+                  <div style={{
+                    width: pet.width,
+                    height: pet.height,
+                    backgroundImage: pet.backgroundImage,
+                    backgroundRepeat: pet.backgroundRepeat,
+                    backgroundPosition: pet.backgroundPosition,
+                    backgroundSize: pet.backgroundSize,
+                    imageRendering: 'pixelated',
+                    transform: 'scale(1.5)'
+                  }} />
+                </div>
+                <div className="bg-info">
+                  <span className="bg-name">{pet.name}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -411,6 +461,9 @@ class Profile extends Component {
           </button>
           <button className={`nav-tab ${activeTab === 'systemIcons' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'systemIcons' })}>
             <IonIcon icon={cubeOutline} /> {this.props.t('profile.system_glyphs')}
+          </button>
+          <button className={`nav-tab ${activeTab === 'pets' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'pets' })}>
+            <IonIcon icon={pawOutline} /> {this.props.t('profile.pets', 'Pets')}
           </button>
         </div>
 

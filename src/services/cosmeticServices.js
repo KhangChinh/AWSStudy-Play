@@ -76,6 +76,7 @@ const imageBackgroundStyles = (imageUrl) => {
 class CosmeticManager {
   constructor() {
     this.data = JSON.parse(JSON.stringify(COSMETICS));
+    this.data.pets = this.data.pets || [];
     this.masterItems = [];
   }
 
@@ -87,6 +88,7 @@ class CosmeticManager {
       background: 'backgrounds',
       frame: 'frames',
       title: 'titles',
+      pet: 'pets',
     };
 
     items.forEach(item => {

@@ -25,6 +25,7 @@ import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticSe
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import MinigameWidget from '../minihub/MinigameWidget';
+import PetOverlay from '../pet/PetOverlay';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
@@ -147,6 +148,7 @@ class Dashboard extends Component {
       currentBackground: LOCAL_DEFAULT_BACKGROUND_ID,
       currentTitle: 'title_none',
       currentFrame: 'frame_none',
+      currentPet: null,
       currentSystemIcon: 'icon_default',
       animationsEnabled: true,
       isVacuuming: false,
@@ -227,6 +229,7 @@ class Dashboard extends Component {
       backgroundId: cosmeticId(cosmetics.equippedBackground) || LOCAL_DEFAULT_BACKGROUND_ID,
       frameId: cosmeticId(cosmetics.equippedFrame) || 'frame_none',
       titleId: cosmeticId(cosmetics.equippedTitles?.[0]) || 'title_none',
+      petId: cosmeticId(cosmetics.equippedPet) || null,
     };
   };
 
@@ -237,6 +240,7 @@ class Dashboard extends Component {
       currentBackground: equipped.backgroundId,
       currentFrame: equipped.frameId,
       currentTitle: equipped.titleId,
+      currentPet: equipped.petId,
       currentRank: getTierFromRP(rp),
     });
   };
@@ -365,13 +369,15 @@ class Dashboard extends Component {
     const previousTitle = this.state.currentTitle;
     const backgroundIdToSave = toServerBackgroundId(backgroundId(this.state.currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID);
     const frameIdToSave = cosmeticId(this.state.currentFrame);
+    const petIdToSave = cosmeticId(this.state.currentPet) || null;
 
     this.setState({ currentTitle: newTitleId });
     try {
       const result = await handleEquipCosmeticsApi({
         backgroundId: backgroundIdToSave,
         frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
-        titles: newTitleId === 'title_none' ? [] : [newTitleId]
+        titles: newTitleId === 'title_none' ? [] : [newTitleId],
+        petId: petIdToSave
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
@@ -384,13 +390,15 @@ class Dashboard extends Component {
     const previousFrame = this.state.currentFrame;
     const backgroundIdToSave = toServerBackgroundId(backgroundId(this.state.currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID);
     const titleIdToSave = cosmeticId(this.state.currentTitle);
+    const petIdToSave = cosmeticId(this.state.currentPet) || null;
 
     this.setState({ currentFrame: newFrameId });
     try {
       const result = await handleEquipCosmeticsApi({
         backgroundId: backgroundIdToSave,
         frameId: newFrameId === 'frame_none' ? null : newFrameId,
-        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave]
+        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave],
+        petId: petIdToSave
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
@@ -408,18 +416,42 @@ class Dashboard extends Component {
     const bgId = backgroundId(newBackground) || LOCAL_DEFAULT_BACKGROUND_ID;
     const frameIdToSave = cosmeticId(this.state.currentFrame);
     const titleIdToSave = cosmeticId(this.state.currentTitle);
+    const petIdToSave = cosmeticId(this.state.currentPet) || null;
 
     this.setState({ currentBackground: bgId });
     try {
       const result = await handleEquipCosmeticsApi({
         backgroundId: toServerBackgroundId(bgId),
         frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
-        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave]
+        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave],
+        petId: petIdToSave
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
       this.setState({ currentBackground: previousBackground });
       console.warn('Sync Background fail:', e);
+    }
+  };
+
+  handlePetChange = async (newPetId) => {
+    const previousPet = this.state.currentPet;
+    const backgroundIdToSave = toServerBackgroundId(backgroundId(this.state.currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID);
+    const frameIdToSave = cosmeticId(this.state.currentFrame);
+    const titleIdToSave = cosmeticId(this.state.currentTitle);
+    const petIdToSave = cosmeticId(newPetId) || null;
+
+    this.setState({ currentPet: petIdToSave });
+    try {
+      const result = await handleEquipCosmeticsApi({
+        backgroundId: backgroundIdToSave,
+        frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
+        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave],
+        petId: petIdToSave
+      });
+      await this.saveEquippedProfile(result?.profile);
+    } catch (e) {
+      this.setState({ currentPet: previousPet });
+      console.warn('Sync Pet fail:', e);
     }
   };
 
@@ -811,6 +843,7 @@ class Dashboard extends Component {
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
+        <PetOverlay equippedPet={this.state.currentPet} />
         {shouldRenderDesktopEffects && this.renderDesktopLineBackground(activeBgId)}
         {animationsEnabled && hasCustomBackgroundCss && (
           <div className={`desktop-line-bg custom-background-effects bg-${activeBgId}`} aria-hidden="true" />
@@ -947,6 +980,7 @@ class Dashboard extends Component {
                   currentBackground: this.state.currentBackground,
                   currentTitle: this.state.currentTitle,
                   currentFrame: this.state.currentFrame,
+                  currentPet: this.state.currentPet,
                   currentRank: this.state.currentRank,
                   currentSystemIcon: this.state.currentSystemIcon,
                   animationsEnabled: this.state.animationsEnabled,
@@ -956,6 +990,7 @@ class Dashboard extends Component {
                   onFrameChange: this.handleFrameChange,
                   onBackgroundChange: this.handleBackgroundChange,
                   onSystemIconChange: this.handleSystemIconChange,
+                  onPetChange: this.handlePetChange,
                   t,
                   i18n,
                   })}
