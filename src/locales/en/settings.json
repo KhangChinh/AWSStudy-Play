@@ -16,5 +16,17 @@
   "vietnamese": "Vietnamese",
   "rename_error": "Failed to update name. Please try again!",
   "change_image": "Change Image",
-  "ai_saved": "AI settings saved successfully."
+  "ai_saved": "AI settings saved successfully.",
+  "profile_tab": "Profile",
+  "ai_settings": "AI Settings",
+  "ai_settings_desc": "Configure local and cloud AI providers for application features.",
+  "ai_youtube_blocker": "AI YouTube Blocker",
+  "ai_study_planner": "AI Study Planner",
+  "save_ai_settings": "Save AI Settings",
+  "select_model": "Select Model",
+  "scanning_models": "Scanning...",
+  "select_a_model": "Select a model",
+  "gemini_api_key": "Gemini API Key",
+  "gemini_api_key_placeholder": "Enter Gemini API Key...",
+  "bedrock_ready": "Amazon Bedrock — Ready"
 }

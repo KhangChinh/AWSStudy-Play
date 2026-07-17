@@ -10,6 +10,7 @@ import {
 
 import { handleStartSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi } from '../../../../services/minigameServices';
 import { setProfile } from '../../../../store/actions/profileActions';
+import UserAvatar from '../../../../components/UserAvatar';
 import { toast } from 'react-toastify';
 import './SudokuGame.scss';
 import {
@@ -879,19 +880,25 @@ const SudokuGame = ({ onClose }) => {
                             </td>
                           </tr>
                         ) : (
-                          sudokuLeaderboard[leaderboardTab].data.map((entry) => {
+                          sudokuLeaderboard[leaderboardTab].data.map((entry, index) => {
                             const isCurrentUser = entry.userId === userInfo.UserId;
+                            const rank = entry.rank ?? index + 1;
                             return (
                               <tr key={entry.userId} className={isCurrentUser ? 'current-user-row' : ''}>
                                 <td className="col-rank">
-                                  {entry.rank === 1 && <span className="rank-badge gold">1</span>}
-                                  {entry.rank === 2 && <span className="rank-badge silver">2</span>}
-                                  {entry.rank === 3 && <span className="rank-badge bronze">3</span>}
-                                  {entry.rank > 3 && entry.rank}
+                                  {rank === 1 && <span className="rank-badge gold">1</span>}
+                                  {rank === 2 && <span className="rank-badge silver">2</span>}
+                                  {rank === 3 && <span className="rank-badge bronze">3</span>}
+                                  {rank > 3 && rank}
                                 </td>
                                 <td className="col-username">
+                                  <UserAvatar
+                                    avatarUrl={entry.displayInfo?.avatarUrl}
+                                    alt={entry.displayInfo?.name || 'avatar'}
+                                    className="leaderboard-avatar"
+                                  />
                                   <span className="username-text">
-                                    {entry.displayInfo?.username || entry.userId || 'Vô danh'}
+                                    {entry.displayInfo?.name || entry.displayInfo?.username || entry.userId || 'Vô danh'}
                                   </span>
                                   {isCurrentUser && <span className="current-user-tag">Bạn</span>}
                                 </td>

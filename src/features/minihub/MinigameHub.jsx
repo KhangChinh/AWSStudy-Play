@@ -2,13 +2,14 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withTranslation } from 'react-i18next';
 import { IonIcon } from '@ionic/react';
-import { playOutline, trophyOutline, timeOutline, gameControllerOutline } from 'ionicons/icons';
+import { playOutline, trophyOutline, gameControllerOutline } from 'ionicons/icons';
 
 import './MinigameHub.scss';
 
 import { handleSyncSudokuLevels, handleGetLeaderboardApi } from '../../services/minigameServices';
 import { toast } from 'react-toastify';
 import SudokuGame from './games/sudoku/SudokuGame.jsx';
+import UserAvatar from '../../components/UserAvatar';
 
 const MINIGAMES = [
   { id: 'all', label: 'Tổng Wins', icon: '🏅' },
@@ -46,23 +47,15 @@ const ArcadeList = ({ onPlayGame }) => (
   </div>
 );
 
-const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, leaderboardData }) => {
+const LeaderboardView = ({ minigameFilter, setMinigameFilter, leaderboardData }) => {
   return (
     <div className="leaderboard-section">
       <div className="section-header">
         <h3><IonIcon icon={trophyOutline} /> Hall of Fame</h3>
-        <div className="tabs">
-          <button className={tab === 'study' ? 'active' : ''} onClick={() => setTab('study')}>
-            <IonIcon icon={timeOutline} /> Study
-          </button>
-          <button className={tab === 'minigame' ? 'active' : ''} onClick={() => setTab('minigame')}>
-            <IonIcon icon={gameControllerOutline} /> Minigame
-          </button>
-        </div>
+
       </div>
 
-      {tab === 'minigame' && (
-        <div className="minigame-filter">
+      <div className="minigame-filter">
           <select
             className="minigame-select"
             value={minigameFilter}
@@ -72,8 +65,7 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, leade
               <option key={g.id} value={g.id}>{g.icon} {g.label}</option>
             ))}
           </select>
-        </div>
-      )}
+      </div>
 
       <div className="rank-list">
         {leaderboardData && leaderboardData.length > 0 ? (
@@ -84,14 +76,15 @@ const LeaderboardView = ({ tab, minigameFilter, setTab, setMinigameFilter, leade
               </div>
               <div className="player-info">
                 <div className="player-avatar">
-                  <img src={player.displayInfo?.avatarUrl || 'avatars/default_avatar.jpg'} alt="avt" style={{ width: 40, borderRadius: '50%' }} />
+                  <UserAvatar
+                    avatarUrl={player.displayInfo?.avatarUrl}
+                    alt={player.displayInfo?.name || 'avatar'}
+                    style={{ width: 40, borderRadius: '50%' }}
+                  />
                 </div>
                 <div className="player-details">
                   <div className="name-with-title">
                     <span className="player-name">{player.displayInfo?.name || 'Ẩn danh'}</span>
-                    <span className="player-title" style={{ color: i === 0 ? '#a855f7' : i < 3 ? '#f87171' : '#94a3b8' }}>
-                      [{i === 0 ? 'Đại Gia' : i < 3 ? 'Chiến Thần' : 'Tân Thủ'}]
-                    </span>
                   </div>
                   <span className="player-rank-title">Màn đã qua: {player.levelsCompleted || 0}</span>
                 </div>
@@ -212,9 +205,7 @@ class MinigameHub extends Component {
         <ArcadeList onPlayGame={this.handlePlayGame} />
 
         <LeaderboardView
-          tab={tab}
           minigameFilter={minigameFilter}
-          setTab={this.setTab}
           setMinigameFilter={this.setMinigameFilter}
           leaderboardData={currentBoardData}
         />

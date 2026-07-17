@@ -5,6 +5,7 @@
 
 import { getValidAccessToken } from './tokenService';
 import { ingestErrorResponse } from './apiErrorService';
+import { ingestServerData } from './syncService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -28,7 +29,9 @@ export const handleGetFriendsApi = async (lastKey = null) => {
       const errorData = await ingestErrorResponse(response);
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return await response.json();
+    const result = await response.json();
+    await ingestServerData(result);
+    return result;
   } catch (e) {
     console.warn('Error getting friends:', e);
     return { errCode: -1, errMessage: e.message };
@@ -55,7 +58,9 @@ export const handleSendFriendRequestApi = async (targetUserId) => {
       const errorData = await ingestErrorResponse(response);
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return await response.json();
+    const result = await response.json();
+    await ingestServerData(result);
+    return result;
   } catch (e) {
     console.warn('Error sending friend request:', e);
     return { errCode: -1, errMessage: e.message };
@@ -82,7 +87,9 @@ export const handleAcceptFriendApi = async (targetUserId) => {
       const errorData = await ingestErrorResponse(response);
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return await response.json();
+    const result = await response.json();
+    await ingestServerData(result);
+    return result;
   } catch (e) {
     console.warn('Error accepting friend:', e);
     return { errCode: -1, errMessage: e.message };
@@ -109,7 +116,9 @@ export const handleRemoveFriendApi = async (targetUserId) => {
       const errorData = await ingestErrorResponse(response);
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return await response.json();
+    const result = await response.json();
+    await ingestServerData(result);
+    return result;
   } catch (e) {
     console.warn('Error removing friend:', e);
     return { errCode: -1, errMessage: e.message };
@@ -136,7 +145,9 @@ export const handleSearchUsersApi = async (keyword) => {
       const errorData = await ingestErrorResponse(response);
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return await response.json();
+    const result = await response.json();
+    await ingestServerData(result);
+    return result;
   } catch (e) {
     console.warn('Error searching users:', e);
     return { errCode: -1, errMessage: e.message };
@@ -161,7 +172,9 @@ export const handleGetLeaderboardApi = async (gameId) => {
       const errorData = await ingestErrorResponse(response);
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return await response.json();
+    const result = await response.json();
+    await ingestServerData(result);
+    return result;
   } catch (e) {
     console.warn('Error getting leaderboard:', e);
     return { errCode: -1, errMessage: e.message };

@@ -277,9 +277,6 @@ class SocialApp extends Component {
 
     // Tự động đồng bộ lại danh sách bạn bè sau khi thực hiện action thành công
     // (hoặc nếu action thất bại do state lệch, cũng nên sync lại)
-    if (type !== 'request') {
-      this.fetchFriends(true);
-    }
     this.setState({ isActionLoading: null });
   };
 
@@ -431,7 +428,7 @@ class SocialApp extends Component {
                   </div>
                   <div className="user-details">
                     <span className="user-name">{user.name}</span>
-                    <span className="user-meta">{t('common.streak')}: {user.streak || 0} - {user.titles?.[0] || t('titles.newbie.name')}</span>
+                    <span className="user-meta">{t('common.streak')}: {user.streak || 0}</span>
                   </div>
                   <button
                     className="add-btn"

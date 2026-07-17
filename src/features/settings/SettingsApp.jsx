@@ -214,12 +214,12 @@ const SettingsApp = ({
         <div className="ai-row-content">
           {setting.provider === 'ollama' && (
             <div className="input-group">
-              <label>Select Model</label>
+              <label>{t('settings.select_model')}</label>
               <select
                 value={setting.selectedModel}
                 onChange={(e) => handleAiSettingChange(featureKey, 'selectedModel', e.target.value)}
               >
-                <option value="">-- {isFetchingModels ? 'Scanning...' : 'Select a model'} --</option>
+                <option value="">-- {isFetchingModels ? t('settings.scanning_models') : t('settings.select_a_model')} --</option>
                 {ollamaModels.map(model => (
                   <option key={model.name} value={model.name}>{model.name}</option>
                 ))}
@@ -228,10 +228,10 @@ const SettingsApp = ({
           )}
           {setting.provider === 'gemini' && (
             <div className="input-group">
-              <label>Gemini API Key</label>
+              <label>{t('settings.gemini_api_key')}</label>
               <input
                 type="password"
-                placeholder="Enter Gemini API Key..."
+                placeholder={t('settings.gemini_api_key_placeholder')}
                 value={setting.apiKey}
                 onChange={(e) => handleAiSettingChange(featureKey, 'apiKey', e.target.value)}
               />
@@ -241,7 +241,7 @@ const SettingsApp = ({
             <div className="bedrock-ready">
               <span className="bedrock-icon">☁️</span>
               <div>
-                <p className="bedrock-ready-title">Amazon Bedrock — Sẵn sàng</p>
+                <p className="bedrock-ready-title">{t('settings.bedrock_ready')}</p>
               </div>
             </div>
           )}
@@ -257,13 +257,13 @@ const SettingsApp = ({
 
       <div className="settings-tabs">
         <button className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
-          <IonIcon icon={personOutline} /> Profile
+          <IonIcon icon={personOutline} /> {t('settings.profile_tab')}
         </button>
         <button className={`tab-btn ${activeTab === 'preferences' ? 'active' : ''}`} onClick={() => setActiveTab('preferences')}>
-          <IonIcon icon={globeOutline} /> Preferences
+          <IonIcon icon={globeOutline} /> {t('settings.preferences')}
         </button>
         <button className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveTab('ai')}>
-          <IonIcon icon={hardwareChipOutline} /> AI Settings
+          <IonIcon icon={hardwareChipOutline} /> {t('settings.ai_settings')}
         </button>
       </div>
 
@@ -378,17 +378,17 @@ const SettingsApp = ({
         {activeTab === 'ai' && (
           <div className="tab-pane">
             <div className="section">
-              <h3><IonIcon icon={hardwareChipOutline} /> AI Settings</h3>
-              <p className="section-desc">Configure local and cloud AI providers for application features.</p>
+              <h3><IonIcon icon={hardwareChipOutline} /> {t('settings.ai_settings')}</h3>
+              <p className="section-desc">{t('settings.ai_settings_desc')}</p>
               
               <div className="ai-settings-list">
-                {renderAiRow('blocker', 'AI YouTube Blocker')}
-                {renderAiRow('studyPlanner', 'AI StudyPlanner')}
+                {renderAiRow('blocker', t('settings.ai_youtube_blocker'))}
+                {renderAiRow('studyPlanner', t('settings.ai_study_planner'))}
               </div>
 
               <div className="ai-settings-actions">
                 <button className="btn-save-ai" onClick={handleSaveAiSettings}>
-                  <IonIcon icon={saveOutline} /> Save AI Settings
+                  <IonIcon icon={saveOutline} /> {t('settings.save_ai_settings')}
                 </button>
               </div>
             </div>

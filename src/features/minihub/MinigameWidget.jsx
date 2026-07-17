@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { IonIcon } from '@ionic/react';
 import { gameControllerOutline, playOutline } from 'ionicons/icons';
 import { handleGetLeaderboardApi } from '../../services/minigameServices';
-import { resolveAvatarUrl } from '../../utils/avatarUrl';
+import UserAvatar from '../../components/UserAvatar';
 import './MinigameWidget.scss';
 
 const MinigameWidget = ({ onOpenMinigame }) => {
@@ -70,7 +70,10 @@ const MinigameWidget = ({ onOpenMinigame }) => {
                          {idx === 0 ? '🏆' : idx === 1 ? '🥈' : '🥉'}
                       </span>
                       <div className="mw-lb-user">
-                        <img src={resolveAvatarUrl(player.displayInfo?.avatarUrl)} alt="avt" />
+                        <UserAvatar
+                          avatarUrl={player.displayInfo?.avatarUrl}
+                          alt={player.displayInfo?.name || 'avatar'}
+                        />
                         <span className="mw-lb-name">{player.displayInfo?.name || 'Ẩn danh'}</span>
                       </div>
                       <span className="mw-lb-score">{player.totalScore?.toLocaleString() || 0} pts</span>

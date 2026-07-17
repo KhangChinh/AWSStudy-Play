@@ -42,5 +42,9 @@
   "hard_mode_cannot_stop": "Hard Mode - Không thể dừng",
   "stop_session": "Dừng session",
   "paused": "Tạm dừng",
-  "resume": "Tiếp tục"
+  "resume": "Tiếp tục",
+  "rank_mode_short": "Xếp hạng",
+  "start": "BẮT ĐẦU",
+  "ranked_match": "TRẬN XẾP HẠNG",
+  "casual_match": "TRẬN THƯỜNG"
 }

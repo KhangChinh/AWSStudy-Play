@@ -1164,6 +1164,15 @@
           gap: 6px;
           height: 38px;
 
+          .leaderboard-avatar {
+            width: 28px;
+            height: 28px;
+            flex: 0 0 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+          }
+
           .username-text {
             max-width: 140px;
             overflow: hidden;

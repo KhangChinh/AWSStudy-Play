@@ -409,7 +409,7 @@ class Dashboard extends Component {
     const frameIdToSave = cosmeticId(this.state.currentFrame);
     const titleIdToSave = cosmeticId(this.state.currentTitle);
 
-    this.setState({ currentBackground: bgId });
+    this.setState({ currentBackground: newBackground });
     try {
       const result = await handleEquipCosmeticsApi({
         backgroundId: toServerBackgroundId(bgId),
