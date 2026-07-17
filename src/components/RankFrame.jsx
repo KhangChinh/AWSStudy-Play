@@ -51,6 +51,17 @@ const RankFrame = ({ tier = 'none', size = 96, children, className = '', frameAs
     setIsExternalFrameReady(false);
   }, [frameAssetUrl]);
 
+  if (tier === 'none') {
+    return (
+      <div
+        className={`rank-frame-badge rank-frame-none ${className}`}
+        style={{ width: size, '--rf-icon': `${Math.round(size * 0.38)}px` }}
+      >
+        <div className="rf-window">{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`rank-frame-badge rank-frame-${tier} ${isExternalFrameReady ? 'has-external-art' : ''} ${className}`}

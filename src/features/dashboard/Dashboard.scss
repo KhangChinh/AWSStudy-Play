@@ -510,7 +510,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 12px 20px;
+  padding: 1px 20px;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1971,7 +1971,7 @@
 
 .user-profile-widget {
   background: rgba(3, 12, 28, 0.58);
-  border-radius: 18px;
+  border-radius: 12px;
 
   &:hover {
     background: rgba(3, 12, 28, 0.72);

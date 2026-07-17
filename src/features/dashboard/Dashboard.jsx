@@ -99,7 +99,7 @@ const UserProfileWidget = ({
 
   return (
     <button type="button" className={`user-profile-widget rank-${currentRank}`} onClick={onClick} aria-label={t('common.profile')}>
-      <RankFrame tier={frameTier} size={64} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
+      <RankFrame tier={frameTier} size={75} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
         {userProfile?.information?.avatarUrl ? (
           <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img" onError={useDefaultAvatarOnError} />
         ) : (
