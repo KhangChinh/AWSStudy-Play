@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "author": "Uchimi",
+  "description": "Study Play desktop application",
   "type": "module",
   "main": "electron/main/index.js",
   "scripts": {
@@ -26,7 +27,9 @@
     },
     "win": {
       "icon": "build/icon.png",
-      "publisherName": "Uchimi",
+      "signtoolOptions": {
+        "publisherName": "Uchimi"
+      },
       "target": [
         "nsis"
       ]
