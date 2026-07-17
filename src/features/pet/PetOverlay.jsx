@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { cosmeticManager, assetUrl } from '../../services/cosmeticServices';
+import { getPetConfig } from './petConfig';
 import './PetOverlay.scss';
 
 const GRAVITY = 0.5;
@@ -7,11 +8,10 @@ const WALK_SPEED = 2;
 const JUMP_SPEED_Y = -12;
 const JUMP_SPEED_X = 3;
 const TASKBAR_HEIGHT = 48;
+const COLLISION_REFRESH_MS = 250;
 
 const PetOverlay = ({ equippedPet }) => {
   const [petId, setPetId] = useState(equippedPet !== undefined ? equippedPet : (localStorage.getItem('equippedPet') || null));
-  const [pos, setPos] = useState({ x: 100, y: 0 });
-  const [vel, setVel] = useState({ x: 0, y: 0 });
   const [state, setState] = useState('Idle');
   const [dir, setDir] = useState('right');
   const [frame, setFrame] = useState(0);
@@ -19,6 +19,10 @@ const PetOverlay = ({ equippedPet }) => {
   const [isDead, setIsDead] = useState(false);
   const [actualFrames, setActualFrames] = useState({});
   const actualFramesRef = useRef({});
+  const elementRef = useRef(null);
+  const groundRectsRef = useRef([]);
+  const posRef = useRef({ x: 100, y: 0 });
+  const velRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     actualFramesRef.current = actualFrames;
@@ -26,8 +30,9 @@ const PetOverlay = ({ equippedPet }) => {
   
   const dbPet = cosmeticManager.getCosmeticInfo('pets', petId);
   
-  const pet = React.useMemo(() => {
+  const pet = useMemo(() => {
     if (!dbPet) return null;
+    const fallbackConfig = getPetConfig(petId, dbPet);
     
     const allAnims = {
       Idle: { file: dbPet.assets?.sitting || dbPet.assets?.idle, frames: 4, speed: 150 },
@@ -45,12 +50,13 @@ const PetOverlay = ({ equippedPet }) => {
     const validAnimations = {};
     for (const [key, config] of Object.entries(allAnims)) {
       if (config.file) {
+        const fallbackAnimation = fallbackConfig.animations?.[key] || {};
         validAnimations[key] = {
           fileUrl: assetUrl(config.file),
-          frames: config.frames,
-          speed: config.speed,
-          loop: config.loop !== false,
-          type: config.file.endsWith('.gif') ? 'gif' : 'sprite'
+          frames: fallbackAnimation.frames || config.frames,
+          speed: fallbackAnimation.speed || config.speed,
+          loop: fallbackAnimation.loop !== false && config.loop !== false,
+          type: fallbackAnimation.type || (config.file.endsWith('.gif') ? 'gif' : 'sprite')
         };
       }
     }
@@ -67,15 +73,17 @@ const PetOverlay = ({ equippedPet }) => {
 
     return dbPet ? {
       name: dbPet.name || petId,
-      width: dbPet.width || 32,
-      height: dbPet.height || 32,
+      width: dbPet.width || fallbackConfig.width || 32,
+      height: dbPet.height || fallbackConfig.height || 32,
       isDbPet: true,
       animations: validAnimations
     } : null;
-  }, [dbPet]);
+  }, [dbPet, petId]);
 
   // Preload images and calculate actual frames
   useEffect(() => {
+    setActualFrames({});
+    actualFramesRef.current = {};
     if (!pet) return;
     const framesMap = {};
     let loadedCount = 0;
@@ -92,14 +100,14 @@ const PetOverlay = ({ equippedPet }) => {
            framesMap[key] = computedFrames;
            loadedCount++;
            if (loadedCount === animEntries.length) {
-              setActualFrames(prev => ({...prev, ...framesMap}));
+              setActualFrames({ ...framesMap });
            }
         };
         img.onerror = () => {
            framesMap[key] = anim.frames; // fallback
            loadedCount++;
            if (loadedCount === animEntries.length) {
-              setActualFrames(prev => ({...prev, ...framesMap}));
+              setActualFrames({ ...framesMap });
            }
         };
         img.src = anim.fileUrl;
@@ -109,13 +117,10 @@ const PetOverlay = ({ equippedPet }) => {
     });
   }, [pet]);
 
-  const posRef = useRef(pos);
-  const velRef = useRef(vel);
   const stateRef = useRef(state);
   const dirRef = useRef(dir);
   const isDraggingRef = useRef(isDragging);
   const frameTimerRef = useRef(null);
-  const behaviorTimerRef = useRef(null);
   const deathTimerRef = useRef(null);
   const targetRef = useRef(null);
 
@@ -124,7 +129,8 @@ const PetOverlay = ({ equippedPet }) => {
       setPetId(e.detail);
       setState('Idle');
       setIsDead(false);
-      setPos(p => ({ ...p, y: window.innerHeight - TASKBAR_HEIGHT }));
+      const nextPos = { ...posRef.current, y: window.innerHeight - TASKBAR_HEIGHT };
+      posRef.current = nextPos;
     };
     window.addEventListener('petChanged', handlePetChange);
     return () => window.removeEventListener('petChanged', handlePetChange);
@@ -135,13 +141,12 @@ const PetOverlay = ({ equippedPet }) => {
       setPetId(equippedPet);
       setState('Idle');
       setIsDead(false);
-      setPos(p => ({ ...p, y: window.innerHeight - TASKBAR_HEIGHT }));
+      const nextPos = { ...posRef.current, y: window.innerHeight - TASKBAR_HEIGHT };
+      posRef.current = nextPos;
     }
-  }, [equippedPet]);
+  }, [equippedPet, petId]);
 
   // Update refs
-  useEffect(() => { posRef.current = pos; }, [pos]);
-  useEffect(() => { velRef.current = vel; }, [vel]);
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { dirRef.current = dir; }, [dir]);
   useEffect(() => { isDraggingRef.current = isDragging; }, [isDragging]);
@@ -174,17 +179,25 @@ const PetOverlay = ({ equippedPet }) => {
     }
 
     return () => clearInterval(frameTimerRef.current);
-  }, [pet, state, isDead]);
+  }, [actualFrames, pet, state, isDead]);
 
-  const getGroundY = (x, petWidth) => {
+  useEffect(() => {
+    const refresh = () => {
+      groundRectsRef.current = Array.from(document.querySelectorAll('.dashboard-currency-panel, .desktop-friends-widget, .desktop-focus-control-center'), node => node.getBoundingClientRect());
+    };
+    refresh();
+    const interval = setInterval(refresh, COLLISION_REFRESH_MS);
+    window.addEventListener('resize', refresh);
+    return () => { clearInterval(interval); window.removeEventListener('resize', refresh); };
+  }, []);
+
+  const getGroundY = useCallback((x, petWidth) => {
     let highestGround = window.innerHeight - TASKBAR_HEIGHT;
-    // Check valid widgets (Currency, Friends, Rank)
-    const widgets = document.querySelectorAll('.dashboard-currency-panel, .desktop-friends-widget, .desktop-focus-control-center');
+    const widgets = groundRectsRef.current;
     const petLeft = x;
     const petRight = x + petWidth;
 
-    widgets.forEach(w => {
-      const rect = w.getBoundingClientRect();
+    widgets.forEach(rect => {
       // Check horizontal overlap
       if (petRight > rect.left && petLeft < rect.right) {
         // If the widget is above the taskbar and below the pet's current position (or we are falling on it)
@@ -196,7 +209,7 @@ const PetOverlay = ({ equippedPet }) => {
       }
     });
     return highestGround - pet.height + 12;
-  };
+  }, [pet]);
 
   // Physics & Behavior Loop
   useEffect(() => {
@@ -241,7 +254,7 @@ const PetOverlay = ({ equippedPet }) => {
                   setTimeout(() => {
                     setIsDead(false);
                     setState('Idle');
-                    setPos({ x: window.innerWidth / 2, y: -100 }); // respawn from sky
+                    posRef.current = { x: window.innerWidth / 2, y: -100 }; // respawn from sky
                   }, 5000);
                 }, 1500);
                 return;
@@ -297,8 +310,12 @@ const PetOverlay = ({ equippedPet }) => {
       }
 
       if (!isDraggingRef.current) {
-        setPos({ x, y });
-        setVel({ x: vx, y: vy });
+        posRef.current = { x, y };
+        velRef.current = { x: vx, y: vy };
+        if (elementRef.current) {
+          elementRef.current.style.left = x + 'px';
+          elementRef.current.style.top = y + 'px';
+        }
       }
 
       animationFrameId = requestAnimationFrame(loop);
@@ -307,7 +324,7 @@ const PetOverlay = ({ equippedPet }) => {
     animationFrameId = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [pet, isDead]);
+  }, [pet, isDead, getGroundY]);
 
   // AI Behavior
   useEffect(() => {
@@ -339,7 +356,7 @@ const PetOverlay = ({ equippedPet }) => {
         }
       } else if (rand < 0.2 && pet.animations.Jump) {
          nextState = 'Jump';
-         setVel({ x: dirRef.current === 'right' ? JUMP_SPEED_X : -JUMP_SPEED_X, y: JUMP_SPEED_Y });
+         velRef.current = { x: dirRef.current === 'right' ? JUMP_SPEED_X : -JUMP_SPEED_X, y: JUMP_SPEED_Y };
          targetRef.current = null;
          const jumpFrames = actualFramesRef.current['Jump'] || pet.animations.Jump.frames;
          delay = (jumpFrames * pet.animations.Jump.speed) || 1000;
@@ -390,10 +407,12 @@ const PetOverlay = ({ equippedPet }) => {
 
   const handlePointerMove = (e) => {
     if (!isDragging) return;
-    setPos(p => ({
-      x: e.clientX - pet.width / 2,
-      y: e.clientY - pet.height / 2
-    }));
+    const nextPos = { x: e.clientX - pet.width / 2, y: e.clientY - pet.height / 2 };
+    posRef.current = nextPos;
+    if (elementRef.current) {
+      elementRef.current.style.left = nextPos.x + 'px';
+      elementRef.current.style.top = nextPos.y + 'px';
+    }
     // Do not set velocity here to prevent throwing momentum
   };
 
@@ -401,7 +420,7 @@ const PetOverlay = ({ equippedPet }) => {
     setIsDragging(false);
     e.target.releasePointerCapture(e.pointerId);
     setState('Hurt');
-    setVel({ x: 0, y: 0 }); // Reset velocity when dropped so it drops straight down
+    velRef.current = { x: 0, y: 0 }; // Reset velocity when dropped so it drops straight down
     
     // If dropped directly on the ground, ensure it recovers from Hurt state
     setTimeout(() => {
@@ -418,8 +437,6 @@ const PetOverlay = ({ equippedPet }) => {
 
   const style = {
     position: 'fixed',
-    left: pos.x,
-    top: pos.y,
     width: pet.width,
     height: pet.height,
     backgroundImage: `url('${animConfig.fileUrl}')`,
@@ -432,14 +449,15 @@ const PetOverlay = ({ equippedPet }) => {
     backgroundRepeat: 'no-repeat'
   };
 
-  if (animConfig.type !== 'gif') {
-    style.backgroundPosition = `-${frame * pet.width}px 0`;
-  }
+  const animationStyle = animConfig.type === 'gif'
+    ? style
+    : { ...style, backgroundPosition: '-' + (frame * pet.width) + 'px 0' };
 
   return (
     <div 
+      ref={elementRef}
       className="pet-overlay"
-      style={style}
+      style={animationStyle}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

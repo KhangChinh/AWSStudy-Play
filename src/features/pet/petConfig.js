@@ -118,3 +118,33 @@ export const petConfig = {
     }
   }
 };
+const normalizePetKey = value => String(value || '').trim().toLowerCase();
+
+export const getPetConfig = (petId, pet = {}) => {
+  const candidates = [petId, pet.id, pet.SK, pet.folder, pet.name]
+    .map(normalizePetKey)
+    .filter(Boolean);
+
+  const match = Object.entries(petConfig).find(([key, config]) => {
+    const aliases = [key, config.name].map(normalizePetKey);
+    return candidates.some(candidate => aliases.includes(candidate));
+  });
+
+  return match?.[1] || {
+    name: pet.name || petId || 'Pet',
+    width: pet.width || 32,
+    height: pet.height || 32,
+    animations: {
+      Idle: { frames: 4, speed: 150 },
+      Walk: { frames: 6, speed: 100 },
+      Hurt: { frames: 2, speed: 200 },
+      Attack: { frames: 4, speed: 100 },
+      Death: { frames: 4, speed: 150, loop: false },
+      Jump: { frames: 4, speed: 150 },
+      Sleep: { frames: 4, speed: 200 },
+      CarrotSkill: { frames: 4, speed: 150 },
+      Sitting: { frames: 4, speed: 150 },
+      LieDown: { frames: 4, speed: 150 }
+    }
+  };
+};
