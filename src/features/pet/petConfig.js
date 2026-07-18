@@ -1,4 +1,22 @@
 export const petConfig = {
+  pet_death: {
+    name: 'Death',
+    folder: 'pet_death',
+    width: 32,
+    height: 35,
+    animations: {
+      Idle: { frames: 8, speed: 150 },
+      Walk: { frames: 8, speed: 100 },
+      Hurt: { frames: 8, speed: 150 },
+      Attack: { frames: 8, speed: 100 },
+      Death: { frames: 8, speed: 150, loop: false },
+      Jump: { frames: 8, speed: 120 },
+      Sleep: { frames: 8, speed: 200 },
+      CarrotSkill: { frames: 8, speed: 150 },
+      Sitting: { frames: 8, speed: 180 },
+      LieDown: { frames: 8, speed: 180 },
+    },
+  },
   '1 Dog': {
     name: 'Shiba Dog',
     folder: '1 Dog',

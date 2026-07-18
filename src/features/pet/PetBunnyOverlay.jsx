@@ -10,7 +10,7 @@ const JUMP_SPEED_X = 3;
 const TASKBAR_HEIGHT = 48;
 const COLLISION_REFRESH_MS = 250;
 
-const PetBunnyOverlay = ({ equippedPet }) => {
+const PetBunnyOverlay = ({ equippedPet, variant = 'bunny' }) => {
   const [petId, setPetId] = useState(equippedPet !== undefined ? equippedPet : (localStorage.getItem('equippedPet') || null));
   const [state, setState] = useState('Idle');
   const [dir, setDir] = useState('right');
@@ -123,6 +123,21 @@ const PetBunnyOverlay = ({ equippedPet }) => {
   const frameTimerRef = useRef(null);
   const deathTimerRef = useRef(null);
   const targetRef = useRef(null);
+  const transientTimersRef = useRef(new Set());
+
+  const scheduleTransient = useCallback((callback, delay) => {
+    const timerId = setTimeout(() => {
+      transientTimersRef.current.delete(timerId);
+      callback();
+    }, delay);
+    transientTimersRef.current.add(timerId);
+    return timerId;
+  }, []);
+
+  useEffect(() => () => {
+    transientTimersRef.current.forEach(clearTimeout);
+    transientTimersRef.current.clear();
+  }, [petId]);
 
   useEffect(() => {
     const handlePetChange = (e) => {
@@ -249,9 +264,9 @@ const PetBunnyOverlay = ({ equippedPet }) => {
               if (Math.random() < 0.2 && pet.animations.Death && s === 'Hurt') {
                 setState('Death');
                 clearTimeout(deathTimerRef.current);
-                deathTimerRef.current = setTimeout(() => {
+                deathTimerRef.current = scheduleTransient(() => {
                   setIsDead(true);
-                  setTimeout(() => {
+                  scheduleTransient(() => {
                     setIsDead(false);
                     setState('Idle');
                     posRef.current = { x: window.innerWidth / 2, y: -100 }; // respawn from sky
@@ -260,7 +275,7 @@ const PetBunnyOverlay = ({ equippedPet }) => {
                 return;
               } else {
                 // Stay hurt for a second on landing so the user can see it
-                setTimeout(() => {
+                scheduleTransient(() => {
                   if (stateRef.current === 'Hurt' || stateRef.current === 'Jump') {
                     setState('Idle');
                   }
@@ -288,7 +303,7 @@ const PetBunnyOverlay = ({ equippedPet }) => {
           const tx = targetRef.current.x;
           if (Math.abs(tx - x) < 5) {
             setState('Attack');
-            setTimeout(() => {
+            scheduleTransient(() => {
                setState('Idle');
                targetRef.current = null;
             }, 2000);
@@ -324,7 +339,7 @@ const PetBunnyOverlay = ({ equippedPet }) => {
     animationFrameId = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [pet, isDead, getGroundY]);
+  }, [pet, isDead, getGroundY, scheduleTransient]);
 
   // AI Behavior
   useEffect(() => {
@@ -423,7 +438,7 @@ const PetBunnyOverlay = ({ equippedPet }) => {
     velRef.current = { x: 0, y: 0 }; // Reset velocity when dropped so it drops straight down
     
     // If dropped directly on the ground, ensure it recovers from Hurt state
-    setTimeout(() => {
+    scheduleTransient(() => {
       if (stateRef.current === 'Hurt' && velRef.current.y === 0) {
         setState('Idle');
       }
@@ -458,7 +473,7 @@ const PetBunnyOverlay = ({ equippedPet }) => {
   return (
     <div 
       ref={elementRef}
-      className="pet-overlay"
+      className={`pet-overlay pet-overlay--${variant}`}
       style={animationStyle}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

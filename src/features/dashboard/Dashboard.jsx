@@ -27,7 +27,7 @@ import QuestWidget from '../quest/QuestWidget';
 import MinigameWidget from '../minihub/MinigameWidget';
 import PetBunnyOverlay from '../pet/PetBunnyOverlay';
 import PetDeathOverlay from '../pet/PetDeathOverlay';
-import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
+import { getDailyQuests, claimQuestReward } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
 import { getRankInfo } from '../../utils/rankSystem';
@@ -95,8 +95,6 @@ const UserProfileWidget = ({
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
   const frameAssetUrl = cosmeticManager.getCosmeticInfo('frames', currentFrame)?.frameAssetUrl;
   const displayName = userProfile?.information?.name || 'Unde_user';
-  const rp = userProfile?.studyStats?.rankScore ?? 0;
-  const rankInfo = getRankInfo(rp);
   const titleName = translateCosmeticName(titleData, t);
 
   return (
@@ -623,7 +621,7 @@ class Dashboard extends Component {
       } else {
         toast.error(result.error || result.message || 'Action failed!');
       }
-    } catch (err) {
+    } catch {
       toast.error('Connection error!');
     }
   };
@@ -636,7 +634,7 @@ class Dashboard extends Component {
       this.handleClaimQuest('all_daily');
     } else {
       const claimable = Object.entries(dailyQuests.quests)
-        .find(([k, q]) => q.isCompleted && !q.isClaimed);
+        .find(([, q]) => q.isCompleted && !q.isClaimed);
       if (claimable) {
         this.handleClaimQuest(claimable[0]);
       }
@@ -805,7 +803,6 @@ class Dashboard extends Component {
     const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon)
       || cosmeticManager.getAllInCategory('systemIcons')[0]
       || { type: 'outline' };
-    const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
     const sanity = getBudgetValue(this.props.userProfile, ['sanity']);
     const eCoin = getBudgetValue(this.props.userProfile, ['eCoin']);
     const knowledgePoint = getBudgetValue(this.props.userProfile, ['knowledgePoint']);
@@ -831,7 +828,7 @@ class Dashboard extends Component {
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
-        {this.state.currentPet === 'pet_death' 
+        {this.state.currentPet === 'pet_death'
           ? <PetDeathOverlay equippedPet={this.state.currentPet} />
           : <PetBunnyOverlay equippedPet={this.state.currentPet} />
         }
