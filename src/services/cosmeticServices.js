@@ -228,7 +228,7 @@ const MASTER_DATA_COOLDOWN = 12 * 60 * 60 * 1000; // 12 giờ
  * 2. Kiểm tra cooldown (12 giờ). Nếu chưa hết hạn, bỏ qua gọi API.
  * 3. Nếu hết hạn, gọi API /master-data từ server để lấy danh sách mới nhất và lưu đè cache local.
  */
-const syncItemData = async () => {
+const syncItemData = async (force = false) => {
   // 1. Đọc từ local cache của Electron trước
   try {
     if (window.api?.invoke) {
@@ -245,7 +245,7 @@ const syncItemData = async () => {
   // Kiểm tra cooldown trước khi gọi API để tránh spam AWS
   const lastSync = Number(localStorage.getItem('lastMasterDataSyncTime') || 0);
   const now = Date.now();
-  if (lastSync && (now - lastSync) < MASTER_DATA_COOLDOWN) {
+  if (!force && lastSync && (now - lastSync) < MASTER_DATA_COOLDOWN) {
     console.log(`[Cosmetics] Bỏ qua gọi API /master-data (cooldown). Lần sync cuối: ${new Date(lastSync).toLocaleString()}`);
     return;
   }

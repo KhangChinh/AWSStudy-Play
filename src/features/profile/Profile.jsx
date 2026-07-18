@@ -3,7 +3,7 @@ import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
-  personCircleOutline, starOutline, cubeOutline, imageOutline, pawOutline
+  personCircleOutline, starOutline, cubeOutline, imageOutline, pawOutline, refreshOutline
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
 import { cosmeticManager, syncItemData, assetUrl } from '../../services/cosmeticServices';
@@ -184,6 +184,15 @@ class Profile extends Component {
 
   handleCoverEdit = () => {
     this.setState({ activeTab: 'backgrounds' });
+  };
+
+  handleForceSync = async () => {
+    try {
+      await syncItemData(true);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   handleCoverKeyDown = (event) => {
@@ -473,7 +482,15 @@ class Profile extends Component {
             <IonIcon icon={cubeOutline} /> {this.props.t('profile.system_glyphs')}
           </button>
           <button className={`nav-tab ${activeTab === 'pets' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'pets' })}>
-            <IonIcon icon={pawOutline} /> {this.props.t('profile.pets', 'Pets')}
+            <IonIcon icon={pawOutline} /> {this.props.t('profile.pets', 'Thú Cưng')}
+          </button>
+          <button 
+            className="nav-tab sync-btn" 
+            onClick={this.handleForceSync}
+            style={{ marginLeft: 'auto', background: '#ff4d4f', color: '#fff', border: 'none' }}
+            title="Force refresh cosmetics data from server"
+          >
+            <IonIcon icon={refreshOutline} /> {this.props.t('profile.sync', 'Làm mới')}
           </button>
         </div>
 
