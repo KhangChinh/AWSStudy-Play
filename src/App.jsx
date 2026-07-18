@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { Component, Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -7,8 +7,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 import { store, persistor } from './store';
-import Dashboard from './features/dashboard/Dashboard';
-import AuthPage from './features/auth/AuthPage';
 import Spinner from './components/Spinner';
 
 import { checkAppVersion, handleSyncAllApi } from './services/syncService';
@@ -16,6 +14,15 @@ import { handleLogoutApi } from './services/authService';
 import { initializeAuth } from './services/tokenService';
 
 import './index.css';
+
+const Dashboard = lazy(() => import('./features/dashboard/Dashboard'));
+const AuthPage = lazy(() => import('./features/auth/AuthPage'));
+
+const RouteFallback = () => (
+  <div className='auth-page'>
+    <Spinner />
+  </div>
+);
 
 const AuthPageWrapper = (props) => {
   const navigate = useNavigate();
@@ -71,7 +78,7 @@ class App extends Component {
       await handleLogoutApi();
       return;
     }
-    const syncResult = await handleSyncAllApi();
+    const syncResult = await handleSyncAllApi({ sections: ['profile', 'daily'] });
     const profile = syncResult?.profile || this.props.userProfile || store.getState().profile?.userProfile;
     if (!profile) {
       console.warn('[App] No cached profile is available; keeping the Cognito session for a later retry.');
@@ -110,6 +117,7 @@ class App extends Component {
 
     return (
       <HashRouter>
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route
             path="/login"
@@ -124,6 +132,7 @@ class App extends Component {
             element={<Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />}
           />
         </Routes>
+        </Suspense>
         <ToastContainer
           position="top-right"
           autoClose={1000}

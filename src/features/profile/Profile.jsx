@@ -380,7 +380,7 @@ class Profile extends Component {
       currentBackground,
       currentTitle,
       currentFrame,
-      currentRank = 'diamond',
+      currentRank = 'bronze',
       t,
     } = this.props;
     const { activeTab } = this.state;

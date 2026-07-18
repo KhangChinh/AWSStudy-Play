@@ -29,7 +29,7 @@ import PetOverlay from '../pet/PetOverlay';
 import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
-import { getTierFromRP, getRankInfo } from '../../utils/rankSystem';
+import { getRankInfo } from '../../utils/rankSystem';
 import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
 import './Dashboard.scss';
 
@@ -84,7 +84,7 @@ const getBudgetValue = (profile, keys) => {
 const UserProfileWidget = ({
   currentTitle,
   currentFrame,
-  currentRank = 'diamond',
+  currentRank = 'bronze',
   userProfile,
   onClick,
   t,
@@ -144,7 +144,6 @@ class Dashboard extends Component {
       disabledButtons: { logout: false },
       isDragging: null,
       dragOffset: { x: 0, y: 0 },
-      currentRank: 'diamond',
       currentBackground: LOCAL_DEFAULT_BACKGROUND_ID,
       currentTitle: 'title_none',
       currentFrame: 'frame_none',
@@ -167,7 +166,7 @@ class Dashboard extends Component {
     this.questsBtnRef = React.createRef();
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     
     this.timerInterval = setInterval(() => {
       this.setState({
@@ -184,13 +183,14 @@ class Dashboard extends Component {
 
     // Master cosmetics use their own local cache and only refresh in background.
     cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
-    try {
-      await syncItemData();
-      this.setState({ masterDataLoaded: true });
-      cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
-    } catch (error) {
-      console.warn('[Dashboard] Master data sync unavailable; using local cosmetics.', error);
-    }
+    syncItemData()
+      .then(() => {
+        this.setState({ masterDataLoaded: true });
+        cosmeticManager.applyBackgroundAssets(this.state.currentBackground);
+      })
+      .catch((error) => {
+        console.warn('[Dashboard] Master data sync unavailable; using local cosmetics.', error);
+      });
     // Load Daily Quests
     if (!this.props.dailyQuests) this.loadDailyQuests();
 
@@ -235,13 +235,11 @@ class Dashboard extends Component {
 
   setEquippedStateFromProfile = (profile) => {
     const equipped = this.getEquippedIds(profile);
-    const rp = profile?.studyStats?.rankScore ?? 0;
     this.setState({
       currentBackground: equipped.backgroundId,
       currentFrame: equipped.frameId,
       currentTitle: equipped.titleId,
       currentPet: equipped.petId,
-      currentRank: getTierFromRP(rp),
     });
   };
 
@@ -809,7 +807,6 @@ class Dashboard extends Component {
       animationsEnabled,
       currentBackground,
       currentSystemIcon,
-      currentRank,
     } = this.state;
     const { t, i18n } = this.props;
     const selectedBackground = resolveBackground(currentBackground)
@@ -823,6 +820,7 @@ class Dashboard extends Component {
     const knowledgePoint = getBudgetValue(this.props.userProfile, ['knowledgePoint']);
     const rp = this.props.userProfile?.studyStats?.rankScore ?? 0;
     const rankInfo = getRankInfo(rp);
+    const currentRank = rankInfo.tier;
     const activeBgId = backgroundId(currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID;
     const hasCustomBackgroundCss = Boolean(selectedBackground?.assets?.css);
     const shouldRenderDesktopEffects = animationsEnabled && [LOCAL_DEFAULT_BACKGROUND_ID, SERVER_DEFAULT_BACKGROUND_ID].includes(activeBgId) && !selectedBackground?.imageUrl;
@@ -972,7 +970,7 @@ class Dashboard extends Component {
                   currentTitle: this.state.currentTitle,
                   currentFrame: this.state.currentFrame,
                   currentPet: this.state.currentPet,
-                  currentRank: this.state.currentRank,
+                  currentRank,
                   currentSystemIcon: this.state.currentSystemIcon,
                   animationsEnabled: this.state.animationsEnabled,
                   userProfile: this.props.userProfile,
