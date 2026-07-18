@@ -139,7 +139,6 @@ class AuthPage extends Component {
       if (authMode === 'login') {
         const { isSignedIn, nextStep } = await signIn({ username: email, password });
         if (isSignedIn) {
-          toast.success(t('auth.login_success'));
           await handleLoginApi();
           localStorage.removeItem('manualLogoutAt');
           
@@ -225,9 +224,7 @@ class AuthPage extends Component {
         this.setState({ authMode: 'login', verificationCode: '', newPassword: '', confirmNewPassword: '' });
       }
     } catch (error) {
-      console.log('Error:', error);
       if (error.name === 'UserAlreadyAuthenticatedException' || error.message?.includes('already a signed in user')) {
-        toast.info(t('auth.stale_session_cleanup'));
         try {
           await handleLogoutApi();
         } catch (logoutError) {

@@ -193,14 +193,6 @@ const FocusGuard = (props) => {
             const updatedDaily = { ...existingDaily, quests: updatedQuests };
             window.api.invoke('quest:save', updatedDaily);
           });
-          for (const [key, quest] of Object.entries(updatedQuests)) {
-            if (key !== 'all_daily' && quest.isCompleted) {
-              toast.success(t('focus_guard.quest_completed', { name: quest.name }));
-            }
-          }
-          if (updatedQuests.all_daily?.isCompleted) {
-            toast.success(t('focus_guard.all_daily_completed'));
-          }
         }
       },
       'focus:sessionEndData': (data) => {
@@ -210,17 +202,6 @@ const FocusGuard = (props) => {
             profile: data.profile,
             daily: data.daily
           });
-          // Also show toast notifications if quests completed during the session
-          if (data.questUpdate) {
-            for (const [key, quest] of Object.entries(data.questUpdate)) {
-              if (key !== 'all_daily' && quest.isCompleted) {
-                toast.success(t('focus_guard.quest_completed', { name: quest.name }));
-              }
-            }
-            if (data.questUpdate.all_daily?.isCompleted) {
-              toast.success(t('focus_guard.all_daily_completed'));
-            }
-          }
         }
       },
     };

@@ -289,15 +289,11 @@ const handleGetLeaderboardApi = async (gameId) => {
                 });
                 return { success: true, topPlayers: localLeaderboard.data };
             }
-        } catch (err) {
-            console.log("Store Offline trống hoặc lỗi, tiến hành gọi API...");
-        }
+        } catch (err) { }
 
         // ==========================================
         // 3. GỌI API SERVER (Khi không có hoặc đã hết hạn)
         // ==========================================
-        console.log(`🚀 Cả 2 cache đều hụt/hết hạn. Gọi API Server lấy Leaderboard ${gameId}...`);
-
         const token = await getValidAccessToken();
         if (!token) throw new Error('No auth token');
 

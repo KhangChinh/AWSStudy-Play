@@ -214,7 +214,6 @@ const SudokuGame = ({ onClose }) => {
     setSanityCostPaid(costPaid);
     setIsSelectingLevel(false);
     setStatus('playing');
-    toast.info(`Màn ${level.name} bắt đầu!`);
   };
 
   const handleLevelSelect = async (level) => {
@@ -374,7 +373,6 @@ const SudokuGame = ({ onClose }) => {
     console.log(">>> [TEST REDUX] Đã mô phỏng nộp bài thành công!");
     console.log(">>> [TEST REDUX] Dữ liệu chuẩn bị gửi server sẽ là:", JSON.stringify(finalSessionData, null, 2));
 
-    toast.success("✅ [Test] Đã lưu finalGrid và Logs vào Redux. Kiểm tra Console!");
   };
 
   const handleCheckBoard = async () => {
@@ -390,7 +388,6 @@ const SudokuGame = ({ onClose }) => {
     if (!confirmSubmit) return;
 
     try {
-      toast.info('Đang nộp bài lên server...');
       const levelId = selectedLevel ? selectedLevel.SK : "level_01";
       const finalGridStr = board.flat().join('');
 

@@ -5,7 +5,10 @@ import { handleSyncAllApi } from './syncService';
 import { clearCachedAccessToken } from './tokenService';
 let handleLoginApi = async () => {
   try {
-    const syncResult = await handleSyncAllApi({ force: true });
+    const syncResult = await handleSyncAllApi({
+      force: true,
+      sections: ['profile', 'daily'],
+    });
     const profile = syncResult?.profile || store.getState().profile?.userProfile;
     if (!profile) {
       console.error('[AuthService] Cannot load user profile from syncAll:', syncResult?.error || 'No profile data returned');

@@ -408,6 +408,15 @@ class GachaApp extends Component {
     }
   };
 
+  handleHistoryTabOpen = async () => {
+    this.setState({ detailTab: 'history', detailPage: 0 });
+    if (this.state.historyItems.length > 0 || this.state.isLoadingHistory || !this.props.gachaHistoryHasMore) return;
+
+    this.setState({ isLoadingHistory: true });
+    await handleSyncGachaHistoryApi();
+    this.setState({ isLoadingHistory: false });
+  };
+
   handleRoll = async (count) => {
     if (this.state.isPlaying || this.state.isSubmitting) return;
 
@@ -542,7 +551,7 @@ class GachaApp extends Component {
 
               <div className="modal-tabs">
                 <button className={this.state.detailTab === 'rates' ? 'active' : ''} onClick={() => this.setState({ detailTab: 'rates' })}>{this.props.t('gacha.details')}</button>
-                <button className={this.state.detailTab === 'history' ? 'active' : ''} onClick={() => this.setState({ detailTab: 'history', detailPage: 0 })}>{this.props.t('gacha.history')}</button>
+                <button className={this.state.detailTab === 'history' ? 'active' : ''} onClick={this.handleHistoryTabOpen}>{this.props.t('gacha.history')}</button>
               </div>
 
               {this.state.detailTab === 'rates' ? (

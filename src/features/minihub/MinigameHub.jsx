@@ -163,12 +163,10 @@ class MinigameHub extends Component {
     if (gameId === 'sudoku') {
       this.setState({ isLoading: true });
       try {
-        toast.info("Đang tải danh sách màn chơi...");
         const response = await handleSyncSudokuLevels();
         console.log("=== DANH SÁCH MÀN CHƠI SUDOKU ===", response);
 
         if (response && (response.levels || response.success)) {
-          toast.success("Tải màn chơi thành công!");
           this.setState({ activeGame: 'sudoku' });
         } else {
           toast.error("Có lỗi xảy ra hoặc không tìm thấy dữ liệu.");

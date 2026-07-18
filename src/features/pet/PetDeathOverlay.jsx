@@ -154,7 +154,7 @@ const PetDeathOverlay = ({ equippedPet }) => {
         }
       }
     });
-    return highestGround - pet.height + 12;
+      return highestGround - pet.height;
   };
 
   // Physics & Behavior Loop
@@ -289,7 +289,7 @@ const PetDeathOverlay = ({ equippedPet }) => {
 
       // Basic actions
       if (rand < 0.1 && pet.animations.Attack) {
-        const widgets = document.querySelectorAll('.minigame-widget-container, .btn-start, .quest-widget');
+        const widgets = document.querySelectorAll('.dashboard-currency-panel, .desktop-friends-widget, .desktop-focus-control-center');
         if (widgets.length > 0) {
           const targetEl = widgets[Math.floor(Math.random() * widgets.length)];
           const rect = targetEl.getBoundingClientRect();
@@ -382,9 +382,9 @@ const PetDeathOverlay = ({ equippedPet }) => {
     width: pet.width,
     height: pet.height,
     backgroundImage: `url('${animConfig.fileUrl}')`,
-    transform: `scale(1.5) scaleX(${dir === 'left' ? -1 : 1})`,
+    transform: `scale(1.5) scaleX(${dir === 'left' ? -1 : 1}) translateY(2px)`,
     transformOrigin: 'bottom center',
-    zIndex: 9999,
+    zIndex: 8,
     touchAction: 'none',
     cursor: isDragging ? 'grabbing' : 'grab',
     imageRendering: 'pixelated',
