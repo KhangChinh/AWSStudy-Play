@@ -247,7 +247,6 @@ const ingestServerData = async (payload) => {
 };
 const handleSyncAllApi = async ({ force = false, sections = null } = {}) => {
   if (syncAllPromise) {
-    console.log('[syncService] SyncAll đang chạy, dùng chung kết quả...');
     return syncAllPromise;
   }
   syncAllPromise = (async () => {
@@ -282,7 +281,6 @@ const handleSyncAllApi = async ({ force = false, sections = null } = {}) => {
       const getSocial = wants('social') && (shouldRefresh || !socialHasLoadedData(hydratedState.social));
 
       if (!getProfile && !getDaily && !getInventory && !getGachaHistory && !getSocial) {
-        console.log('[syncService] SyncAll dùng cache Redux/Electron, không gọi API.');
         return buildSyncSnapshot(hydratedState);
       }
 

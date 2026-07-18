@@ -125,7 +125,6 @@ class CosmeticManager {
       }
     });
 
-    console.log('[CosmeticManager] Loaded cloud backgrounds:', this.data.backgrounds.map(b => b.id));
   }
 
   getCosmeticInfo(category, id) {
@@ -234,7 +233,6 @@ const syncItemData = async () => {
     if (window.api?.invoke) {
       const cachedItems = await window.api.invoke('store:loadMasterData');
       if (cachedItems && Array.isArray(cachedItems)) {
-        console.log('[Cosmetics] Đã tải danh sách master items từ local cache:', cachedItems.length);
         cosmeticManager.loadFromMasterData(cachedItems);
       }
     }
@@ -253,13 +251,11 @@ const syncItemData = async () => {
   try {
     const token = await getValidAccessToken().catch(() => null);
     if (!token) {
-      console.log('[Cosmetics] Chưa đăng nhập, bỏ qua đồng bộ master data từ server.');
       return;
     }
 
     const response = await handleGetMasterDataApi();
     if (response && Array.isArray(response.items) && response.items.length > 0) {
-      console.log('[Cosmetics] Đồng bộ master items từ server thành công:', response.items.length);
       cosmeticManager.loadFromMasterData(response.items);
 
       // Lưu lại vào Electron cache

@@ -3,7 +3,6 @@ import { IonIcon } from '@ionic/react';
 import {
   trashOutline, openOutline, checkmarkCircleOutline, createOutline,
 } from 'ionicons/icons';
-import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { loadStudyPlans, saveStudyPlan, deleteStudyPlan } from '../../../services/studyPlannerService';
 
@@ -41,7 +40,6 @@ const PlanTab = ({ highlightPlanId, onStartQuiz }) => {
     if (activePlanId === planId) {
       setActivePlanId(null);
     }
-    toast.info(t('study.plan_deleted'));
   };
 
   const togglePhaseComplete = async (phaseId) => {

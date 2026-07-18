@@ -55,6 +55,7 @@ function createWindow() {
 
   // Log renderer process console output to terminal (helps debugging production builds)
   win.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    if (level < 2) return;
     console.log(`[Renderer Console] [Level ${level}] ${message} (from ${sourceId}:${line})`);
   });
 
