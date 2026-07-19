@@ -104,55 +104,83 @@ export function registerIpcHandlers(ipcMain, win) {
   //  SETUP WIZARD — Extension installation helpers
   // ═══════════════════════════════════════════
   ipcMain.handle('setup:openExtensionFolder', async () => {
-    const { shell } = await import('electron');
-    // Find the browser-extension folder relative to the app
-    const appPath = app.getAppPath();
     const path = await import('path');
-    
-    // In dev: project root/browser-extension
-    // In prod: resources/browser-extension
-    let extPath = path.default.join(appPath, '..', '..', 'browser-extension');
-    
-    // Fallback: try common dev path
     const fs = await import('fs');
+    const { exec } = await import('child_process');
+
+    // Resolve extension folder path (dev vs packaged)
+    const appPath = app.getAppPath();
+    let extPath = path.default.join(appPath, '..', '..', 'browser-extension');
     if (!fs.default.existsSync(extPath)) {
       extPath = path.default.join(appPath, 'browser-extension');
     }
     if (!fs.default.existsSync(extPath)) {
-      // Try project root (dev mode with Vite)
       extPath = path.default.join(process.cwd(), 'browser-extension');
     }
-    
-    if (fs.default.existsSync(extPath)) {
-      shell.openPath(extPath);
-      return { success: true, path: extPath };
+
+    if (!fs.default.existsSync(extPath)) {
+      return { success: false, error: 'Extension folder not found' };
     }
-    return { success: false, error: 'Extension folder not found' };
+
+    // Step 1: Mở Explorer, highlight thư mục browser-extension
+    exec(`explorer.exe /select,"${extPath}"`);
+
+    // Step 2: Sau 900ms ghi file .ps1 tạm rồi chạy để resize cửa sổ Explorer về top-right
+    const os = await import('os');
+    const tmpPs1 = path.default.join(os.default.tmpdir(), `_resize_explorer_${Date.now()}.ps1`);
+    const psScript = `
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -Name WinUtil -Namespace Ext -MemberDefinition @'
+  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc cb, IntPtr lp);
+  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll")] public static extern int GetClassName(IntPtr h, System.Text.StringBuilder s, int n);
+  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int w, int ht, uint f);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
+  public delegate bool EnumWindowsProc(IntPtr h, IntPtr lp);
+'@
+$sc = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+$W = 430; $H = 390; $X = $sc.Width - $W - 12; $Y = 12
+[Ext.WinUtil]::EnumWindows([Ext.WinUtil+EnumWindowsProc]{
+  param($h, $l)
+  $sb = New-Object System.Text.StringBuilder 64
+  [Ext.WinUtil]::GetClassName($h, $sb, 64) | Out-Null
+  if ($sb.ToString() -eq "CabinetWClass" -and [Ext.WinUtil]::IsWindowVisible($h)) {
+    [Ext.WinUtil]::ShowWindow($h, 9) | Out-Null
+    [Ext.WinUtil]::SetWindowPos($h, [IntPtr]::Zero, $X, $Y, $W, $H, 0x40) | Out-Null
+    return $false
+  }
+  return $true
+}, [IntPtr]::Zero) | Out-Null
+`;
+
+    fs.default.writeFileSync(tmpPs1, psScript, 'utf8');
+    setTimeout(() => {
+      exec(`powershell -NonInteractive -WindowStyle Hidden -File "${tmpPs1}"`, (err) => {
+        // Xóa file tạm sau khi chạy xong
+        try { fs.default.unlinkSync(tmpPs1); } catch {}
+        if (err) console.warn('[Setup] Explorer resize failed (non-critical):', err.message?.substring(0, 80));
+      });
+    }, 900);
+
+    return { success: true, path: extPath };
   });
 
   ipcMain.handle('setup:openBrowserExtPage', async (_event, browserId) => {
-    const { shell } = await import('electron');
-    const urls = {
-      chrome: 'https://www.google.com/search?q=chrome+extensions+developer+mode',
-      edge: 'https://www.google.com/search?q=edge+extensions+developer+mode',
-      firefox: 'https://www.google.com/search?q=firefox+extensions+developer+mode',
-    };
-    // We can't open chrome:// URLs via shell.openExternal (blocked by OS)
-    // Instead open a helper page. The user will need to type chrome://extensions manually.
-    // But we CAN try to launch the browser with the extensions page as argument:
     const { exec } = await import('child_process');
+    const cmds = {
+      chrome:  `powershell -WindowStyle Hidden -Command "try { Start-Process chrome } catch {}"`,
+      edge:    `powershell -WindowStyle Hidden -Command "try { Start-Process msedge } catch {}"`,
+      brave:   `powershell -WindowStyle Hidden -Command "try { Start-Process brave } catch {}"`,
+      opera:   `powershell -WindowStyle Hidden -Command "try { Start-Process opera -ErrorAction Stop } catch { try { Start-Process operagx -ErrorAction Stop } catch { try { Start-Process launcher -ErrorAction Stop } catch {} } }"`,
+      firefox: `powershell -WindowStyle Hidden -Command "try { Start-Process firefox } catch {}"`,
+    };
+    const cmd = cmds[browserId?.toLowerCase()] || cmds.chrome;
     
-    if (browserId === 'chrome') {
-      exec('start chrome chrome://extensions', (err) => {
-        if (err) shell.openExternal(urls.chrome);
-      });
-    } else if (browserId === 'edge') {
-      exec('start msedge edge://extensions', (err) => {
-        if (err) shell.openExternal(urls.edge);
-      });
-    } else {
-      shell.openExternal(urls[browserId] || urls.chrome);
-    }
+    // Thực thi lệnh ngầm để mở browser, nếu máy không có thì tự fail im lặng, không văng popup lỗi
+    exec(cmd, (err) => {
+      if (err) console.warn('[Setup] Could not open browser:', err.message);
+    });
+    
     return { success: true };
   });
   // ═══════════════════════════════════════════

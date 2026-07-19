@@ -8,6 +8,7 @@ import { shieldCheckmarkOutline, closeOutline, lockClosedOutline, videocamOutlin
 import { getValidAccessToken } from '../../services/tokenService';
 import { ingestServerData } from '../../services/syncService';
 import { startTracking, stopTracking, reattachVideo, pauseTracking, resumeTracking } from './faceTracker';
+import ExtensionGuide from './ExtensionGuide';
 import './FocusGuard.scss';
 
 const CASUAL_DURATIONS = [15, 25, 45, 60];
@@ -25,6 +26,7 @@ const FocusGuard = (props) => {
   const blockerModel = aiSettings?.blocker?.selectedModel || '';
   const faceTrackModel = aiSettings?.faceTracking?.selectedModel || 'MediaPipe BlazeFace (TFLite, local)';
   const [isOpen, setIsOpen] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [closing, setClosing] = useState(false);
   const [minutes, setMinutes] = useState(25);
   const [hardMode, setHardMode] = useState(props.defaultHardMode ?? false);
@@ -329,27 +331,20 @@ const FocusGuard = (props) => {
       <div className="focus-guard-panel app-mode">
         <div className="fg-body">
           {currentScreen === 'check-ext' && !isActive && (
-            <div className="fg-screen-check">
-              <div className="fg-check-icon">🔌</div>
-              <h3 className="fg-check-title">{t('focus_guard.extension_not_connected')}</h3>
-              <p className="fg-check-desc">{t('focus_guard.extension_missing_desc')}</p>
-              <div className="fg-missing-browsers">
-                {gateStatus.missing.length > 0 && (
-                  <p className="fg-missing-label">
-                    {t('focus_guard.missing_extension')}: <strong>{gateStatus.missing.join(', ')}</strong>
-                  </p>
-                )}
-              </div>
-              <div className="fg-check-steps">
-                <div className="fg-step"><span className="fg-step-num">1</span> {t('focus_guard.open_chrome_extensions')} <strong>chrome://extensions</strong></div>
-                <div className="fg-step"><span className="fg-step-num">2</span> {t('focus_guard.enable_developer_mode')} <strong>Developer mode</strong></div>
-                <div className="fg-step"><span className="fg-step-num">3</span> {t('focus_guard.click_load_unpacked')} <strong>Load unpacked</strong> {t('focus_guard.choose_extension_folder')}</div>
-              </div>
-              <p className="fg-check-hint">{t('focus_guard.auto_check_hint')}</p>
+            <ExtensionGuide missingBrowsers={gateStatus.missing} />
+          )}
+
+          {/* Guide overlay on main screen */}
+          {showGuide && currentScreen === 'main' && (
+            <div className="fg-guide-overlay">
+              <ExtensionGuide
+                missingBrowsers={gateStatus.missing}
+                onClose={() => setShowGuide(false)}
+              />
             </div>
           )}
 
-          {currentScreen === 'main' && (
+          {currentScreen === 'main' && !showGuide && (
             <>
               <div className="fg-status-row">
                 <div className="fg-status-badge">
@@ -361,13 +356,16 @@ const FocusGuard = (props) => {
                         : t('focus_guard.checking')
                       )}
                 </div>
-                <div className="fg-status-badge">
+                <div className="fg-status-badge fg-status-badge--clickable" onClick={() => setShowGuide(true)} title="Hướng dẫn cài Extension">
                   <span className={`dot ${aiReady ? 'green' : 'yellow'}`} />
                   {aiReady 
                     ? `${t('focus_guard.ai_ready')} (${aiStat?.activeProvider ? aiStat.activeProvider.charAt(0).toUpperCase() + aiStat.activeProvider.slice(1) : ''})` 
                     : t('focus_guard.ai_not_ready')
                   }
                 </div>
+                <button className="fg-ext-guide-btn" onClick={() => setShowGuide(true)} title="Hướng dẫn cài Extension">
+                  🧩
+                </button>
               </div>
 
               {!aiReady && !isActive && (

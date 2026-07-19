@@ -43,6 +43,10 @@
       {
         "from": "build/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "browser-extension",
+        "to": "extension"
       }
     ]
   },
