@@ -3,7 +3,7 @@ import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
-  personCircleOutline, starOutline, imageOutline, pawOutline, refreshOutline
+  personCircleOutline, starOutline, cubeOutline, imageOutline, pawOutline, refreshOutline
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
 import { cosmeticManager, syncItemData, assetUrl } from '../../services/cosmeticServices';
@@ -207,10 +207,12 @@ class Profile extends Component {
       currentTitle,
       currentFrame,
       currentBackground,
+      currentSystemIcon,
       currentPet,
       onTitleChange,
       onFrameChange,
       onBackgroundChange,
+      onSystemIconChange,
       onPetChange,
       t,
     } = this.props;
@@ -317,6 +319,28 @@ class Profile extends Component {
       );
     }
 
+    if (activeTab === 'systemIcons') {
+      const icons = cosmeticManager.getAllInCategory('systemIcons');
+
+      return (
+        <div className="icons-grid">
+          {icons.map(icon => (
+            <div
+              key={icon.id}
+              className={`icon-item-card ${currentSystemIcon === icon.id ? 'active' : ''}`}
+              onClick={() => onSystemIconChange?.(icon.id)}
+            >
+              <div className={`icon-preview-box ${icon.type}`}>
+                <IonIcon icon={cubeOutline} />
+              </div>
+              <div className="icon-name">{icon.name}</div>
+              {currentSystemIcon === icon.id && <div className="equipped-dot" />}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     if (activeTab === 'pets') {
       const equippedPet = currentPet !== undefined ? currentPet : (localStorage.getItem('equippedPet') || null);
       
@@ -389,7 +413,7 @@ class Profile extends Component {
       currentBackground,
       currentTitle,
       currentFrame,
-      currentRank = 'bronze',
+      currentRank = 'diamond',
       t,
     } = this.props;
     const { activeTab } = this.state;
@@ -453,6 +477,9 @@ class Profile extends Component {
           </button>
           <button className={`nav-tab ${activeTab === 'frames' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'frames' })}>
             <IonIcon icon={imageOutline} /> {this.props.t('profile.frames')}
+          </button>
+          <button className={`nav-tab ${activeTab === 'systemIcons' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'systemIcons' })}>
+            <IonIcon icon={cubeOutline} /> {this.props.t('profile.system_glyphs')}
           </button>
           <button className={`nav-tab ${activeTab === 'pets' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'pets' })}>
             <IonIcon icon={pawOutline} /> {this.props.t('profile.pets', 'Thú Cưng')}
