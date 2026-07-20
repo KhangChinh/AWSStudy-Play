@@ -409,13 +409,13 @@ const handleSyncProfileApi = async ({ force = false } = {}) => {
     return null;
   }
 };
-const handleSyncInventoryApi = async (itemType) => {
+const handleSyncInventoryApi = async (itemType, { force = false } = {}) => {
   if (!itemType) return null;
   try {
     const typeState = store.getState().inventory?.[itemType];
     // Skip when this type is fully loaded, including a valid empty inventory.
-    if (typeState && typeState.hasMore === false) return null;
-    if (!typeState || typeState.items?.length === 0) {
+    if (!force && typeState && typeState.hasMore === false) return null;
+    if (!force && (!typeState || typeState.items?.length === 0)) {
       const localData = await window.api?.invoke('store:loadInventory');
       if (localData) {
         let items = [];
@@ -444,7 +444,7 @@ const handleSyncInventoryApi = async (itemType) => {
     const token = await getValidAccessToken();
     if (!token) throw new Error('No auth token');
     let url = `${API_URL}/sync-inventory?itemType=${itemType}`;
-    if (typeState?.lastKey) {
+    if (!force && typeState?.lastKey) {
       url += `&lastKey=${encodeURIComponent(JSON.stringify(typeState.lastKey))}`;
     }
     const response = await fetch(url, {
@@ -469,13 +469,13 @@ const handleSyncInventoryApi = async (itemType) => {
         items: syncResult.inventory,
         lastKey: syncResult.lastEvaluatedKey
       };
-      if (typeState?.lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
+      if (!force && typeState?.lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
       else store.dispatch({ type: 'SET_INVENTORY', payload });
       await window.api?.invoke('store:saveInventory', {
         itemType,
         inventory: syncResult.inventory,
         lastEvaluatedKey: syncResult.lastEvaluatedKey,
-        isAppend: !!typeState?.lastKey
+        isAppend: !force && !!typeState?.lastKey
       }).catch(() => { });
     }
     return syncResult;
