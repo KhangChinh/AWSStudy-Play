@@ -854,3 +854,28 @@ $rarity-five-star-glow: rgba(250, 204, 21, 0.72);
     text-align: center;
   }
 }
+
+.gacha-css-background {
+  display: block;
+  width: clamp(112px, 18vmin, 168px);
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.gacha-css-frame {
+  display: block;
+  margin: 0 auto;
+}
+
+.gacha-css-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  padding: 12px;
+  font-size: clamp(18px, 3vmin, 28px);
+  font-weight: 800;
+  text-align: center;
+}

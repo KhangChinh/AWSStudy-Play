@@ -96,13 +96,12 @@ const UserProfileWidget = ({
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
-  const frameAssetUrl = cosmeticManager.getCosmeticInfo('frames', currentFrame)?.frameAssetUrl;
   const displayName = userProfile?.information?.name || 'Unde_user';
   const titleName = translateCosmeticName(titleData, t);
 
   return (
     <button type="button" className={`user-profile-widget rank-${currentRank}`} onClick={onClick} aria-label={t('common.profile')}>
-      <RankFrame tier={frameTier} size={75} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
+      <RankFrame tier={frameTier} size={75} className="widget-rank-frame">
         {userProfile?.information?.avatarUrl ? (
           <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img" onError={useDefaultAvatarOnError} />
         ) : (

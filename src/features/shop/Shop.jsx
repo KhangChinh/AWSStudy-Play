@@ -253,10 +253,8 @@ class Shop extends Component {
       );
     }
     if (item.itemType === 'frame') {
-      const catalogItem = cosmeticManager.getCosmeticInfo('frames', itemId);
-      const frameAsset = item.assets?.frame || item.assets?.svg || catalogItem?.frameAssetUrl || '';
       return (
-        <RankFrame tier={itemId.replace(/^frame_/, '') || 'none'} size={112} frameAssetUrl={frameAsset ? assetUrl(frameAsset) : ''}>
+        <RankFrame tier={itemId.replace(/^frame_/, '') || 'none'} size={112}>
           <IonIcon icon={personCircleOutline} />
         </RankFrame>
       );
