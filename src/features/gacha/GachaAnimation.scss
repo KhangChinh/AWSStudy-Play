@@ -612,12 +612,39 @@ $rarity-five-star-glow: rgba(250, 204, 21, 0.72);
 .single:has(.conversion-result-icon) .item-icon,
 .conversion-source-name { animation: conversionDisappear 0.35s 1.15s ease forwards; }
 .conversion-result-name { color: #fff; font-size: clamp(26px, 4.2vmin, 48px); font-weight: 1000; opacity: 0; animation: conversionAppear 0.45s 1.4s ease forwards; }
-.grid-conversion-icon { position: absolute; z-index: 3; top: 22px; opacity: 0; transform: scale(0.4); animation: conversionAppear 0.45s 1.65s ease forwards;
+.grid-conversion-result {
+  position: absolute;
+  z-index: 4;
+  inset: 10px 8px 27px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.grid-conversion-icon { position: relative; z-index: 3; opacity: 0; transform: scale(0.4); animation: conversionAppear 0.45s 1.65s ease forwards;
   .img-icon-render { width: 52px; height: 52px; object-fit: contain; }
 }
 .grid-item.converted .grid-icon,
 .grid-item.converted .grid-name { animation: conversionDisappear 0.3s 1.5s ease forwards; }
-.grid-conversion-name { position: absolute; z-index: 4; bottom: 30px; color: #fff; font-size: 11px; font-weight: 900; opacity: 0; animation: conversionAppear 0.4s 1.7s ease forwards; }
+.grid-conversion-name {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.4);
+  animation: conversionAppear 0.4s 1.7s ease forwards;
+}
 @keyframes conversionDisappear { to { opacity: 0; transform: scale(0.5); filter: blur(8px); } }
 @keyframes conversionAppear { to { opacity: 1; transform: scale(1) rotate(0); } }
 
@@ -878,4 +905,9 @@ $rarity-five-star-glow: rgba(250, 204, 21, 0.72);
   font-size: clamp(18px, 3vmin, 28px);
   font-weight: 800;
   text-align: center;
+}
+.result-grid .grid-item .grid-icon .gacha-css-frame {
+  width: 76px !important;
+  max-width: 76px;
+  margin: -4px auto -8px;
 }

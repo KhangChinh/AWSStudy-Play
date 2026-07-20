@@ -314,12 +314,12 @@ class GachaAnimation extends Component {
                     <div className="grid-icon">{this.renderIcon(reward.icon)}</div>
                     <div className="grid-name">{reward.name || this.props.t?.('gacha_animation.item') || 'Item'}</div>
                     {reward.isConverted && reward.conversionResult && (
-                      <>
+                      <div className="grid-conversion-result">
                         <div className="grid-conversion-icon">
                           {this.renderIcon(reward.conversionResult.icon)}
                         </div>
                         <div className="grid-conversion-name">{reward.conversionResult.name}</div>
-                      </>
+                      </div>
                     )}
                     <div className="grid-rarity">{starLabel}</div>
                   </div>

@@ -386,9 +386,11 @@ class GachaApp extends Component {
       (rewardId && (item.SK === rewardId || item.id === rewardId))
       || (reward.name && item.name === reward.name)
     ));
+    const sanityNameMatch = String(reward.name || '').match(/^Sanity(?:\s+x(\d+))?$/i);
     const isSanityReward = reward.type === 'sanity'
-      || reward.name === 'Sanity'
+      || Boolean(sanityNameMatch)
       || Boolean(reward.amount && !masterItem);
+    const sanityAmount = Number(reward.amount) || Number(sanityNameMatch?.[1]) || 0;
     const canonicalItemRarity = masterItem?.rarity;
     const numericRarity = isSanityReward
       ? 3
@@ -399,10 +401,10 @@ class GachaApp extends Component {
     return {
       id: reward.SK || reward.id || `${reward.name || 'reward'}-${index}`,
       name: reward.name || (reward.amount ? `Sanity x${reward.amount}` : 'Sanity'),
-      icon: canonicalIcon || this.resolveRewardIcon(reward),
+      icon: isSanityReward ? currencyAssets.sanity : (canonicalIcon || this.resolveRewardIcon(reward)),
       rarity: rarityValue,
-      type: rarityValue === 3 ? 'currency' : 'item',
-      amount: reward.amount,
+      type: isSanityReward ? 'currency' : 'item',
+      amount: sanityAmount || reward.amount,
       isConverted: Boolean(reward.isConverted),
       conversionResult: reward.convertedTo ? {
         id: 'item_sanity',
