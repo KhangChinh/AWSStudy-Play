@@ -109,17 +109,23 @@ export function registerIpcHandlers(ipcMain, win) {
     const { exec } = await import('child_process');
 
     // Resolve extension folder path (dev vs packaged)
-    const appPath = app.getAppPath();
-    let extPath = path.default.join(appPath, '..', '..', 'browser-extension');
-    if (!fs.default.existsSync(extPath)) {
-      extPath = path.default.join(appPath, 'browser-extension');
-    }
-    if (!fs.default.existsSync(extPath)) {
-      extPath = path.default.join(process.cwd(), 'browser-extension');
+    // Khi packaged: electron-builder copy browser-extension → resources/extension (extraResources)
+    // Khi dev: thư mục browser-extension ở project root
+    let extPath;
+    if (app.isPackaged) {
+      extPath = path.default.join(process.resourcesPath, 'extension');
+    } else {
+      // Dev mode: tìm từ project root (cwd hoặc appPath)
+      const tryPaths = [
+        path.default.join(process.cwd(), 'browser-extension'),
+        path.default.join(app.getAppPath(), 'browser-extension'),
+        path.default.join(app.getAppPath(), '..', '..', 'browser-extension'),
+      ];
+      extPath = tryPaths.find(p => fs.default.existsSync(p)) || tryPaths[0];
     }
 
     if (!fs.default.existsSync(extPath)) {
-      return { success: false, error: 'Extension folder not found' };
+      return { success: false, error: `Extension folder not found at: ${extPath}` };
     }
 
     // Step 1: Mở Explorer, highlight thư mục browser-extension
