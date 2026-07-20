@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
-import { cartOutline, cart } from 'ionicons/icons';
+import { cartOutline, cart, personCircleOutline } from 'ionicons/icons';
 import { toast } from 'react-toastify';
 import { buyShopItemApi, getShopApi } from '../../services/shopServices';
-import { assetUrl } from '../../services/cosmeticServices';
+import { assetUrl, cosmeticManager } from '../../services/cosmeticServices';
 import { handleConvertPointsAction, KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import currencyAssets from '../../data/currencyAssets';
+import RankFrame from '../../components/RankFrame';
+import BackgroundCssThumbnail from '../../components/BackgroundCssThumbnail';
 import './Shop.scss';
 
 const CORE_PRICE = KNOWLEDGE_POINTS_PER_CORE;
@@ -16,6 +18,13 @@ const normalizeShopItem = (item) => ({
   owned: item.isOwned ?? item.owned ?? false,
 });
 
+const getShopItemPreviewUrl = (item) => (
+  item?.itemType === 'pet'
+    ? (item?.assets?.idle || item?.imageUrl || '')
+    : (item?.itemType === 'background' ? '' : (item?.imageUrl || ''))
+);
+
+const getShopItemId = (item) => String(item?.itemId || item?.SK || '').replace(/^item#/, '');
 const getBudgetValue = (profile, keys) => {
   const budget = profile?.budget || {};
   const aliases = {
@@ -231,6 +240,52 @@ class Shop extends Component {
     );
   }
 
+  renderItemThumbnail(item) {
+    const itemId = getShopItemId(item);
+
+    if (item.itemType === 'background') {
+      const catalogItem = cosmeticManager.getCosmeticInfo('backgrounds', itemId);
+      return (
+        <BackgroundCssThumbnail
+          item={{ ...catalogItem, ...item }}
+          className="background-css-thumbnail"
+        />
+      );
+    }
+    if (item.itemType === 'frame') {
+      const catalogItem = cosmeticManager.getCosmeticInfo('frames', itemId);
+      const frameAsset = item.assets?.frame || item.assets?.svg || catalogItem?.frameAssetUrl || '';
+      return (
+        <RankFrame tier={itemId.replace(/^frame_/, '') || 'none'} size={112} frameAssetUrl={frameAsset ? assetUrl(frameAsset) : ''}>
+          <IonIcon icon={personCircleOutline} />
+        </RankFrame>
+      );
+    }
+
+    if (item.itemType === 'title') {
+      return (
+        <span className={`shop-title-thumbnail profile-title-${itemId}`}>
+          <span className="title-preview">[{item.name || itemId}]</span>
+        </span>
+      );
+    }
+
+    const previewUrl = getShopItemPreviewUrl(item);
+    if (item.itemType === 'pet' && previewUrl) {
+      return (
+        <span
+          className="pet-thumbnail"
+          role="img"
+          aria-label={item.name}
+          style={{ backgroundImage: `url('${assetUrl(previewUrl)}')` }}
+        />
+      );
+    }
+
+    return previewUrl
+      ? <img src={assetUrl(previewUrl)} alt={item.name} />
+      : <span className="item-initial">{(item.itemType || 'IT').slice(0, 2).toUpperCase()}</span>;
+  }
   renderShopItem(item) {
     const { t } = this.props;
     const disabled = item.owned || this.state.buyingKey === item.itemId;
@@ -238,7 +293,7 @@ class Shop extends Component {
     return (
       <div className={`store-item rarity-${item.rarity} ${item.owned ? 'owned' : ''}`} key={item.itemId}>
         <div className="item-cover shop-item-cover">
-          {item.imageUrl ? <img src={assetUrl(item.imageUrl)} alt={item.name} /> : <span className="item-initial">{(item.itemType || 'IT').slice(0, 2).toUpperCase()}</span>}
+          {this.renderItemThumbnail(item)}
         </div>
         <div className="item-info">
           <span className="item-title">{item.name || item.itemId}</span>

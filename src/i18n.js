@@ -1,4 +1,4 @@
-﻿import i18n from 'i18next';
+import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
@@ -8,9 +8,9 @@ const languageLoaders = {
   vi: () => import('./locales/vi/index.js'),
 };
 
-const normalizeLanguage = (language = 'en') => {
+const normalizeLanguage = (language = 'vi') => {
   const normalized = language.toLowerCase().split('-')[0];
-  return SUPPORTED_LANGUAGES.includes(normalized) ? normalized : 'en';
+  return SUPPORTED_LANGUAGES.includes(normalized) ? normalized : 'vi';
 };
 
 const loadLanguageResources = async (language) => {
@@ -29,7 +29,7 @@ const localJsonBackend = {
 };
 
 if (!localStorage.getItem('i18nextLng')) {
-  localStorage.setItem('i18nextLng', 'en');
+  localStorage.setItem('i18nextLng', 'vi');
 }
 
 const i18nReady = i18n

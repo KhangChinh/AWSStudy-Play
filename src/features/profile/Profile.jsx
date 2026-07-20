@@ -3,9 +3,10 @@ import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
-  personCircleOutline, starOutline, cubeOutline, imageOutline, pawOutline, refreshOutline
+  personCircleOutline, starOutline, imageOutline, pawOutline, refreshOutline
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
+import BackgroundCssThumbnail from '../../components/BackgroundCssThumbnail';
 import { cosmeticManager, syncItemData, assetUrl } from '../../services/cosmeticServices';
 import { getInventoryItem } from '../../services/profileService';
 import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
@@ -40,8 +41,11 @@ const cosmeticId = (item) => (
 const backgroundId = (background) => cosmeticId(background);
 
 const resolveBackground = (background) => {
-  if (background && typeof background === 'object') return background;
-  return cosmeticManager.getCosmeticInfo('backgrounds', background);
+  const id = backgroundId(background);
+  const catalogItem = cosmeticManager.getCosmeticInfo('backgrounds', id);
+  return background && typeof background === 'object'
+    ? { ...catalogItem, ...background, preview: catalogItem?.preview, profileBackground: catalogItem?.profileBackground, desktopBackground: catalogItem?.desktopBackground, imageUrl: '' }
+    : catalogItem;
 };
 
 const normalizeInventoryItemId = (item) => {
@@ -73,12 +77,9 @@ const inventoryItemToCosmetic = (item) => {
   const id = normalizeInventoryItemId(item);
   if (!id) return null;
 
-  const folderId = item?.SK || id;
-  const imageUrl = item?.imageUrl
-    ? assetUrl(item.imageUrl)
-    : item?.itemType === 'background'
-      ? assetUrl(`items/background/${folderId}/${id}.jpg`)
-      : '';
+  const imageUrl = item?.itemType === 'background'
+    ? ''
+    : (item?.imageUrl ? assetUrl(item.imageUrl) : '');
 
   return {
     ...item,
@@ -207,12 +208,10 @@ class Profile extends Component {
       currentTitle,
       currentFrame,
       currentBackground,
-      currentSystemIcon,
       currentPet,
       onTitleChange,
       onFrameChange,
       onBackgroundChange,
-      onSystemIconChange,
       onPetChange,
       t,
     } = this.props;
@@ -220,7 +219,9 @@ class Profile extends Component {
 
     if (activeTab === 'backgrounds') {
       const activeBackgroundId = backgroundId(currentBackground);
-      const backgrounds = this.getEquippableCosmetics('backgrounds', 'background', ['studyplant', 'bg_default'], activeBackgroundId);
+      const backgrounds = this
+        .getEquippableCosmetics('backgrounds', 'background', ['bg_default'], activeBackgroundId)
+        .filter(background => background.id !== 'studyplant');
 
       return (
         <div className="backgrounds-grid">
@@ -238,10 +239,7 @@ class Profile extends Component {
                   if (!isLocked) onBackgroundChange?.(background);
                 }}
               >
-                <div
-                  className="bg-preview"
-                  style={{ background: background.preview || background.profileBackground || '#1e293b' }}
-                />
+                <BackgroundCssThumbnail item={background} className="bg-preview" />
                 <div className="bg-name">{background.name}</div>
                 {isActive && <div className="bg-active-dot" title={translate('profile.equipped')} />}
               </div>
@@ -319,28 +317,6 @@ class Profile extends Component {
       );
     }
 
-    if (activeTab === 'systemIcons') {
-      const icons = cosmeticManager.getAllInCategory('systemIcons');
-
-      return (
-        <div className="icons-grid">
-          {icons.map(icon => (
-            <div
-              key={icon.id}
-              className={`icon-item-card ${currentSystemIcon === icon.id ? 'active' : ''}`}
-              onClick={() => onSystemIconChange?.(icon.id)}
-            >
-              <div className={`icon-preview-box ${icon.type}`}>
-                <IonIcon icon={cubeOutline} />
-              </div>
-              <div className="icon-name">{icon.name}</div>
-              {currentSystemIcon === icon.id && <div className="equipped-dot" />}
-            </div>
-          ))}
-        </div>
-      );
-    }
-
     if (activeTab === 'pets') {
       const equippedPet = currentPet !== undefined ? currentPet : (localStorage.getItem('equippedPet') || null);
       
@@ -353,7 +329,7 @@ class Profile extends Component {
           name: dbPet.name || dbPet.id,
           width: dbPet.width || 32,
           height: dbPet.height || 32,
-          backgroundImage: `url('${assetUrl(dbPet.assets?.sitting || dbPet.assets?.idle || dbPet.imageUrl)}')`,
+          backgroundImage: `url('${assetUrl(dbPet.assets?.idle || dbPet.imageUrl || dbPet.assets?.sitting)}')`,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'left top',
           backgroundSize: 'auto 100%',
@@ -362,13 +338,15 @@ class Profile extends Component {
       });
 
       return (
-        <div className="backgrounds-grid">
+        <div className="backgrounds-grid pets-grid">
           {combinedPets.map(pet => {
             const isEquipped = equippedPet === pet.id;
             return (
               <div 
                 key={pet.id}
-                className={`background-card ${isEquipped ? 'equipped' : ''} ${pet.isLocked ? 'locked' : ''}`}
+                className={`bg-item-card pet-item-card ${isEquipped ? 'active' : ''} ${pet.isLocked ? 'locked' : ''}`}
+                role="button"
+                aria-disabled={pet.isLocked}
                 onClick={() => {
                   if (pet.isLocked) return;
                   if (onPetChange) {
@@ -422,8 +400,8 @@ class Profile extends Component {
       || cosmeticManager.getAllInCategory('titles')[0];
     const equippedFrame = cosmeticManager.getCosmeticInfo('frames', currentFrame);
     const selectedBackground = resolveBackground(currentBackground);
-    const profileHeaderStyle = selectedBackground?.profileBackground
-      ? { background: selectedBackground.profileBackground }
+    const profileHeaderStyle = selectedBackground?.assets?.css
+      ? { background: 'var(--desktop-user-background, #0f172a)' }
       : undefined;
     const displayName = userProfile?.information?.name || 'Player_9999';
     const titleName = currentTitle === 'title_none' ? '' : translateCosmeticName(equippedTitle, t);
@@ -477,9 +455,6 @@ class Profile extends Component {
           </button>
           <button className={`nav-tab ${activeTab === 'frames' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'frames' })}>
             <IonIcon icon={imageOutline} /> {this.props.t('profile.frames')}
-          </button>
-          <button className={`nav-tab ${activeTab === 'systemIcons' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'systemIcons' })}>
-            <IonIcon icon={cubeOutline} /> {this.props.t('profile.system_glyphs')}
           </button>
           <button className={`nav-tab ${activeTab === 'pets' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'pets' })}>
             <IonIcon icon={pawOutline} /> {this.props.t('profile.pets', 'Thú Cưng')}

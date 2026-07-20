@@ -51,8 +51,11 @@ const translateCosmeticName = (item, t) => {
 
 
 const resolveBackground = (background) => {
-  if (background && typeof background === 'object') return background;
-  return cosmeticManager.getCosmeticInfo('backgrounds', background);
+  const id = typeof background === 'string' ? background : background?.id || background?.SK;
+  const catalogItem = cosmeticManager.getCosmeticInfo('backgrounds', id);
+  return background && typeof background === 'object'
+    ? { ...catalogItem, ...background, preview: catalogItem?.preview, profileBackground: catalogItem?.profileBackground, desktopBackground: catalogItem?.desktopBackground, imageUrl: '' }
+    : catalogItem;
 };
 
 const cosmeticId = (cosmetic) => (

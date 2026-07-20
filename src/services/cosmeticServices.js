@@ -80,7 +80,7 @@ class CosmeticManager {
     this.masterItems = [];
   }
 
-  loadFromMasterData(items) {
+  async loadFromMasterData(items) {
     if (!Array.isArray(items)) return;
     this.masterItems = items.map(item => ({ ...item }));
 
@@ -99,7 +99,9 @@ class CosmeticManager {
       const itemId = normalizeItemId(item);
       if (!itemId) return;
 
-      const resolvedImageUrl = item.imageUrl ? assetUrl(item.imageUrl) : resolveAutoImage(item);
+      const resolvedImageUrl = item.itemType === 'background'
+        ? ''
+        : (item.imageUrl ? assetUrl(item.imageUrl) : resolveAutoImage(item));
       const resolvedFrameAssetUrl = resolveFrameAsset(item);
       const imageStyles = resolvedImageUrl ? imageBackgroundStyles(resolvedImageUrl) : null;
       const idx = this.data[category].findIndex(i => i.id === itemId || i.SK === itemId);
@@ -235,7 +237,7 @@ const syncItemData = async (force = false) => {
       const cachedItems = await window.api.invoke('store:loadMasterData');
       if (cachedItems && Array.isArray(cachedItems)) {
         console.log('[Cosmetics] Đã tải danh sách master items từ local cache:', cachedItems.length);
-        cosmeticManager.loadFromMasterData(cachedItems);
+        await cosmeticManager.loadFromMasterData(cachedItems);
       }
     }
   } catch (err) {
@@ -261,7 +263,7 @@ const syncItemData = async (force = false) => {
     const response = await handleGetMasterDataApi();
     if (response && Array.isArray(response.items) && response.items.length > 0) {
       console.log('[Cosmetics] Đồng bộ master items từ server thành công:', response.items.length);
-      cosmeticManager.loadFromMasterData(response.items);
+      await cosmeticManager.loadFromMasterData(response.items);
 
       // Lưu lại vào Electron cache
       if (window.api?.invoke) {
