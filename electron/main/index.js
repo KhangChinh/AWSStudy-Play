@@ -282,9 +282,9 @@ export function createAppBlockerOverlay(appInfo, onStrike, onUserClose) {
   overlayWin.setAlwaysOnTop(true, 'screen-saver'); // Z-order cao nhất
   overlayWin.removeMenu();
 
-  const overlayPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'app-blocker-overlay/overlay.html')
-    : path.join(__dirname, '../app-blocker-overlay/overlay.html');
+  // overlay.html được bundle vào app.asar cùng electron/**/*
+  // → luôn dùng __dirname để Electron tự resolve đúng dù packaged hay dev
+  const overlayPath = path.join(__dirname, '../app-blocker-overlay/overlay.html');
   overlayWin.loadFile(overlayPath);
 
   // Gửi data xuống overlay sau khi DOM sẵn sàng
