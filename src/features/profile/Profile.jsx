@@ -305,7 +305,7 @@ class Profile extends Component {
                   if (!isLocked) onFrameChange?.(frame.id);
                 }}
               >
-                <RankFrame tier={frame.tier || tierFromFrame(frame.id)} size={92} frameAssetUrl={frame.frameAssetUrl}>
+                <RankFrame tier={frame.tier || tierFromFrame(frame.id)} size={92}>
                   <IonIcon icon={personCircleOutline} />
                 </RankFrame>
                 <div className="frame-name">{frame.name}</div>
@@ -419,7 +419,7 @@ class Profile extends Component {
         >
           <div className="user-profile-section">
             <div className="avatar-container-simple">
-              <RankFrame tier={tierFromFrame(currentFrame)} size={120} frameAssetUrl={equippedFrame?.frameAssetUrl}>
+              <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
                 {userProfile?.information?.avatarUrl ? (
                   <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img-large" onError={useDefaultAvatarOnError} />
                 ) : (

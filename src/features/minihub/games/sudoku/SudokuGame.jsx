@@ -8,7 +8,7 @@ import {
   checkmarkDoneOutline, flashOutline, lockClosedOutline, bugOutline
 } from 'ionicons/icons';
 
-import { handleStartSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi } from '../../../../services/minigameServices';
+import { handleStartSudokuSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi } from '../../../../services/minigameServices';
 import { setProfile } from '../../../../store/actions/profileActions';
 import UserAvatar from '../../../../components/UserAvatar';
 import { toast } from 'react-toastify';
@@ -223,7 +223,7 @@ const SudokuGame = ({ onClose }) => {
 
     try {
       toast.info(`Đang tạo ván đấu ${displayLevelId}...`);
-      const response = await handleStartSession('sudoku', targetSK);
+      const response = await handleStartSudokuSession('sudoku', targetSK);
 
       if (response && (response.success || response.errCode === 0)) {
         const newBudget = response.profile?.budget || response.budget;

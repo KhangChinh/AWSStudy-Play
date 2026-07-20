@@ -1,4 +1,6 @@
 import React, { Component } from 'react';
+import BackgroundCssThumbnail from '../../components/BackgroundCssThumbnail';
+import RankFrame from '../../components/RankFrame';
 import './GachaAnimation.scss';
 
 const PARTICLE_COUNT = 72;
@@ -140,10 +142,20 @@ class GachaAnimation extends Component {
 
   renderIcon = (icon) => {
     if (!icon) return '□';
-    if (typeof icon === 'string' && (icon.startsWith('/') || icon.startsWith('http'))) {
+    if (typeof icon === 'string') {
       return <img src={icon} alt={this.props.t?.('gacha_animation.item_icon_alt') || 'Item icon'} className="img-icon-render" />;
     }
-    return icon;
+    if (icon.kind !== 'css') return '□';
+    if (icon.itemType === 'background') {
+      return <BackgroundCssThumbnail item={icon.item} className="gacha-css-background" />;
+    }
+    if (icon.itemType === 'frame') {
+      return <RankFrame tier={(icon.itemId || '').replace(/^frame_/, '') || 'none'} size={132} className="gacha-css-frame" />;
+    }
+    if (icon.itemType === 'title') {
+      return <span className={`gacha-css-title profile-title-${icon.itemId}`}>[{icon.item?.name || icon.itemId}]</span>;
+    }
+    return '□';
   };
 
   renderPortal = (rarityClass) => (
@@ -302,12 +314,12 @@ class GachaAnimation extends Component {
                     <div className="grid-icon">{this.renderIcon(reward.icon)}</div>
                     <div className="grid-name">{reward.name || this.props.t?.('gacha_animation.item') || 'Item'}</div>
                     {reward.isConverted && reward.conversionResult && (
-                      <>
+                      <div className="grid-conversion-result">
                         <div className="grid-conversion-icon">
                           {this.renderIcon(reward.conversionResult.icon)}
                         </div>
                         <div className="grid-conversion-name">{reward.conversionResult.name}</div>
-                      </>
+                      </div>
                     )}
                     <div className="grid-rarity">{starLabel}</div>
                   </div>

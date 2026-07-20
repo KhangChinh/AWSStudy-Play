@@ -25,8 +25,7 @@ import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticSe
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import MinigameWidget from '../minihub/MinigameWidget';
-import PetBunnyOverlay from '../pet/PetBunnyOverlay';
-import PetDeathOverlay from '../pet/PetDeathOverlay';
+import PetOverlay from '../pet/PetOverlay';
 import { getDailyQuests, claimQuestReward } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
@@ -96,13 +95,12 @@ const UserProfileWidget = ({
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
-  const frameAssetUrl = cosmeticManager.getCosmeticInfo('frames', currentFrame)?.frameAssetUrl;
   const displayName = userProfile?.information?.name || 'Unde_user';
   const titleName = translateCosmeticName(titleData, t);
 
   return (
     <button type="button" className={`user-profile-widget rank-${currentRank}`} onClick={onClick} aria-label={t('common.profile')}>
-      <RankFrame tier={frameTier} size={75} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
+      <RankFrame tier={frameTier} size={75} className="widget-rank-frame">
         {userProfile?.information?.avatarUrl ? (
           <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img" onError={useDefaultAvatarOnError} />
         ) : (
@@ -845,10 +843,7 @@ class Dashboard extends Component {
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
-        {this.state.currentPet === 'pet_death'
-          ? <PetDeathOverlay equippedPet={this.state.currentPet} />
-          : <PetBunnyOverlay equippedPet={this.state.currentPet} />
-        }
+        <PetOverlay equippedPet={this.state.currentPet} />
         {shouldRenderDesktopEffects && this.renderDesktopLineBackground(activeBgId)}
         {animationsEnabled && hasCustomBackgroundCss && (
           <div className={`desktop-line-bg custom-background-effects bg-${activeBgId}`} aria-hidden="true" />

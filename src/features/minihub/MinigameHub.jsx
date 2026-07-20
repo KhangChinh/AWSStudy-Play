@@ -7,8 +7,11 @@ import { playOutline, trophyOutline, gameControllerOutline } from 'ionicons/icon
 import './MinigameHub.scss';
 
 import { handleSyncSudokuLevels, handleGetLeaderboardApi } from '../../services/minigameServices';
+import { handleSyncMinesweeperLevels } from '../../services/minesweeperService';
 import { toast } from 'react-toastify';
 import SudokuGame from './games/sudoku/SudokuGame.jsx';
+import MinesweeperGame from './games/minesweeper/MinesweeperGame.jsx';
+
 import UserAvatar from '../../components/UserAvatar';
 
 const MINIGAMES = [
@@ -23,7 +26,7 @@ const ArcadeList = ({ onPlayGame }) => (
     <h3><IonIcon icon={gameControllerOutline} /> Available Games</h3>
     <div className="store-grid">
       {[
-        { name: 'Minesweeper', price: 100, icon: '💣', disabled: true },
+        { name: 'Minesweeper', price: 100, icon: '💣', disabled: false },
         { name: 'Sudoku', price: 'Free', icon: '🔢', disabled: false },
       ].map(game => (
         <div className="store-item" key={game.name}>
@@ -177,6 +180,23 @@ class MinigameHub extends Component {
       } finally {
         this.setState({ isLoading: false });
       }
+    } else if (gameId === 'minesweeper') {
+      this.setState({ isLoading: true });
+      try {
+        const response = await handleSyncMinesweeperLevels();
+        console.log("=== DANH SÁCH MÀN CHƠI MINESWEEPER ===", response);
+
+        if (response && (response.levels || response.success)) {
+          this.setState({ activeGame: 'minesweeper' });
+        } else {
+          toast.error("Có lỗi xảy ra hoặc không tìm thấy dữ liệu.");
+        }
+      } catch (error) {
+        console.log('Error loading levels:', error);
+        toast.error('Lỗi kết nối khi tải màn chơi!');
+      } finally {
+        this.setState({ isLoading: false });
+      }
     } else {
       this.setState({ activeGame: gameId });
     }
@@ -194,6 +214,12 @@ class MinigameHub extends Component {
     if (activeGame === 'sudoku') {
       return (
         <SudokuGame onClose={() => this.setState({ activeGame: null })} />
+      );
+    }
+
+    if (activeGame === 'minesweeper') {
+      return (
+        <MinesweeperGame onClose={() => this.setState({ activeGame: null })} />
       );
     }
 

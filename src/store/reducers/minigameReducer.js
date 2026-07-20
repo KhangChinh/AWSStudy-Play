@@ -1,11 +1,20 @@
-import { SET_SUDOKU_LEVELS, APPEND_SUDOKU_LEVELS, SET_LEADERBOARD, CLEAR_SUDOKU_LEVELS } from '../actions/minigameActions';
+import {
+    SET_SUDOKU_LEVELS, APPEND_SUDOKU_LEVELS, SET_LEADERBOARD, CLEAR_SUDOKU_LEVELS,
+    SET_MINESWEEPER_LEVELS, APPEND_MINESWEEPER_LEVELS, CLEAR_MINESWEEPER_LEVELS
+} from '../actions/minigameActions';
 
 const initialState = {
     sudokuLevels: [],
     sudokuLevelsLastEvaluatedKey: null,
+    minesweeperLevels: [],
+    minesweeperLevelsLastEvaluatedKey: null,
     isLoading: false,
     leaderboards: {
         sudoku: {
+            data: [],
+            expiresAt: null
+        },
+        minesweeper: {
             data: [],
             expiresAt: null
         }
@@ -28,6 +37,20 @@ const minigameReducer = (state = initialState, action) => {
                 sudokuLevelsLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
                 isLoading: false,
             };
+        case SET_MINESWEEPER_LEVELS:
+            return {
+                ...state,
+                minesweeperLevels: action.payload.minesweeperLevels || [],
+                minesweeperLevelsLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
+                isLoading: false,
+            };
+        case APPEND_MINESWEEPER_LEVELS:
+            return {
+                ...state,
+                minesweeperLevels: [...state.minesweeperLevels, ...(action.payload.minesweeperLevels || [])],
+                minesweeperLevelsLastEvaluatedKey: action.payload.lastEvaluatedKey || null,
+                isLoading: false,
+            };
         case SET_LEADERBOARD:
             return {
                 ...state,
@@ -40,11 +63,22 @@ const minigameReducer = (state = initialState, action) => {
                 }
             };
         case CLEAR_SUDOKU_LEVELS:
-            return initialState;
+            return {
+                ...state,
+                sudokuLevels: [],
+                sudokuLevelsLastEvaluatedKey: null
+            };
+        case CLEAR_MINESWEEPER_LEVELS:
+            return {
+                ...state,
+                minesweeperLevels: [],
+                minesweeperLevelsLastEvaluatedKey: null
+            };
 
         default:
             return state;
     }
 };
+
 
 export default minigameReducer;

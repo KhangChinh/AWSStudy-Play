@@ -1,12 +1,12 @@
 import { SET_INVENTORY, APPEND_INVENTORY, CLEAR_INVENTORY } from '../actions/inventoryActions';
 
-const DEFAULT_TYPES = ['background', 'frame', 'title', 'button', 'theme', 'systemIcon'];
+const DEFAULT_TYPES = ['background', 'frame', 'title', 'button', 'theme', 'systemIcon', 'pet'];
 const configuredTypes = (import.meta.env.VITE_INVENTORY_TYPES || '')
   .replace(/^['"]|['"]$/g, '')
   .split(',')
   .map(type => type.trim().replace(/^['"]|['"]$/g, ''))
   .filter(Boolean);
-const types = configuredTypes.length > 0 ? configuredTypes : DEFAULT_TYPES;
+const types = [...new Set([...DEFAULT_TYPES, ...configuredTypes])];
 
 const normalizeType = (type) => {
   const aliases = {
@@ -17,6 +17,7 @@ const normalizeType = (type) => {
     themes: 'theme',
     systemIcons: 'systemIcon',
     system_icons: 'systemIcon',
+    pets: 'pet',
   };
   return aliases[type] || type;
 };

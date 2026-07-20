@@ -14,6 +14,7 @@ const normalizeInventoryType = (itemType) => {
         themes: 'theme',
         systemIcons: 'systemIcon',
         system_icons: 'systemIcon',
+        pets: 'pet',
     };
     return aliases[itemType] || itemType;
 };
@@ -51,7 +52,13 @@ const getInventoryItem = async (itemType) => {
     if (!normalizedType) return { success: false, message: 'Missing itemType' };
 
     try {
-        await handleSyncInventoryApi(normalizedType);
+        await handleSyncInventoryApi(normalizedType, { force: true });
+
+        let pageCount = 0;
+        while ((store.getState().inventory || {})[normalizedType]?.lastKey && pageCount < 100) {
+            await handleSyncInventoryApi(normalizedType);
+            pageCount += 1;
+        }
 
         const typeState = (store.getState().inventory || {})[normalizedType];
         const inventory = Array.isArray(typeState?.items) ? typeState.items : [];
