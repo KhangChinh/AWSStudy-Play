@@ -301,6 +301,52 @@ export function registerStoreIPC(ipcMain) {
       return { success: false, error: err.message };
     }
   });
+  // ═══ Minesweeper Levels ═══
+  ipcMain.handle('store:saveMinesweeperLevels', async (_event, payload) => {
+    try {
+      let finalMinesweeperLevels = payload.minesweeperLevels;
+      if (payload.isAppend) {
+        const existingEncrypted = store.get('userMinesweeperLevels');
+
+        if (existingEncrypted) {
+          const existingData = decodeBase64(existingEncrypted);
+          if (existingData && Array.isArray(existingData.minesweeperLevels)) {
+            finalMinesweeperLevels = [...existingData.minesweeperLevels, ...payload.minesweeperLevels];
+          }
+        }
+      }
+      const dataToSave = {
+        minesweeperLevels: finalMinesweeperLevels,
+        lastEvaluatedKey: payload.lastEvaluatedKey
+      };
+      const encrypted = encodeBase64(dataToSave);
+      store.set('userMinesweeperLevels', encrypted);
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:saveMinesweeperLevels failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('store:loadMinesweeperLevels', async () => {
+    try {
+      const encrypted = store.get('userMinesweeperLevels');
+      if (!encrypted) return null;
+      return decodeBase64(encrypted);
+    } catch (err) {
+      console.error('[storeIpc] store:loadMinesweeperLevels failed:', err);
+      return null;
+    }
+  });
+  ipcMain.handle('store:clearMinesweeperLevels', async () => {
+    try {
+      store.delete('userMinesweeperLevels');
+      store.delete('userShop');
+      return { success: true };
+    } catch (err) {
+      console.error('[storeIpc] store:clearMinesweeperLevels failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
   // ═══ Social ═══
   ipcMain.handle('store:saveSocial', async (_event, payload) => {
     try {
@@ -427,7 +473,7 @@ export function registerStoreIPC(ipcMain) {
 
       const encrypted = encodeBase64(settings);
       store.set('aiSettings', encrypted);
-      
+
       // Also sync to studyPlannerStore so backend services get the updated config immediately
       if (settings && settings.studyPlanner) {
         const studyConfig = {
@@ -437,7 +483,7 @@ export function registerStoreIPC(ipcMain) {
         };
         saveStudySettings(studyConfig);
       }
-      
+
       console.log('[Settings] ✅ Lưu AI Settings thành công!\n');
       return { success: true };
     } catch (err) {
