@@ -25,8 +25,7 @@ import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticSe
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import MinigameWidget from '../minihub/MinigameWidget';
-import PetBunnyOverlay from '../pet/PetBunnyOverlay';
-import PetDeathOverlay from '../pet/PetDeathOverlay';
+import PetOverlay from '../pet/PetOverlay';
 import { getDailyQuests, claimQuestReward } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
@@ -844,10 +843,7 @@ class Dashboard extends Component {
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
-        {this.state.currentPet === 'pet_death'
-          ? <PetDeathOverlay equippedPet={this.state.currentPet} />
-          : <PetBunnyOverlay equippedPet={this.state.currentPet} />
-        }
+        <PetOverlay equippedPet={this.state.currentPet} />
         {shouldRenderDesktopEffects && this.renderDesktopLineBackground(activeBgId)}
         {animationsEnabled && hasCustomBackgroundCss && (
           <div className={`desktop-line-bg custom-background-effects bg-${activeBgId}`} aria-hidden="true" />

@@ -50,6 +50,16 @@ const formatRemainingTime = (expiresAt) => {
 
 const GACHA_CONFIGS = [
   {
+    id: 'banner_pet',
+    bannerId: 'banner_pet',
+    name: 'Banner Thú cưng',
+    itemType: 'pet',
+    durationDays: 7,
+    theme: 'theme-solar',
+    background: 'solar-bg',
+    rates: { 5: 0.01, 4: 0.09, 3: 0.90, rateUpChance: 0.5, pity5StarLimit: 80, pity4StarLimit: 10 },
+  },
+  {
     id: 'banner_background',
     bannerId: 'banner_background',
     name: 'Banner Hình Nền Thường Nhật',
@@ -78,16 +88,6 @@ const GACHA_CONFIGS = [
     theme: 'theme-solar',
     background: 'solar-bg',
     rates: { 5: 0.01, 4: 0.09, 3: 0.90, rateUpChance: 0.75, pity5StarLimit: 80, pity4StarLimit: 10 },
-  },
-  {
-    id: 'banner_pet',
-    bannerId: 'banner_pet',
-    name: 'Banner Thú cưng',
-    itemType: 'pet',
-    durationDays: 7,
-    theme: 'theme-solar',
-    background: 'solar-bg',
-    rates: { 5: 0.01, 4: 0.09, 3: 0.90, rateUpChance: 0.5, pity5StarLimit: 80, pity4StarLimit: 10 },
   },
 ];
 
