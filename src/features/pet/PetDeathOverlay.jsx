@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cosmeticManager, assetUrl } from '../../services/cosmeticServices';
 import './PetOverlay.scss';
 
@@ -8,23 +8,7 @@ const JUMP_SPEED_Y = -12;
 const JUMP_SPEED_X = 3;
 const TASKBAR_HEIGHT = 48;
 
-const DEATH_ANIMATIONS = {
-  Idle: { asset: 'idle', fallbackAsset: 'sitting', frames: 8, speed: 150 },
-  Walk: { asset: 'run', fallbackAsset: 'walk', frames: 8, speed: 100 },
-  Hurt: { asset: 'hurt', frames: 8, speed: 200 },
-  Attack: { asset: 'attack', frames: 8, speed: 100 },
-  Death: { asset: 'death', frames: 8, speed: 150, loop: false },
-  Jump: { asset: 'jump', frames: 8, speed: 150 },
-  Sleep: { asset: 'sleep', frames: 8, speed: 200 },
-  CarrotSkill: { asset: 'carrotskill', frames: 8, speed: 150 },
-  Sitting: { asset: 'sitting', frames: 8, speed: 150 },
-  LieDown: { asset: 'liedown', frames: 8, speed: 150 },
-};
-const DEATH_LAYOUT = { width: 32, height: 35 };
-
 const PetDeathOverlay = ({ equippedPet }) => {
-  const animationSettings = DEATH_ANIMATIONS;
-  const layout = DEATH_LAYOUT;
   const [petId, setPetId] = useState(equippedPet !== undefined ? equippedPet : (localStorage.getItem('equippedPet') || null));
   const [pos, setPos] = useState({ x: 100, y: 0 });
   const [vel, setVel] = useState({ x: 0, y: 0 });
@@ -33,28 +17,34 @@ const PetDeathOverlay = ({ equippedPet }) => {
   const [frame, setFrame] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isDead, setIsDead] = useState(false);
-  const [actualFrames, setActualFrames] = useState({});
-  const actualFramesRef = useRef({});
-
-  useEffect(() => {
-    actualFramesRef.current = actualFrames;
-  }, [actualFrames]);
   
   const dbPet = cosmeticManager.getCosmeticInfo('pets', petId);
   
   const pet = React.useMemo(() => {
     if (!dbPet) return null;
     
+    const allAnims = {
+      Idle: { file: dbPet.assets?.sitting || dbPet.assets?.idle, frames: 2, speed: 150 },
+      Walk: { file: dbPet.assets?.run || dbPet.assets?.walk, frames: 4, speed: 100 },
+      Hurt: { file: dbPet.assets?.hurt, frames: 6, speed: 200 },
+      Attack: { file: dbPet.assets?.attack, frames: 8, speed: 100 },
+      Death: { file: dbPet.assets?.death, frames: 8, speed: 150, loop: false },
+      Jump: { file: dbPet.assets?.jump, frames: 8, speed: 150 },
+      Sleep: { file: dbPet.assets?.sleep, frames: 4, speed: 200 },
+      CarrotSkill: { file: dbPet.assets?.carrotskill, frames: 8, speed: 150 },
+      Sitting: { file: dbPet.assets?.sitting, frames: 2, speed: 150 },
+      LieDown: { file: dbPet.assets?.liedown, frames: 8, speed: 150 }
+    };
+
     const validAnimations = {};
-    for (const [key, config] of Object.entries(animationSettings)) {
-      const file = dbPet.assets?.[config.asset] || dbPet.assets?.[config.fallbackAsset];
-      if (file) {
+    for (const [key, config] of Object.entries(allAnims)) {
+      if (config.file) {
         validAnimations[key] = {
-          fileUrl: assetUrl(file),
+          fileUrl: assetUrl(config.file),
           frames: config.frames,
           speed: config.speed,
           loop: config.loop !== false,
-          type: file.endsWith('.gif') ? 'gif' : 'sprite'
+          type: config.file.endsWith('.gif') ? 'gif' : 'sprite'
         };
       }
     }
@@ -69,49 +59,14 @@ const PetDeathOverlay = ({ equippedPet }) => {
       };
     }
 
-    return dbPet ? {
-      name: dbPet.name || petId,
-      width: layout.width,
-      height: layout.height,
-      isDbPet: true,
-      animations: validAnimations
-    } : null;
-  }, [animationSettings, dbPet, layout, petId]);
-
-  // Preload images and calculate actual frames
-  useEffect(() => {
-    if (!pet) return;
-    const framesMap = {};
-    let loadedCount = 0;
-    const animEntries = Object.entries(pet.animations);
-
-    if (animEntries.length === 0) return;
-
-    animEntries.forEach(([key, anim]) => {
-      if (anim.fileUrl) {
-        const img = new Image();
-        img.onload = () => {
-           // Calculate frames based on image width and frame width
-           const computedFrames = Math.max(1, Math.round(img.width / pet.width));
-           framesMap[key] = computedFrames;
-           loadedCount++;
-           if (loadedCount === animEntries.length) {
-              setActualFrames(prev => ({...prev, ...framesMap}));
-           }
-        };
-        img.onerror = () => {
-           framesMap[key] = anim.frames; // fallback
-           loadedCount++;
-           if (loadedCount === animEntries.length) {
-              setActualFrames(prev => ({...prev, ...framesMap}));
-           }
-        };
-        img.src = anim.fileUrl;
-      } else {
-        loadedCount++;
-      }
-    });
-  }, [pet]);
+      return dbPet ? {
+        name: dbPet.name || petId,
+        width: 32,
+        height: 35,
+        isDbPet: true,
+        animations: validAnimations
+      } : null;
+  }, [dbPet]);
 
   const posRef = useRef(pos);
   const velRef = useRef(vel);
@@ -119,6 +74,7 @@ const PetDeathOverlay = ({ equippedPet }) => {
   const dirRef = useRef(dir);
   const isDraggingRef = useRef(isDragging);
   const frameTimerRef = useRef(null);
+  const behaviorTimerRef = useRef(null);
   const deathTimerRef = useRef(null);
   const targetRef = useRef(null);
 
@@ -140,7 +96,7 @@ const PetDeathOverlay = ({ equippedPet }) => {
       setIsDead(false);
       setPos(p => ({ ...p, y: window.innerHeight - TASKBAR_HEIGHT }));
     }
-  }, [equippedPet, petId]);
+  }, [equippedPet]);
 
   // Update refs
   useEffect(() => { posRef.current = pos; }, [pos]);
@@ -164,7 +120,7 @@ const PetDeathOverlay = ({ equippedPet }) => {
     clearInterval(frameTimerRef.current);
     
     if (animConfig.type !== 'gif') {
-      const activeFramesCount = actualFrames[state] || animConfig.frames;
+      const activeFramesCount = animConfig.frames;
       frameTimerRef.current = setInterval(() => {
         setFrame(f => {
           if (stateRef.current === 'Death' && f === activeFramesCount - 1) {
@@ -177,9 +133,9 @@ const PetDeathOverlay = ({ equippedPet }) => {
     }
 
     return () => clearInterval(frameTimerRef.current);
-  }, [pet, state, isDead, actualFrames]);
+  }, [pet, state, isDead]);
 
-  const getGroundY = useCallback((x, petWidth) => {
+  const getGroundY = (x, petWidth) => {
     let highestGround = window.innerHeight - TASKBAR_HEIGHT;
     // Check valid widgets (Currency, Friends, Rank)
     const widgets = document.querySelectorAll('.dashboard-currency-panel, .desktop-friends-widget, .desktop-focus-control-center');
@@ -199,7 +155,7 @@ const PetDeathOverlay = ({ equippedPet }) => {
       }
     });
     return highestGround - pet.height + 12;
-  }, [pet]);
+  };
 
   // Physics & Behavior Loop
   useEffect(() => {
@@ -310,7 +266,7 @@ const PetDeathOverlay = ({ equippedPet }) => {
     animationFrameId = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [pet, isDead, getGroundY]);
+  }, [pet, isDead]);
 
   // AI Behavior
   useEffect(() => {
@@ -344,12 +300,12 @@ const PetDeathOverlay = ({ equippedPet }) => {
          nextState = 'Jump';
          setVel({ x: dirRef.current === 'right' ? JUMP_SPEED_X : -JUMP_SPEED_X, y: JUMP_SPEED_Y });
          targetRef.current = null;
-         const jumpFrames = actualFramesRef.current['Jump'] || pet.animations.Jump.frames;
+         const jumpFrames = pet.animations.Jump.frames;
          delay = (jumpFrames * pet.animations.Jump.speed) || 1000;
       } else if (rand < 0.4 && pet.animations.CarrotSkill) {
          nextState = 'CarrotSkill';
          targetRef.current = null;
-         const skillFrames = actualFramesRef.current['CarrotSkill'] || pet.animations.CarrotSkill.frames;
+         const skillFrames = pet.animations.CarrotSkill.frames;
          delay = (skillFrames * pet.animations.CarrotSkill.speed) || 2000;
       } else if (rand < 0.5 && pet.animations.Sleep) {
          nextState = 'Sleep';
@@ -393,10 +349,10 @@ const PetDeathOverlay = ({ equippedPet }) => {
 
   const handlePointerMove = (e) => {
     if (!isDragging) return;
-    setPos({
+    setPos(p => ({
       x: e.clientX - pet.width / 2,
       y: e.clientY - pet.height / 2
-    });
+    }));
     // Do not set velocity here to prevent throwing momentum
   };
 
@@ -441,7 +397,7 @@ const PetDeathOverlay = ({ equippedPet }) => {
 
   return (
     <div 
-      className='pet-overlay'
+      className="pet-overlay"
       style={style}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

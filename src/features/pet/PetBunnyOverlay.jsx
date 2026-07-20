@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cosmeticManager, assetUrl } from '../../services/cosmeticServices';
 import './PetOverlay.scss';
 
@@ -8,23 +8,7 @@ const JUMP_SPEED_Y = -12;
 const JUMP_SPEED_X = 3;
 const TASKBAR_HEIGHT = 48;
 
-const BUNNY_ANIMATIONS = {
-  Idle: { asset: 'idle', fallbackAsset: 'sitting', frames: 8, speed: 150 },
-  Walk: { asset: 'run', fallbackAsset: 'walk', frames: 5, speed: 100 },
-  Hurt: { asset: 'hurt', frames: 3, speed: 200 },
-  Attack: { asset: 'attack', frames: 7, speed: 100 },
-  Death: { asset: 'death', frames: 9, speed: 150, loop: false },
-  Sleep: { asset: 'sleep', frames: 2, speed: 200 },
-  CarrotSkill: { asset: 'carrotskill', frames: 15, speed: 150 },
-  Sitting: { asset: 'sitting', frames: 3, speed: 150 },
-  LieDown: { asset: 'liedown', frames: 2, speed: 150 },
-};
-
-const PetBunnyOverlay = ({
-  equippedPet,
-  animationSettings = BUNNY_ANIMATIONS,
-  layout = { width: 32, height: 32 },
-}) => {
+const PetBunnyOverlay = ({ equippedPet }) => {
   const [petId, setPetId] = useState(equippedPet !== undefined ? equippedPet : (localStorage.getItem('equippedPet') || null));
   const [pos, setPos] = useState({ x: 100, y: 0 });
   const [vel, setVel] = useState({ x: 0, y: 0 });
@@ -45,16 +29,28 @@ const PetBunnyOverlay = ({
   const pet = React.useMemo(() => {
     if (!dbPet) return null;
     
+    const allAnims = {
+      Idle: { file: dbPet.assets?.sitting || dbPet.assets?.idle, frames: 4, speed: 150 },
+      Walk: { file: dbPet.assets?.run || dbPet.assets?.walk, frames: 6, speed: 100 },
+      Hurt: { file: dbPet.assets?.hurt, frames: 2, speed: 200 },
+      Attack: { file: dbPet.assets?.attack, frames: 4, speed: 100 },
+      Death: { file: dbPet.assets?.death, frames: 4, speed: 150, loop: false },
+      Jump: { file: dbPet.assets?.jump, frames: 4, speed: 150 },
+      Sleep: { file: dbPet.assets?.sleep, frames: 4, speed: 200 },
+      CarrotSkill: { file: dbPet.assets?.carrotskill, frames: 4, speed: 150 },
+      Sitting: { file: dbPet.assets?.sitting, frames: 4, speed: 150 },
+      LieDown: { file: dbPet.assets?.liedown, frames: 4, speed: 150 }
+    };
+
     const validAnimations = {};
-    for (const [key, config] of Object.entries(animationSettings)) {
-      const file = dbPet.assets?.[config.asset] || dbPet.assets?.[config.fallbackAsset];
-      if (file) {
+    for (const [key, config] of Object.entries(allAnims)) {
+      if (config.file) {
         validAnimations[key] = {
-          fileUrl: assetUrl(file),
+          fileUrl: assetUrl(config.file),
           frames: config.frames,
           speed: config.speed,
           loop: config.loop !== false,
-          type: file.endsWith('.gif') ? 'gif' : 'sprite'
+          type: config.file.endsWith('.gif') ? 'gif' : 'sprite'
         };
       }
     }
@@ -71,12 +67,12 @@ const PetBunnyOverlay = ({
 
     return dbPet ? {
       name: dbPet.name || petId,
-      width: layout.width,
-      height: layout.height,
+      width: 32,
+      height: 32,
       isDbPet: true,
       animations: validAnimations
     } : null;
-  }, [animationSettings, dbPet, layout, petId]);
+  }, [dbPet]);
 
   // Preload images and calculate actual frames
   useEffect(() => {
@@ -119,6 +115,7 @@ const PetBunnyOverlay = ({
   const dirRef = useRef(dir);
   const isDraggingRef = useRef(isDragging);
   const frameTimerRef = useRef(null);
+  const behaviorTimerRef = useRef(null);
   const deathTimerRef = useRef(null);
   const targetRef = useRef(null);
 
@@ -140,7 +137,7 @@ const PetBunnyOverlay = ({
       setIsDead(false);
       setPos(p => ({ ...p, y: window.innerHeight - TASKBAR_HEIGHT }));
     }
-  }, [equippedPet, petId]);
+  }, [equippedPet]);
 
   // Update refs
   useEffect(() => { posRef.current = pos; }, [pos]);
@@ -177,9 +174,9 @@ const PetBunnyOverlay = ({
     }
 
     return () => clearInterval(frameTimerRef.current);
-  }, [pet, state, isDead, actualFrames]);
+  }, [pet, state, isDead]);
 
-  const getGroundY = useCallback((x, petWidth) => {
+  const getGroundY = (x, petWidth) => {
     let highestGround = window.innerHeight - TASKBAR_HEIGHT;
     // Check valid widgets (Currency, Friends, Rank)
     const widgets = document.querySelectorAll('.dashboard-currency-panel, .desktop-friends-widget, .desktop-focus-control-center');
@@ -199,7 +196,7 @@ const PetBunnyOverlay = ({
       }
     });
     return highestGround - pet.height + 12;
-  }, [pet]);
+  };
 
   // Physics & Behavior Loop
   useEffect(() => {
@@ -310,7 +307,7 @@ const PetBunnyOverlay = ({
     animationFrameId = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [pet, isDead, getGroundY]);
+  }, [pet, isDead]);
 
   // AI Behavior
   useEffect(() => {
@@ -393,10 +390,10 @@ const PetBunnyOverlay = ({
 
   const handlePointerMove = (e) => {
     if (!isDragging) return;
-    setPos({
+    setPos(p => ({
       x: e.clientX - pet.width / 2,
       y: e.clientY - pet.height / 2
-    });
+    }));
     // Do not set velocity here to prevent throwing momentum
   };
 
@@ -452,7 +449,3 @@ const PetBunnyOverlay = ({
 };
 
 export default PetBunnyOverlay;
-
-
-
-
