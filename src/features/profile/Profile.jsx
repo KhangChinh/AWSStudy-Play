@@ -459,14 +459,14 @@ class Profile extends Component {
           <button className={`nav-tab ${activeTab === 'pets' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'pets' })}>
             <IonIcon icon={pawOutline} /> {this.props.t('profile.pets', 'Thú Cưng')}
           </button>
-          <button 
+          {/* <button 
             className="nav-tab sync-btn" 
             onClick={this.handleForceSync}
             style={{ marginLeft: 'auto', background: '#ff4d4f', color: '#fff', border: 'none' }}
             title="Force refresh cosmetics data from server"
           >
             <IonIcon icon={refreshOutline} /> {this.props.t('profile.sync', 'Làm mới')}
-          </button>
+          </button> */}
         </div>
 
         <div className="profile-scroll-area">
