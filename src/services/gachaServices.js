@@ -5,28 +5,20 @@ import { ingestErrorResponse } from './apiErrorService';
 import { KNOWLEDGE_POINTS_PER_CORE } from './currencyServices';
 
 const API_URL = import.meta.env.VITE_API_URL;
-export const GACHA_BANNER_ID = 'banner_background';
 
-export const getGachaMasterItems = async (bannerId = GACHA_BANNER_ID) => {
+export const getGachaMasterItems = async () => {
   const token = await getValidAccessToken();
   if (!token) throw new Error('No auth token. Please sign in again.');
-  const response = await fetch(`${API_URL}/master-data?bannerId=${encodeURIComponent(bannerId)}`, { headers: { 'Authorization': `Bearer ${token}` } });
+  const response = await fetch(`${API_URL}/master-data`, { headers: { 'Authorization': `Bearer ${token}` } });
   if (!response.ok) {
     const errData = await ingestErrorResponse(response);
     throw new Error(errData.message || `Server error (${response.status})`);
   }
   const result = await response.json();
   const records = Array.isArray(result.items) ? result.items : [];
-  const banner = result.banner
-    || result.gachaBanner
-    || (result?.PK === 'gacha' && result?.SK === bannerId ? result : null)
-    || records.find(item => item?.PK === 'gacha' && item?.SK === bannerId)
-    || null;
-  const poolItems = banner?.pool ? Object.values(banner.pool).flat() : [];
-  const items = [...records.filter(item => item?.collectFrom === 'gacha'), ...poolItems];
-  const uniqueItems = Array.from(new Map(items.map(item => [item.SK || item.id, item])).values());
-
-  return { banner, items: uniqueItems };
+  return {
+    items: records.filter(item => item?.collectFrom === 'gacha'),
+  };
 };
 
 const isDuplicateKeyError = (error) => (
@@ -38,7 +30,7 @@ const isInventoryIndexPermissionError = (error) => {
   return message.includes('Inventory/index/ItemTypeIndex') || /not authorized to perform: dynamodb:Query/i.test(message);
 };
 
-const postGacha = async (token, isx10, bannerId = GACHA_BANNER_ID) => {
+const postGacha = async (token, isx10, bannerId) => {
   const response = await fetch(`${API_URL}/gacha`, {
     method: 'POST',
     headers: {
@@ -58,8 +50,9 @@ const postGacha = async (token, isx10, bannerId = GACHA_BANNER_ID) => {
   return response.json();
 };
 
-export const handleGachaApi = async (isx10, bannerId = GACHA_BANNER_ID) => {
+export const handleGachaApi = async (isx10, bannerId) => {
   try {
+    if (!bannerId) throw new Error('Missing bannerId.');
     const costCore = isx10 ? 10 : 1;
     let profile = store.getState().profile?.userProfile;
     if (!profile) {

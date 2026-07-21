@@ -598,11 +598,6 @@ class Dashboard extends Component {
       activeApp: null,
     });
 
-    toast.info(this.props.t('dashboard.minimize_all'), {
-      icon: 'min',
-      theme: 'dark',
-      autoClose: 1000,
-    });
   };
 
   toggleMaximize = (e, appId) => {

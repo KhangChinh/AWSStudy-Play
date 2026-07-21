@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { toast } from 'react-toastify';
 import guideChrome from './img/guide_chrome.png';
 import guideEdge from './img/guide_edge.png';
 import guideBrave from './img/guide_brave.png';
@@ -118,11 +117,6 @@ const ExtensionGuide = ({ missingBrowsers = [], onClose }) => {
     try {
       await navigator.clipboard.writeText(activeBrowser.extUrl);
       setCopiedLink(true);
-      toast.success(`Đã copy link ${activeBrowser.extUrl}! Hãy dán vào thanh địa chỉ của trình duyệt.`, {
-        position: 'top-center',
-        autoClose: 5000,
-        style: { fontSize: '13px' }
-      });
       setTimeout(() => setCopiedLink(false), 3000);
       
       // Vẫn gọi mở trình duyệt (sẽ mở tab mới)

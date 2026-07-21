@@ -1,3 +1,54 @@
+const DEFAULT_RATES = {
+  5: 0.01,
+  4: 0.09,
+  rateUpChance: 0.5,
+  pity5StarLimit: 80,
+  pity4StarLimit: 10,
+};
+
+export const GACHA_CONFIGS = [
+  {
+    bannerId: 'banner_pet',
+    name: 'Banner Thú cưng',
+    itemType: 'pet',
+    durationDays: 7,
+    rates: DEFAULT_RATES,
+  },
+  {
+    bannerId: 'banner_background',
+    name: 'Banner Hình Nền Thường Nhật',
+    itemType: 'background',
+    durationDays: 1,
+    rates: DEFAULT_RATES,
+  },
+  {
+    bannerId: 'banner_frame',
+    name: 'Banner Khung Đại Diện',
+    itemType: 'frame',
+    durationDays: 3,
+    rates: DEFAULT_RATES,
+  },
+  {
+    bannerId: 'banner_title',
+    name: 'Banner Trang trí Tiêu Đề',
+    itemType: 'title',
+    durationDays: 1,
+    rates: { ...DEFAULT_RATES, rateUpChance: 0.75 },
+  },
+];
+
+export const PET_IDLE_THUMBNAILS = {
+  pet_janedoe: { frames: 8, width: 32, height: 32 },
+  pet_wolf: { frames: 6, width: 64, height: 48 },
+  pet_cat: { frames: 8, width: 32, height: 32 },
+  pet_bluewie: { frames: 4, width: 32, height: 32 },
+  pet_browie: { frames: 2, width: 32, height: 32 },
+  pet_luneblade: { frames: 7, width: 32, height: 32 },
+  pet_bunny: { frames: 4, width: 32, height: 32 },
+  pet_death: { frames: 2, width: 32, height: 35 },
+  pet_icabell: { frames: 3, width: 48, height: 48 },
+};
+
 const RATE_UP_IDS_BY_BANNER = {
   banner_background: {
     5: ['bg_crimson_void'],

@@ -215,7 +215,6 @@ const SudokuGame = ({ onClose }) => {
     const cost = level.sanityCost || level.unlockCostSanity || 0;
 
     try {
-      toast.info(`Đang tạo ván đấu ${displayLevelId}...`);
       const response = await handleStartSudokuSession('sudoku', targetSK);
 
       if (response && (response.success || response.errCode === 0)) {

@@ -1156,32 +1156,10 @@
   }
 }
 .gacha-app {
-  .featured-item-preview,
   .rate-thumbnail-wrap {
     position: relative;
     flex: 0 0 auto;
     display: inline-flex;
-  }
-
-  .featured-bg-thumbnail {
-    width: 76px;
-    height: 43px;
-    border-radius: 6px;
-    overflow: hidden;
-    background: #0f172a;
-  }
-
-  .featured-item-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-
-    small {
-      font-size: 12px;
-      font-weight: 900;
-      color: #fff;
-      font-variant-numeric: tabular-nums;
-    }
   }
 
   .rate-up-badge {
