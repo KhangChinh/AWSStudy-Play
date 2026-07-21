@@ -151,7 +151,7 @@ const FocusGuard = (props) => {
         }
       },
       'timer-expired': () => {
-        toast.success(t('focus_guard.session_complete'));
+        toast.success(t('focus_guard.session_complete'), { toastId: 'session-complete' });
         stopFaceTracking();
         setTimerStatus((prev) => ({
           ...prev,
@@ -170,7 +170,7 @@ const FocusGuard = (props) => {
         }
       },
       'session-failed': () => {
-        toast.error(t('focus_guard.session_failed'));
+        toast.error(t('focus_guard.session_failed'), { toastId: 'session-failed' });
         stopFaceTracking();
         setTimerStatus((prev) => ({
           ...prev,
@@ -232,14 +232,14 @@ const FocusGuard = (props) => {
       },
       onAfkTimeout: () => {
         setCamStatus('afk');
-        toast.error(t('focus_guard.afk_failed'));
+        toast.error(t('focus_guard.afk_failed'), { toastId: 'afk-failed' });
         if (window.api?.invoke) {
           window.api.invoke('focus:stop');
         }
       },
       onSpoofDetected: () => {
         setCamStatus('spoof');
-        toast.error(t('focus_guard.spoof_detected'));
+        toast.error(t('focus_guard.spoof_detected'), { toastId: 'spoof-detected' });
         if (window.api?.invoke) {
           window.api.invoke('focus:status').then((status) => {
             if (status?.active) {
@@ -309,7 +309,7 @@ const FocusGuard = (props) => {
         await window.api.invoke('focus:start', { minutes, hardMode, blockerModel });
       }
     } catch (err) {
-      toast.error(t('focus_guard.start_failed'));
+      toast.error(t('focus_guard.start_failed'), { toastId: 'start-failed' });
       console.error('[FocusGuard] Start error:', err);
     } finally {
       setIsStarting(false);
@@ -322,7 +322,7 @@ const FocusGuard = (props) => {
         await window.api.invoke('focus:stop');
       }
     } catch (err) {
-      toast.error(t('focus_guard.stop_failed'));
+      toast.error(t('focus_guard.stop_failed'), { toastId: 'stop-failed' });
     }
   }, []);
 

@@ -31,7 +31,7 @@ Your job is to decide if a running Windows application should be BLOCKED during 
 TASK: Classify the app as "ALLOW" or "BLOCK".
 
 RULES:
-1. ALLOW: Productivity tools, code editors, development software, office apps, communication tools (chat/email), study tools, system utilities, and any work-related software.
+1. ALLOW: Productivity tools, code editors, development software, office apps, communication tools (chat/email), study tools, system utilities, and any work-related software, record tools.
 2. BLOCK: Video games (any genre), game launchers, music/video streaming apps (Spotify, VLC, Netflix, etc.), entertainment platforms, and anything whose primary purpose is entertainment or leisure.
 3. UNCLEAR: If unsure, lean towards ALLOW for professional-sounding software, BLOCK for entertainment.
 
@@ -234,6 +234,11 @@ export async function classifyApp(metadata) {
  */
 export async function getAppVerdict(processName) {
   const key = processName.toLowerCase().replace('.exe', '');
+
+  // Hardcoded Whitelist
+  if (key === 'discord' || key.includes('obs')) {
+    return { result: 'ALLOW', reason: 'Hardcoded whitelist', provider: 'system', productName: key, fromCache: true };
+  }
 
   // Check cache 24h
   const cached = appCache.get(key);
