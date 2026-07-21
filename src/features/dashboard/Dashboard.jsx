@@ -28,6 +28,12 @@ import MinigameWidget from '../minihub/MinigameWidget';
 import PetBunnyOverlay from '../pet/PetBunnyOverlay';
 import PetDeathOverlay from '../pet/PetDeathOverlay';
 import PetJaneDoeOverlay from '../pet/PetJaneDoeOverlay';
+import PetCatOverlay from '../pet/PetCatOverlay';
+import PetWolfOverlay from '../pet/PetWolfOverlay';
+import PetBluewieOverlay from '../pet/PetBluewieOverlay';
+import PetBrowieOverlay from '../pet/PetBrowieOverlay';
+import PetLunebladeOverlay from '../pet/PetLunebladeOverlay';
+import PetCapybaraOverlay from '../pet/PetCapybaraOverlay';
 import { getDailyQuests, claimQuestReward } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
@@ -849,6 +855,18 @@ class Dashboard extends Component {
           <PetDeathOverlay equippedPet={this.state.currentPet} />
         ) : this.state.currentPet === 'pet_janedoe' ? (
           <PetJaneDoeOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_cat' ? (
+          <PetCatOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_wolf' ? (
+          <PetWolfOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_bluewie' ? (
+          <PetBluewieOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_browie' ? (
+          <PetBrowieOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_luneblade' ? (
+          <PetLunebladeOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_capybara' ? (
+          <PetCapybaraOverlay equippedPet={this.state.currentPet} />
         ) : (
           <PetBunnyOverlay equippedPet={this.state.currentPet} />
         )}
