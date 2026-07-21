@@ -57,7 +57,7 @@ export async function recordStrike(token, { sessionId }) {
     });
 
     const data = await res.json();
-    console.log(`[SessionAPI] 🔴 Kết quả từ Server trả về (strike):`, res.status, data);
+    console.log(`[SessionAPI] ✅ Gửi Strike thành công lên AWS (status: ${res.status}, success: ${data.success !== false})`);
     return data;
   } catch (error) {
     console.error(`[SessionAPI] Lỗi mạng khi gọi strike:`, error);

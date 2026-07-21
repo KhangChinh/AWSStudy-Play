@@ -25,7 +25,17 @@ import { syncItemData, handleEquipCosmeticsApi } from '../../services/cosmeticSe
 import { handleSyncAllApi } from '../../services/syncService';
 import QuestWidget from '../quest/QuestWidget';
 import MinigameWidget from '../minihub/MinigameWidget';
-import { getDailyQuests, claimQuestReward, refreshDailyQuests } from '../../services/questService';
+import PetBunnyOverlay from '../pet/PetBunnyOverlay';
+import PetDeathOverlay from '../pet/PetDeathOverlay';
+import PetJaneDoeOverlay from '../pet/PetJaneDoeOverlay';
+import PetCatOverlay from '../pet/PetCatOverlay';
+import PetWolfOverlay from '../pet/PetWolfOverlay';
+import PetBluewieOverlay from '../pet/PetBluewieOverlay';
+import PetBrowieOverlay from '../pet/PetBrowieOverlay';
+import PetLunebladeOverlay from '../pet/PetLunebladeOverlay';
+import PetCapybaraOverlay from '../pet/PetCapybaraOverlay';
+import PetIcaBellOverlay from '../pet/PetIcaBellOverlay';
+import { getDailyQuests, claimQuestReward } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
 import { getTierFromRP, getRankInfo } from '../../utils/rankSystem';
@@ -49,8 +59,11 @@ const translateCosmeticName = (item, t) => {
 
 
 const resolveBackground = (background) => {
-  if (background && typeof background === 'object') return background;
-  return cosmeticManager.getCosmeticInfo('backgrounds', background);
+  const id = typeof background === 'string' ? background : background?.id || background?.SK;
+  const catalogItem = cosmeticManager.getCosmeticInfo('backgrounds', id);
+  return background && typeof background === 'object'
+    ? { ...catalogItem, ...background, preview: catalogItem?.preview, profileBackground: catalogItem?.profileBackground, desktopBackground: catalogItem?.desktopBackground, imageUrl: '' }
+    : catalogItem;
 };
 
 const cosmeticId = (cosmetic) => (
@@ -91,15 +104,12 @@ const UserProfileWidget = ({
   const titleData = cosmeticManager.getCosmeticInfo('titles', currentTitle)
     || cosmeticManager.getAllInCategory('titles')[0];
   const frameTier = (currentFrame || '').replace('frame_', '') || 'none';
-  const frameAssetUrl = cosmeticManager.getCosmeticInfo('frames', currentFrame)?.frameAssetUrl;
   const displayName = userProfile?.information?.name || 'Unde_user';
-  const rp = userProfile?.studyStats?.rankScore ?? 0;
-  const rankInfo = getRankInfo(rp);
   const titleName = translateCosmeticName(titleData, t);
 
   return (
     <button type="button" className={`user-profile-widget rank-${currentRank}`} onClick={onClick} aria-label={t('common.profile')}>
-      <RankFrame tier={frameTier} size={75} className="widget-rank-frame" frameAssetUrl={frameAssetUrl}>
+      <RankFrame tier={frameTier} size={75} className="widget-rank-frame">
         {userProfile?.information?.avatarUrl ? (
           <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img" onError={useDefaultAvatarOnError} />
         ) : (
@@ -147,6 +157,7 @@ class Dashboard extends Component {
       currentBackground: LOCAL_DEFAULT_BACKGROUND_ID,
       currentTitle: 'title_none',
       currentFrame: 'frame_none',
+      currentPet: null,
       currentSystemIcon: 'icon_default',
       animationsEnabled: true,
       isVacuuming: false,
@@ -227,6 +238,7 @@ class Dashboard extends Component {
       backgroundId: cosmeticId(cosmetics.equippedBackground) || LOCAL_DEFAULT_BACKGROUND_ID,
       frameId: cosmeticId(cosmetics.equippedFrame) || 'frame_none',
       titleId: cosmeticId(cosmetics.equippedTitles?.[0]) || 'title_none',
+      petId: cosmeticId(cosmetics.equippedPet) || null,
     };
   };
 
@@ -237,6 +249,7 @@ class Dashboard extends Component {
       currentBackground: equipped.backgroundId,
       currentFrame: equipped.frameId,
       currentTitle: equipped.titleId,
+      currentPet: equipped.petId,
       currentRank: getTierFromRP(rp),
     });
   };
@@ -365,13 +378,15 @@ class Dashboard extends Component {
     const previousTitle = this.state.currentTitle;
     const backgroundIdToSave = toServerBackgroundId(backgroundId(this.state.currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID);
     const frameIdToSave = cosmeticId(this.state.currentFrame);
+    const petIdToSave = cosmeticId(this.state.currentPet) || null;
 
     this.setState({ currentTitle: newTitleId });
     try {
       const result = await handleEquipCosmeticsApi({
         backgroundId: backgroundIdToSave,
         frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
-        titles: newTitleId === 'title_none' ? [] : [newTitleId]
+        titles: newTitleId === 'title_none' ? [] : [newTitleId],
+        petId: petIdToSave
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
@@ -384,13 +399,15 @@ class Dashboard extends Component {
     const previousFrame = this.state.currentFrame;
     const backgroundIdToSave = toServerBackgroundId(backgroundId(this.state.currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID);
     const titleIdToSave = cosmeticId(this.state.currentTitle);
+    const petIdToSave = cosmeticId(this.state.currentPet) || null;
 
     this.setState({ currentFrame: newFrameId });
     try {
       const result = await handleEquipCosmeticsApi({
         backgroundId: backgroundIdToSave,
         frameId: newFrameId === 'frame_none' ? null : newFrameId,
-        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave]
+        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave],
+        petId: petIdToSave
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
@@ -408,18 +425,43 @@ class Dashboard extends Component {
     const bgId = backgroundId(newBackground) || LOCAL_DEFAULT_BACKGROUND_ID;
     const frameIdToSave = cosmeticId(this.state.currentFrame);
     const titleIdToSave = cosmeticId(this.state.currentTitle);
+    const petIdToSave = cosmeticId(this.state.currentPet) || null;
 
     this.setState({ currentBackground: newBackground });
     try {
       const result = await handleEquipCosmeticsApi({
         backgroundId: toServerBackgroundId(bgId),
         frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
-        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave]
+        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave],
+        petId: petIdToSave
       });
       await this.saveEquippedProfile(result?.profile);
     } catch (e) {
       this.setState({ currentBackground: previousBackground });
       console.warn('Sync Background fail:', e);
+    }
+  };
+
+  handlePetChange = async (newPetId) => {
+    const previousPet = this.state.currentPet;
+    const backgroundIdToSave = toServerBackgroundId(backgroundId(this.state.currentBackground) || LOCAL_DEFAULT_BACKGROUND_ID);
+    const frameIdToSave = cosmeticId(this.state.currentFrame);
+    const titleIdToSave = cosmeticId(this.state.currentTitle);
+    const petIdToSave = cosmeticId(newPetId) || null;
+
+    console.log('[Dashboard] Equipping pet. Original:', newPetId, 'Saved as:', petIdToSave);
+    this.setState({ currentPet: petIdToSave });
+    try {
+      const result = await handleEquipCosmeticsApi({
+        backgroundId: backgroundIdToSave,
+        frameId: frameIdToSave === 'frame_none' ? null : frameIdToSave,
+        titles: titleIdToSave === 'title_none' ? [] : [titleIdToSave],
+        petId: petIdToSave
+      });
+      await this.saveEquippedProfile(result?.profile);
+    } catch (e) {
+      this.setState({ currentPet: previousPet });
+      console.warn('Sync Pet fail:', e);
     }
   };
 
@@ -602,7 +644,7 @@ class Dashboard extends Component {
       } else {
         toast.error(result.error || result.message || 'Action failed!');
       }
-    } catch (err) {
+    } catch {
       toast.error('Connection error!');
     }
   };
@@ -615,7 +657,7 @@ class Dashboard extends Component {
       this.handleClaimQuest('all_daily');
     } else {
       const claimable = Object.entries(dailyQuests.quests)
-        .find(([k, q]) => q.isCompleted && !q.isClaimed);
+        .find(([, q]) => q.isCompleted && !q.isClaimed);
       if (claimable) {
         this.handleClaimQuest(claimable[0]);
       }
@@ -786,7 +828,6 @@ class Dashboard extends Component {
     const iconData = cosmeticManager.getCosmeticInfo('systemIcons', currentSystemIcon)
       || cosmeticManager.getAllInCategory('systemIcons')[0]
       || { type: 'outline' };
-    const isProfileOpen = openApps.includes('profile') && !minimizedApps.includes('profile');
     const sanity = getBudgetValue(this.props.userProfile, ['sanity']);
     const eCoin = getBudgetValue(this.props.userProfile, ['eCoin']);
     const knowledgePoint = getBudgetValue(this.props.userProfile, ['knowledgePoint']);
@@ -811,6 +852,27 @@ class Dashboard extends Component {
 
     return (
       <div className={desktopClassName} style={desktopStyle}>
+        {this.state.currentPet === 'pet_death' ? (
+          <PetDeathOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_icabell' ? (
+          <PetIcaBellOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_janedoe' ? (
+          <PetJaneDoeOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_cat' ? (
+          <PetCatOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_wolf' ? (
+          <PetWolfOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_bluewie' ? (
+          <PetBluewieOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_browie' ? (
+          <PetBrowieOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_luneblade' ? (
+          <PetLunebladeOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_capybara' ? (
+          <PetCapybaraOverlay equippedPet={this.state.currentPet} />
+        ) : (
+          <PetBunnyOverlay equippedPet={this.state.currentPet} />
+        )}
         {shouldRenderDesktopEffects && this.renderDesktopLineBackground(activeBgId)}
         {animationsEnabled && hasCustomBackgroundCss && (
           <div className={`desktop-line-bg custom-background-effects bg-${activeBgId}`} aria-hidden="true" />
@@ -947,6 +1009,7 @@ class Dashboard extends Component {
                   currentBackground: this.state.currentBackground,
                   currentTitle: this.state.currentTitle,
                   currentFrame: this.state.currentFrame,
+                  currentPet: this.state.currentPet,
                   currentRank: this.state.currentRank,
                   currentSystemIcon: this.state.currentSystemIcon,
                   animationsEnabled: this.state.animationsEnabled,
@@ -956,6 +1019,7 @@ class Dashboard extends Component {
                   onFrameChange: this.handleFrameChange,
                   onBackgroundChange: this.handleBackgroundChange,
                   onSystemIconChange: this.handleSystemIconChange,
+                  onPetChange: this.handlePetChange,
                   t,
                   i18n,
                   })}

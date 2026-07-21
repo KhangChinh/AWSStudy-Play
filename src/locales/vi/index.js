@@ -11,7 +11,6 @@ import messages_profile from './profile.json';
 import messages_quest from './quest.json';
 import messages_rank from './rank.json';
 import messages_settings from './settings.json';
-import messages_setup from './setup.json';
 import messages_social from './social.json';
 import messages_store from './store.json';
 import messages_study from './study.json';
@@ -31,7 +30,6 @@ export default {
   "quest": messages_quest,
   "rank": messages_rank,
   "settings": messages_settings,
-  "setup": messages_setup,
   "social": messages_social,
   "store": messages_store,
   "study": messages_study,

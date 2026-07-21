@@ -5,7 +5,10 @@ import { handleSyncAllApi } from './syncService';
 import { clearCachedAccessToken } from './tokenService';
 let handleLoginApi = async () => {
   try {
-    const syncResult = await handleSyncAllApi({ force: true });
+    const syncResult = await handleSyncAllApi({
+      force: true,
+      sections: ['profile', 'daily'],
+    });
     const profile = syncResult?.profile || store.getState().profile?.userProfile;
     if (!profile) {
       console.error('[AuthService] Cannot load user profile from syncAll:', syncResult?.error || 'No profile data returned');
@@ -18,7 +21,7 @@ let handleLoginApi = async () => {
   }
 };
 
-let handleLogoutApi = async ({ resizeWindow = true } = {}) => {
+let handleLogoutApi = async () => {
   try {
     await signOut().catch((err) => {
       console.warn('[AuthService] signOut failed, clearing local session anyway:', err?.message || err);
@@ -30,7 +33,7 @@ let handleLogoutApi = async ({ resizeWindow = true } = {}) => {
       console.warn('[AuthService] clearLoginData failed:', err?.message || err);
     });
     store.dispatch(logoutClearData());
-    if (resizeWindow) window.api?.send('logout');
+    window.api?.send('logout');
   }
 }
 

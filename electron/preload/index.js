@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   // ═══ Gọi Main Process (request-response) ═══
   invoke: (channel, data) => {
     const validChannels = [
+      'aws:setCredentials',
       'focus:start',
       'focus:stop',
       'focus:status',
@@ -34,6 +35,9 @@ contextBridge.exposeInMainWorld('api', {
       'store:saveSudokuLevels',
       'store:loadSudokuLevels',
       'store:clearSudokuLevels',
+      'store:saveMinesweeperLevels',
+      'store:loadMinesweeperLevels',
+      'store:clearMinesweeperLevels',
       'store:saveSocial',
       'store:loadSocial',
       'store:clearSocial',

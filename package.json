@@ -1,7 +1,7 @@
 {
   "name": "study-play",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.1",
   "author": "Uchimi",
   "description": "Study Play desktop application",
   "type": "module",
@@ -25,6 +25,13 @@
       "buildResources": "build",
       "output": "release"
     },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true,
+      "include": "build/installer.nsh"
+    },
     "win": {
       "icon": "build/icon.png",
       "signtoolOptions": {
@@ -43,6 +50,10 @@
       {
         "from": "build/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "browser-extension",
+        "to": "extension"
       }
     ]
   },

@@ -24,7 +24,6 @@ import {
 } from '../../services/socialServices';
 import { setSocial, appendSocial, mergeSocialFriends } from '../../store/actions';
 import RankFrame from '../../components/RankFrame';
-import { cosmeticManager } from '../../services/cosmeticServices';
 import { DEFAULT_AVATAR_URL, resolveAvatarUrl } from '../../utils/avatarUrl';
 import './SocialApp.scss';
 
@@ -267,13 +266,12 @@ class SocialApp extends Component {
   renderFramedAvatar = (source, avatarUrl, alt = 'avatar', size = 64) => {
     const tier = getFrameTier(source);
     const frameId = getEquippedFrameId(source);
-    const frameAssetUrl = cosmeticManager.getCosmeticInfo('frames', frameId)?.frameAssetUrl;
     if (tier === 'none') {
       return this.renderAvatar(avatarUrl, alt);
     }
 
     return (
-      <RankFrame tier={tier} size={size} className="social-rank-frame" frameAssetUrl={frameAssetUrl}>
+      <RankFrame tier={tier} size={size} className="social-rank-frame">
         {this.renderAvatar(avatarUrl, alt)}
       </RankFrame>
     );

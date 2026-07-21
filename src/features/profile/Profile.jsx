@@ -3,10 +3,11 @@ import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { IonIcon } from '@ionic/react';
 import {
-  personCircleOutline, starOutline, cubeOutline, imageOutline
+  personCircleOutline, starOutline, imageOutline, pawOutline, refreshOutline
 } from 'ionicons/icons';
 import RankFrame from '../../components/RankFrame';
-import { cosmeticManager, syncItemData } from '../../services/cosmeticServices';
+import BackgroundCssThumbnail from '../../components/BackgroundCssThumbnail';
+import { cosmeticManager, syncItemData, assetUrl } from '../../services/cosmeticServices';
 import { getInventoryItem } from '../../services/profileService';
 import { DEFAULT_AVATAR_URL, resolveAvatarUrl, useDefaultAvatarOnError } from '../../utils/avatarUrl';
 import './Profile.scss';
@@ -40,24 +41,11 @@ const cosmeticId = (item) => (
 const backgroundId = (background) => cosmeticId(background);
 
 const resolveBackground = (background) => {
-  if (background && typeof background === 'object') return background;
-  return cosmeticManager.getCosmeticInfo('backgrounds', background);
-};
-
-const S3_ASSETS_BASE = import.meta.env.VITE_S3_ASSETS_URL || '';
-
-const normalizeBase = (base) => (base || '').replace(/\/+$/, '');
-const normalizeAssetPath = (path) => (path || '').replace(/^\/+/, '').replace(/\\/g, '/');
-const assetUrl = (path) => {
-  if (!path) return '';
-  if (/^https?:\/\//i.test(path)) return path;
-
-  const normalizedPath = normalizeAssetPath(path).replace(/^public-assets\//, '');
-  const s3Path = normalizedPath.startsWith('items/')
-    ? normalizedPath
-    : `items/${normalizedPath}`;
-
-  return `${normalizeBase(S3_ASSETS_BASE)}/${s3Path}`;
+  const id = backgroundId(background);
+  const catalogItem = cosmeticManager.getCosmeticInfo('backgrounds', id);
+  return background && typeof background === 'object'
+    ? { ...catalogItem, ...background, preview: catalogItem?.preview, profileBackground: catalogItem?.profileBackground, desktopBackground: catalogItem?.desktopBackground, imageUrl: '' }
+    : catalogItem;
 };
 
 const normalizeInventoryItemId = (item) => {
@@ -89,12 +77,9 @@ const inventoryItemToCosmetic = (item) => {
   const id = normalizeInventoryItemId(item);
   if (!id) return null;
 
-  const folderId = item?.SK || id;
-  const imageUrl = item?.imageUrl
-    ? assetUrl(item.imageUrl)
-    : item?.itemType === 'background'
-      ? assetUrl(`items/background/${folderId}/${id}.jpg`)
-      : '';
+  const imageUrl = item?.itemType === 'background'
+    ? ''
+    : (item?.imageUrl ? assetUrl(item.imageUrl) : '');
 
   return {
     ...item,
@@ -140,6 +125,7 @@ class Profile extends Component {
     backgrounds: 'background',
     frames: 'frame',
     titles: 'title',
+    pets: 'pet',
   })[tab] || null;
 
   loadInventoryForTab = async (tab) => {
@@ -201,6 +187,15 @@ class Profile extends Component {
     this.setState({ activeTab: 'backgrounds' });
   };
 
+  handleForceSync = async () => {
+    try {
+      await syncItemData(true);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   handleCoverKeyDown = (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
@@ -213,18 +208,20 @@ class Profile extends Component {
       currentTitle,
       currentFrame,
       currentBackground,
-      currentSystemIcon,
+      currentPet,
       onTitleChange,
       onFrameChange,
       onBackgroundChange,
-      onSystemIconChange,
+      onPetChange,
       t,
     } = this.props;
     const translate = typeof t === 'function' ? t : (key) => key;
 
     if (activeTab === 'backgrounds') {
       const activeBackgroundId = backgroundId(currentBackground);
-      const backgrounds = this.getEquippableCosmetics('backgrounds', 'background', ['studyplant', 'bg_default'], activeBackgroundId);
+      const backgrounds = this
+        .getEquippableCosmetics('backgrounds', 'background', ['bg_default'], activeBackgroundId)
+        .filter(background => background.id !== 'studyplant');
 
       return (
         <div className="backgrounds-grid">
@@ -242,10 +239,7 @@ class Profile extends Component {
                   if (!isLocked) onBackgroundChange?.(background);
                 }}
               >
-                <div
-                  className="bg-preview"
-                  style={{ background: background.preview || background.profileBackground || '#1e293b' }}
-                />
+                <BackgroundCssThumbnail item={background} className="bg-preview" />
                 <div className="bg-name">{background.name}</div>
                 {isActive && <div className="bg-active-dot" title={translate('profile.equipped')} />}
               </div>
@@ -311,7 +305,7 @@ class Profile extends Component {
                   if (!isLocked) onFrameChange?.(frame.id);
                 }}
               >
-                <RankFrame tier={frame.tier || tierFromFrame(frame.id)} size={92} frameAssetUrl={frame.frameAssetUrl}>
+                <RankFrame tier={frame.tier || tierFromFrame(frame.id)} size={92}>
                   <IonIcon icon={personCircleOutline} />
                 </RankFrame>
                 <div className="frame-name">{frame.name}</div>
@@ -323,24 +317,67 @@ class Profile extends Component {
       );
     }
 
-    if (activeTab === 'systemIcons') {
-      const icons = cosmeticManager.getAllInCategory('systemIcons');
+    if (activeTab === 'pets') {
+      const equippedPet = currentPet !== undefined ? currentPet : (localStorage.getItem('equippedPet') || null);
+      
+      const dbPets = this.getEquippableCosmetics('pets', 'pet');
+      const combinedPets = [];
+      
+      dbPets.forEach(dbPet => {
+        combinedPets.push({
+          id: dbPet.id,
+          name: dbPet.name || dbPet.id,
+          width: dbPet.width || 32,
+          height: dbPet.height || 32,
+          backgroundImage: `url('${assetUrl(dbPet.assets?.idle || dbPet.imageUrl || dbPet.assets?.sitting)}')`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'left top',
+          backgroundSize: 'auto 100%',
+          isLocked: !dbPet.unlocked
+        });
+      });
 
       return (
-        <div className="icons-grid">
-          {icons.map(icon => (
-            <div
-              key={icon.id}
-              className={`icon-item-card ${currentSystemIcon === icon.id ? 'active' : ''}`}
-              onClick={() => onSystemIconChange?.(icon.id)}
-            >
-              <div className={`icon-preview-box ${icon.type}`}>
-                <IonIcon icon={cubeOutline} />
+        <div className="backgrounds-grid pets-grid">
+          {combinedPets.map(pet => {
+            const isEquipped = equippedPet === pet.id;
+            return (
+              <div 
+                key={pet.id}
+                className={`bg-item-card pet-item-card ${isEquipped ? 'active' : ''} ${pet.isLocked ? 'locked' : ''}`}
+                role="button"
+                aria-disabled={pet.isLocked}
+                onClick={() => {
+                  if (pet.isLocked) return;
+                  if (onPetChange) {
+                    onPetChange(isEquipped ? null : pet.id);
+                  } else {
+                    localStorage.setItem('equippedPet', pet.id);
+                    window.dispatchEvent(new CustomEvent('petChanged', { detail: pet.id }));
+                  }
+                  this.forceUpdate();
+                }}
+              >
+                <div className="bg-preview" style={{ 
+                  display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#1e293b' 
+                }}>
+                  <div style={{
+                    width: pet.width,
+                    height: pet.height,
+                    backgroundImage: pet.backgroundImage,
+                    backgroundRepeat: pet.backgroundRepeat,
+                    backgroundPosition: pet.backgroundPosition,
+                    backgroundSize: pet.backgroundSize,
+                    imageRendering: 'pixelated',
+                    transform: 'scale(1.5)'
+                  }} />
+                </div>
+                <div className="bg-info">
+                  <span className="bg-name">{pet.name}</span>
+                </div>
               </div>
-              <div className="icon-name">{icon.name}</div>
-              {currentSystemIcon === icon.id && <div className="equipped-dot" />}
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
@@ -363,8 +400,8 @@ class Profile extends Component {
       || cosmeticManager.getAllInCategory('titles')[0];
     const equippedFrame = cosmeticManager.getCosmeticInfo('frames', currentFrame);
     const selectedBackground = resolveBackground(currentBackground);
-    const profileHeaderStyle = selectedBackground?.profileBackground
-      ? { background: selectedBackground.profileBackground }
+    const profileHeaderStyle = selectedBackground?.assets?.css
+      ? { background: 'var(--desktop-user-background, #0f172a)' }
       : undefined;
     const displayName = userProfile?.information?.name || 'Player_9999';
     const titleName = currentTitle === 'title_none' ? '' : translateCosmeticName(equippedTitle, t);
@@ -382,7 +419,7 @@ class Profile extends Component {
         >
           <div className="user-profile-section">
             <div className="avatar-container-simple">
-              <RankFrame tier={tierFromFrame(currentFrame)} size={120} frameAssetUrl={equippedFrame?.frameAssetUrl}>
+              <RankFrame tier={tierFromFrame(currentFrame)} size={120}>
                 {userProfile?.information?.avatarUrl ? (
                   <img src={resolveAvatarUrl(userProfile.information.avatarUrl)} alt="avatar" className="avatar-img-large" onError={useDefaultAvatarOnError} />
                 ) : (
@@ -419,9 +456,17 @@ class Profile extends Component {
           <button className={`nav-tab ${activeTab === 'frames' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'frames' })}>
             <IonIcon icon={imageOutline} /> {this.props.t('profile.frames')}
           </button>
-          <button className={`nav-tab ${activeTab === 'systemIcons' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'systemIcons' })}>
-            <IonIcon icon={cubeOutline} /> {this.props.t('profile.system_glyphs')}
+          <button className={`nav-tab ${activeTab === 'pets' ? 'active' : ''}`} onClick={() => this.setState({ activeTab: 'pets' })}>
+            <IonIcon icon={pawOutline} /> {this.props.t('profile.pets', 'Thú Cưng')}
           </button>
+          {/* <button 
+            className="nav-tab sync-btn" 
+            onClick={this.handleForceSync}
+            style={{ marginLeft: 'auto', background: '#ff4d4f', color: '#fff', border: 'none' }}
+            title="Force refresh cosmetics data from server"
+          >
+            <IonIcon icon={refreshOutline} /> {this.props.t('profile.sync', 'Làm mới')}
+          </button> */}
         </div>
 
         <div className="profile-scroll-area">

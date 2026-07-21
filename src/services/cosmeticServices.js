@@ -50,15 +50,6 @@ const resolveAutoImage = (item) => {
   return assetUrl(`items/${item.itemType}/${folderId}/${itemId}.jpg`);
 };
 
-const resolveFrameAsset = (item) => {
-  if (item?.itemType !== 'frame') return '';
-
-  const configuredPath = item.assets?.frame || item.assets?.svg;
-  const inferredPath = item.assets?.css?.replace(/\.css(?:\?.*)?$/i, '.svg');
-  const framePath = configuredPath || inferredPath;
-
-  return framePath ? assetUrl(framePath) : '';
-};
 
 const formatName = (sk) => {
   return (sk || '').replace(/^bg_/, '').split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -76,10 +67,11 @@ const imageBackgroundStyles = (imageUrl) => {
 class CosmeticManager {
   constructor() {
     this.data = JSON.parse(JSON.stringify(COSMETICS));
+    this.data.pets = this.data.pets || [];
     this.masterItems = [];
   }
 
-  loadFromMasterData(items) {
+  async loadFromMasterData(items) {
     if (!Array.isArray(items)) return;
     this.masterItems = items.map(item => ({ ...item }));
 
@@ -87,6 +79,7 @@ class CosmeticManager {
       background: 'backgrounds',
       frame: 'frames',
       title: 'titles',
+      pet: 'pets',
     };
 
     items.forEach(item => {
@@ -97,8 +90,9 @@ class CosmeticManager {
       const itemId = normalizeItemId(item);
       if (!itemId) return;
 
-      const resolvedImageUrl = item.imageUrl ? assetUrl(item.imageUrl) : resolveAutoImage(item);
-      const resolvedFrameAssetUrl = resolveFrameAsset(item);
+      const resolvedImageUrl = ['background', 'frame', 'title'].includes(item.itemType)
+        ? ''
+        : (item.imageUrl ? assetUrl(item.imageUrl) : resolveAutoImage(item));
       const imageStyles = resolvedImageUrl ? imageBackgroundStyles(resolvedImageUrl) : null;
       const idx = this.data[category].findIndex(i => i.id === itemId || i.SK === itemId);
       const existing = idx > -1 ? this.data[category][idx] : null;
@@ -110,7 +104,6 @@ class CosmeticManager {
         id: itemId,
         name: item.name || existing?.name || formatName(itemId),
         imageUrl: resolvedImageUrl,
-        frameAssetUrl: resolvedFrameAssetUrl || existing?.frameAssetUrl || '',
         preview: imageStyles?.preview || existing?.preview,
         profileBackground: imageStyles?.profileBackground || existing?.profileBackground,
         desktopBackground: imageStyles?.desktopBackground || existing?.desktopBackground,
@@ -226,14 +219,14 @@ const MASTER_DATA_COOLDOWN = 12 * 60 * 60 * 1000; // 12 giờ
  * 2. Kiểm tra cooldown (12 giờ). Nếu chưa hết hạn, bỏ qua gọi API.
  * 3. Nếu hết hạn, gọi API /master-data từ server để lấy danh sách mới nhất và lưu đè cache local.
  */
-const syncItemData = async () => {
+const syncItemData = async (force = false) => {
   // 1. Đọc từ local cache của Electron trước
   try {
     if (window.api?.invoke) {
       const cachedItems = await window.api.invoke('store:loadMasterData');
       if (cachedItems && Array.isArray(cachedItems)) {
         console.log('[Cosmetics] Đã tải danh sách master items từ local cache:', cachedItems.length);
-        cosmeticManager.loadFromMasterData(cachedItems);
+        await cosmeticManager.loadFromMasterData(cachedItems);
       }
     }
   } catch (err) {
@@ -243,7 +236,7 @@ const syncItemData = async () => {
   // Kiểm tra cooldown trước khi gọi API để tránh spam AWS
   const lastSync = Number(localStorage.getItem('lastMasterDataSyncTime') || 0);
   const now = Date.now();
-  if (lastSync && (now - lastSync) < MASTER_DATA_COOLDOWN) {
+  if (!force && lastSync && (now - lastSync) < MASTER_DATA_COOLDOWN) {
     console.log(`[Cosmetics] Bỏ qua gọi API /master-data (cooldown). Lần sync cuối: ${new Date(lastSync).toLocaleString()}`);
     return;
   }
@@ -259,7 +252,7 @@ const syncItemData = async () => {
     const response = await handleGetMasterDataApi();
     if (response && Array.isArray(response.items) && response.items.length > 0) {
       console.log('[Cosmetics] Đồng bộ master items từ server thành công:', response.items.length);
-      cosmeticManager.loadFromMasterData(response.items);
+      await cosmeticManager.loadFromMasterData(response.items);
 
       // Lưu lại vào Electron cache
       if (window.api?.invoke) {

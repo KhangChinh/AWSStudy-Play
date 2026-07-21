@@ -2,16 +2,13 @@ import { IonIcon } from '@ionic/react';
 import { chevronBackOutline, chevronForwardOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import { useTranslation } from 'react-i18next';
 import RankBadge from '../../components/RankBadge';
+import { RANK_TABLE, TIER_IDS } from '../../utils/rankSystem';
 import './DesktopFocusControl.scss';
 
-const RANK_LIST_DATA = [
-  { tier: 'bronze', nameKey: 'rank.bronze', rp: 0 },
-  { tier: 'silver', nameKey: 'rank.silver', rp: 180 },
-  { tier: 'gold', nameKey: 'rank.gold', rp: 510 },
-  { tier: 'platinum', nameKey: 'rank.platinum', rp: 990 },
-  { tier: 'diamond', nameKey: 'rank.diamond', rp: 1620 },
-  { tier: 'master', nameKey: 'rank.master', rp: 2400 },
-];
+const RANK_LIST_DATA = TIER_IDS.map((tier) => {
+  const firstDivision = RANK_TABLE.find((rank) => rank.tier === tier);
+  return { tier, nameKey: `rank.${tier}`, rp: firstDivision.minRP };
+});
 
 const getRankProgressColor = (tier) => ({
   bronze: '#cd7f32', silver: '#a8c0d6', gold: '#f5c542',

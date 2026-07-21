@@ -1,9 +1,16 @@
 import React, { Component } from 'react';
+import BackgroundCssThumbnail from '../../components/BackgroundCssThumbnail';
+import RankFrame from '../../components/RankFrame';
 import './GachaAnimation.scss';
 
 const PARTICLE_COUNT = 72;
 const STAR_COUNT = 46;
 const SHARD_COUNT = 28;
+const RESULT_FLIP_DURATION_MS = 550;
+const RESULT_STAGGER_MS = 120;
+const SINGLE_CONVERSION_DURATION_MS = 1900;
+const MULTI_CONVERSION_DURATION_MS = 2100;
+const CLOSE_DELAY_MS = 1000;
 
 class GachaAnimation extends Component {
   constructor(props) {
@@ -15,8 +22,11 @@ class GachaAnimation extends Component {
       shards: [],
       showSkip: false,
       isInstantReveal: false,
+      canClose: false,
     };
     this.timers = [];
+    this.closeUnlockTimer = null;
+    this.revealStartedAt = 0;
   }
 
   componentDidUpdate(prevProps) {
@@ -32,6 +42,38 @@ class GachaAnimation extends Component {
   clearTimers = () => {
     this.timers.forEach((timer) => clearTimeout(timer));
     this.timers = [];
+    clearTimeout(this.closeUnlockTimer);
+    this.closeUnlockTimer = null;
+  };
+
+  scheduleCloseUnlock = (isInstantReveal = false) => {
+    clearTimeout(this.closeUnlockTimer);
+    const rewards = this.props.rewards || [];
+    const isMulti = rewards.length > 1;
+    const hasConversion = rewards.some((reward) => reward.isConverted && reward.conversionResult);
+    const itemRevealDuration = RESULT_FLIP_DURATION_MS
+      + (isMulti && !isInstantReveal ? Math.max(0, rewards.length - 1) * RESULT_STAGGER_MS : 0);
+    const conversionDuration = hasConversion
+      ? (isMulti ? MULTI_CONVERSION_DURATION_MS : SINGLE_CONVERSION_DURATION_MS)
+      : 0;
+    const unlockAt = this.revealStartedAt + Math.max(itemRevealDuration, conversionDuration) + CLOSE_DELAY_MS;
+
+    this.closeUnlockTimer = setTimeout(() => {
+      this.closeUnlockTimer = null;
+      this.setState({ canClose: true });
+    }, Math.max(0, unlockAt - Date.now()));
+  };
+
+  enterReveal = (isInstantReveal = false) => {
+    this.revealStartedAt = Date.now();
+    this.setState({
+      phase: 'reveal',
+      particles: this.generateParticles(),
+      shards: this.generateShards(),
+      showSkip: false,
+      isInstantReveal,
+      canClose: false,
+    }, () => this.scheduleCloseUnlock(isInstantReveal));
   };
 
   generateParticles = () => (
@@ -77,31 +119,27 @@ class GachaAnimation extends Component {
       shards: this.generateShards(),
       showSkip: false,
       isInstantReveal: false,
+      canClose: false,
     });
 
     this.timers.push(setTimeout(() => this.setState({ phase: 'portal' }), 520));
     this.timers.push(setTimeout(() => this.setState({ phase: 'flight' }), 1600));
     this.timers.push(setTimeout(() => this.setState({ phase: 'burst' }), 3000));
-    this.timers.push(setTimeout(() => {
-      this.setState({
-        phase: 'reveal',
-        particles: this.generateParticles(),
-        shards: this.generateShards(),
-        showSkip: false,
-      });
-    }, 3900));
+    this.timers.push(setTimeout(() => this.enterReveal(false), 3900));
   };
 
   handleOverlayClick = () => {
-    const { phase, showSkip, isInstantReveal } = this.state;
+    const { phase, showSkip, isInstantReveal, canClose } = this.state;
     const { hasNewItem } = this.props;
 
     if (phase === 'reveal') {
-      if (!isInstantReveal) {
-        this.setState({ isInstantReveal: true });
+      if (canClose) {
+        this.handleClose();
         return;
       }
-      this.handleClose();
+      if (!isInstantReveal) {
+        this.setState({ isInstantReveal: true }, () => this.scheduleCloseUnlock(true));
+      }
       return;
     }
 
@@ -113,13 +151,7 @@ class GachaAnimation extends Component {
   handleSkip = (event) => {
     event.stopPropagation();
     this.clearTimers();
-    this.setState({
-      phase: 'reveal',
-      particles: this.generateParticles(),
-      shards: this.generateShards(),
-      showSkip: false,
-      isInstantReveal: true,
-    });
+    this.enterReveal(true);
   };
 
   handleClose = () => {
@@ -140,10 +172,20 @@ class GachaAnimation extends Component {
 
   renderIcon = (icon) => {
     if (!icon) return '□';
-    if (typeof icon === 'string' && (icon.startsWith('/') || icon.startsWith('http'))) {
+    if (typeof icon === 'string') {
       return <img src={icon} alt={this.props.t?.('gacha_animation.item_icon_alt') || 'Item icon'} className="img-icon-render" />;
     }
-    return icon;
+    if (icon.kind !== 'css') return '□';
+    if (icon.itemType === 'background') {
+      return <BackgroundCssThumbnail item={icon.item} className="gacha-css-background" />;
+    }
+    if (icon.itemType === 'frame') {
+      return <RankFrame tier={(icon.itemId || '').replace(/^frame_/, '') || 'none'} size={132} className="gacha-css-frame" />;
+    }
+    if (icon.itemType === 'title') {
+      return <span className={`gacha-css-title profile-title-${icon.itemId}`}>[{icon.item?.name || icon.itemId}]</span>;
+    }
+    return '□';
   };
 
   renderPortal = (rarityClass) => (
@@ -302,12 +344,12 @@ class GachaAnimation extends Component {
                     <div className="grid-icon">{this.renderIcon(reward.icon)}</div>
                     <div className="grid-name">{reward.name || this.props.t?.('gacha_animation.item') || 'Item'}</div>
                     {reward.isConverted && reward.conversionResult && (
-                      <>
+                      <div className="grid-conversion-result">
                         <div className="grid-conversion-icon">
                           {this.renderIcon(reward.conversionResult.icon)}
                         </div>
                         <div className="grid-conversion-name">{reward.conversionResult.name}</div>
-                      </>
+                      </div>
                     )}
                     <div className="grid-rarity">{starLabel}</div>
                   </div>

@@ -120,25 +120,26 @@ const buildSyncSnapshot = (state = store.getState()) => ({
   socialLastKey: state.social?.lastKey || null,
 });
 
-const hydrateSyncAllFromLocal = async () => {
+const hydrateSyncAllFromLocal = async (requestedSections = null) => {
   const api = window.api;
   if (!api?.invoke) return;
+  const wants = (section) => !requestedSections || requestedSections.has(section);
 
   let state = store.getState();
 
-  if (!state.profile?.userProfile) {
+  if (wants('profile') && !state.profile?.userProfile) {
     const profile = await api.invoke('store:loadProfile').catch(() => null);
     if (profile) store.dispatch(setProfile(normalizeProfile(profile)));
   }
 
   state = store.getState();
-  if (!state.quest?.daily) {
+  if (wants('daily') && !state.quest?.daily) {
     const daily = await api.invoke('store:loadDaily').catch(() => null);
     if (daily) store.dispatch(setDailyQuests(daily));
   }
 
   state = store.getState();
-  if (!inventoryHasLoadedData(state.inventory)) {
+  if (wants('inventory') && !inventoryHasLoadedData(state.inventory)) {
     const localInventory = await api.invoke('store:loadInventory').catch(() => null);
     if (localInventory) {
       for (const [itemType, typeData] of Object.entries(localInventory)) {
@@ -156,7 +157,7 @@ const hydrateSyncAllFromLocal = async () => {
   }
 
   state = store.getState();
-  if (!state.gacha?.gachaHistory?.length) {
+  if (wants('gachaHistory') && !state.gacha?.gachaHistory?.length) {
     const localHistory = await api.invoke('store:loadGachaHistory').catch(() => null);
     if (localHistory && Array.isArray(localHistory.gachaHistory)) {
       store.dispatch(setGachaHistory({
@@ -167,7 +168,7 @@ const hydrateSyncAllFromLocal = async () => {
   }
 
   state = store.getState();
-  if (!state.social?.items?.length) {
+  if (wants('social') && !state.social?.items?.length) {
     const localSocial = await api.invoke('store:loadSocial').catch(() => null);
     if (localSocial && Array.isArray(localSocial.social)) {
       store.dispatch(setSocial({
@@ -244,15 +245,16 @@ const ingestServerData = async (payload) => {
     await Promise.all(promises);
   }
 };
-const handleSyncAllApi = async ({ force = false } = {}) => {
+const handleSyncAllApi = async ({ force = false, sections = null } = {}) => {
   if (syncAllPromise) {
-    console.log('[syncService] SyncAll đang chạy, dùng chung kết quả...');
     return syncAllPromise;
   }
   syncAllPromise = (async () => {
     try {
+      const requestedSections = Array.isArray(sections) ? new Set(sections) : null;
+      const isScopedSync = requestedSections !== null;
       // Hydrate local data first so startup can render without waiting for Lambda.
-      await hydrateSyncAllFromLocal();
+      await hydrateSyncAllFromLocal(requestedSections);
       const hydratedState = store.getState();
       const lastSyncAll = Math.max(
         Number(hydratedState.sync?.lastSyncAll || 0),
@@ -265,21 +267,20 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
         && inventoryHasLoadedData(hydratedState.inventory)
         && historyHasLoadedData(hydratedState.gacha)
         && socialHasLoadedData(hydratedState.social);
-      if (!force && cacheIsFresh && cacheIsComplete) {
-        console.log('[syncService] Using fresh local sync cache.');
+      if (!isScopedSync && !force && cacheIsFresh && cacheIsComplete) {
         return buildSyncSnapshot(hydratedState);
       }
 
       // Refresh stale data with one aggregate request instead of per-screen calls.
       const shouldRefresh = force || !cacheIsFresh;
-      const getProfile = shouldRefresh || !hydratedState.profile?.userProfile;
-      const getDaily = shouldRefresh || !hydratedState.quest?.daily;
-      const getInventory = shouldRefresh || !inventoryHasLoadedData(hydratedState.inventory);
-      const getGachaHistory = shouldRefresh || !historyHasLoadedData(hydratedState.gacha);
-      const getSocial = shouldRefresh || !socialHasLoadedData(hydratedState.social);
+      const wants = (section) => !requestedSections || requestedSections.has(section);
+      const getProfile = wants('profile') && (shouldRefresh || !hydratedState.profile?.userProfile);
+      const getDaily = wants('daily') && (shouldRefresh || !hydratedState.quest?.daily);
+      const getInventory = wants('inventory') && (shouldRefresh || !inventoryHasLoadedData(hydratedState.inventory));
+      const getGachaHistory = wants('gachaHistory') && (shouldRefresh || !historyHasLoadedData(hydratedState.gacha));
+      const getSocial = wants('social') && (shouldRefresh || !socialHasLoadedData(hydratedState.social));
 
       if (!getProfile && !getDaily && !getInventory && !getGachaHistory && !getSocial) {
-        console.log('[syncService] SyncAll dùng cache Redux/Electron, không gọi API.');
         return buildSyncSnapshot(hydratedState);
       }
 
@@ -343,7 +344,8 @@ const handleSyncAllApi = async ({ force = false } = {}) => {
           }).catch(() => { });
         }
       }
-      if (syncResult?.success) saveLastSyncAll(Date.now());
+      // A scoped startup sync is not proof that every data branch is fresh.
+      if (syncResult?.success && !isScopedSync) saveLastSyncAll(Date.now());
       return syncResult;
     } catch (e) {
       console.warn('[syncService] FAIL handleSyncAllApi:', e.message);
@@ -407,13 +409,13 @@ const handleSyncProfileApi = async ({ force = false } = {}) => {
     return null;
   }
 };
-const handleSyncInventoryApi = async (itemType) => {
+const handleSyncInventoryApi = async (itemType, { force = false } = {}) => {
   if (!itemType) return null;
   try {
     const typeState = store.getState().inventory?.[itemType];
     // Skip when this type is fully loaded, including a valid empty inventory.
-    if (typeState && typeState.hasMore === false) return null;
-    if (!typeState || typeState.items?.length === 0) {
+    if (!force && typeState && typeState.hasMore === false) return null;
+    if (!force && (!typeState || typeState.items?.length === 0)) {
       const localData = await window.api?.invoke('store:loadInventory');
       if (localData) {
         let items = [];
@@ -442,7 +444,7 @@ const handleSyncInventoryApi = async (itemType) => {
     const token = await getValidAccessToken();
     if (!token) throw new Error('No auth token');
     let url = `${API_URL}/sync-inventory?itemType=${itemType}`;
-    if (typeState?.lastKey) {
+    if (!force && typeState?.lastKey) {
       url += `&lastKey=${encodeURIComponent(JSON.stringify(typeState.lastKey))}`;
     }
     const response = await fetch(url, {
@@ -467,13 +469,13 @@ const handleSyncInventoryApi = async (itemType) => {
         items: syncResult.inventory,
         lastKey: syncResult.lastEvaluatedKey
       };
-      if (typeState?.lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
+      if (!force && typeState?.lastKey) store.dispatch({ type: 'APPEND_INVENTORY', payload });
       else store.dispatch({ type: 'SET_INVENTORY', payload });
       await window.api?.invoke('store:saveInventory', {
         itemType,
         inventory: syncResult.inventory,
         lastEvaluatedKey: syncResult.lastEvaluatedKey,
-        isAppend: !!typeState?.lastKey
+        isAppend: !force && !!typeState?.lastKey
       }).catch(() => { });
     }
     return syncResult;

@@ -6,6 +6,109 @@
 import https from 'node:https';
 import crypto from 'node:crypto';
 
+let cognitoCredentials = null;
+let crossAccountCredentialsCache = null;
+let crossAccountCredentialsExpiry = 0;
+
+export function setCognitoCredentials(creds) {
+  cognitoCredentials = creds;
+  crossAccountCredentialsCache = null; // Invalidate cross account cache if root credentials change
+}
+
+// Target Role ARN in Account B (Hardcoded for this architecture)
+const CROSS_ACCOUNT_ROLE_ARN = 'arn:aws:iam::804838452777:role/CrossAccountBedrockRole';
+
+async function getAssumedRoleCredentials() {
+  if (crossAccountCredentialsCache && Date.now() < crossAccountCredentialsExpiry) {
+    return crossAccountCredentialsCache;
+  }
+  
+  if (!cognitoCredentials) {
+    return null; // Fallback to process.env if no cognito credentials
+  }
+
+  const host = 'sts.amazonaws.com';
+  const path = '/';
+  const method = 'POST';
+  const region = 'us-east-1';
+  const service = 'sts';
+  const contentType = 'application/x-www-form-urlencoded';
+  
+  const body = `Action=AssumeRole&Version=2011-06-15&RoleArn=${encodeURIComponent(CROSS_ACCOUNT_ROLE_ARN)}&RoleSessionName=BedrockSession`;
+  
+  const { authorization, amzDate } = buildAuthHeader({
+    accessKey: cognitoCredentials.accessKeyId,
+    secretKey: cognitoCredentials.secretAccessKey,
+    sessionToken: cognitoCredentials.sessionToken,
+    region,
+    host,
+    method,
+    path,
+    body,
+    service,
+    contentType
+  });
+  
+  return new Promise((resolve, reject) => {
+    const postData = Buffer.from(body, 'utf-8');
+    const headers = {
+      'Content-Type': contentType,
+      'Content-Length': postData.length,
+      'X-Amz-Date': amzDate,
+      'Authorization': authorization,
+    };
+    if (cognitoCredentials.sessionToken) {
+      headers['X-Amz-Security-Token'] = cognitoCredentials.sessionToken;
+    }
+    
+    const req = https.request({
+      hostname: host,
+      path,
+      method,
+      headers,
+      timeout: 30000,
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 400) {
+          reject(new Error(`[STS] Error ${res.statusCode}: ${data}`));
+          return;
+        }
+        
+        const accessKeyMatch = data.match(/<AccessKeyId>(.*?)<\/AccessKeyId>/);
+        const secretKeyMatch = data.match(/<SecretAccessKey>(.*?)<\/SecretAccessKey>/);
+        const sessionTokenMatch = data.match(/<SessionToken>(.*?)<\/SessionToken>/);
+        const expirationMatch = data.match(/<Expiration>(.*?)<\/Expiration>/);
+        
+        if (accessKeyMatch && secretKeyMatch && sessionTokenMatch) {
+          crossAccountCredentialsCache = {
+            accessKeyId: accessKeyMatch[1],
+            secretAccessKey: secretKeyMatch[1],
+            sessionToken: sessionTokenMatch[1]
+          };
+          
+          if (expirationMatch) {
+            crossAccountCredentialsExpiry = new Date(expirationMatch[1]).getTime() - 5 * 60000;
+          } else {
+            crossAccountCredentialsExpiry = Date.now() + 55 * 60000;
+          }
+          
+          console.log('[AWS STS] Successfully assumed cross-account Bedrock role');
+          resolve(crossAccountCredentialsCache);
+        } else {
+          reject(new Error('[STS] Failed to parse AssumeRole response'));
+        }
+      });
+    });
+    
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('[STS] Timeout')); });
+    req.write(postData);
+    req.end();
+  });
+}
+
 // ===== AWS Signature V4 =====
 
 
@@ -32,20 +135,24 @@ function formatDate(d) {
 /**
  * Tạo Authorization header dùng AWS Signature V4
  */
-function buildAuthHeader({ accessKey, secretKey, region, host, method, path, body }) {
+function buildAuthHeader({ accessKey, secretKey, sessionToken, region, host, method, path, body, service = 'bedrock', contentType = 'application/json' }) {
   const now      = new Date();
   const amzDate  = formatDate(now);
   const dateStamp = amzDate.slice(0, 8);
-  const service  = 'bedrock';
 
   const payloadHash = hash(body);
 
-  const canonicalHeaders =
-    `content-type:application/json\n` +
+  let canonicalHeaders =
+    `content-type:${contentType}\n` +
     `host:${host}\n` +
     `x-amz-date:${amzDate}\n`;
-
-  const signedHeaders = 'content-type;host;x-amz-date';
+    
+  let signedHeaders = 'content-type;host;x-amz-date';
+  
+  if (sessionToken) {
+    canonicalHeaders += `x-amz-security-token:${sessionToken}\n`;
+    signedHeaders += ';x-amz-security-token';
+  }
 
   // Theo chuẩn AWS SigV4, Canonical URI phải encode URI từng segment một lần nữa.
   // Vì modelId đã được encode một lần (%3A), khi encode lại nó sẽ thành %253A, khớp với AWS.
@@ -81,19 +188,24 @@ function buildAuthHeader({ accessKey, secretKey, region, host, method, path, bod
 
 // ===== Core Request =====
 
-function bedrockHttpRequest({ host, path, body, authorization, amzDate, timeoutMs = 120000 }) {
+function bedrockHttpRequest({ host, path, body, authorization, amzDate, sessionToken, timeoutMs = 120000 }) {
   return new Promise((resolve, reject) => {
     const postData = Buffer.from(body, 'utf-8');
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': postData.length,
+      'X-Amz-Date': amzDate,
+      'Authorization': authorization,
+    };
+    if (sessionToken) {
+      headers['X-Amz-Security-Token'] = sessionToken;
+    }
+    
     const req = https.request({
       hostname: host,
       path,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': postData.length,
-        'X-Amz-Date': amzDate,
-        'Authorization': authorization,
-      },
+      headers,
       timeout: timeoutMs,
     }, (res) => {
       let data = '';
@@ -136,8 +248,9 @@ function bedrockHttpRequest({ host, path, body, authorization, amzDate, timeoutM
  * @returns {{ text: string, usage: object }}
  */
 export async function bedrockConverse({
-  accessKey  = process.env.BEDROCK_ACCESS_KEY,
-  secretKey  = process.env.BEDROCK_SECRET_KEY,
+  accessKey  = null,
+  secretKey  = null,
+  sessionToken = null,
   region     = process.env.BEDROCK_REGION || 'us-east-1',
   modelId    = process.env.BEDROCK_MODEL || 'amazon.nova-lite-v1:0',
   systemPrompt = '',
@@ -147,8 +260,25 @@ export async function bedrockConverse({
   retryCount = 0,
 }) {
 
+  // Auto-resolve credentials via STS or Env
   if (!accessKey || !secretKey) {
-    throw new Error('[Bedrock] Credentials chưa được cấu hình. Kiểm tra file .env (BEDROCK_ACCESS_KEY / BEDROCK_SECRET_KEY).');
+    try {
+      const crossCreds = await getAssumedRoleCredentials();
+      if (crossCreds) {
+        accessKey = crossCreds.accessKeyId;
+        secretKey = crossCreds.secretAccessKey;
+        sessionToken = crossCreds.sessionToken;
+      } else {
+        accessKey = process.env.BEDROCK_ACCESS_KEY;
+        secretKey = process.env.BEDROCK_SECRET_KEY;
+      }
+    } catch (err) {
+      console.error('[Bedrock STS Error]', err);
+    }
+  }
+
+  if (!accessKey || !secretKey) {
+    throw new Error('[Bedrock] Credentials chưa được cấu hình. (Cần Cognito hoặc file .env)');
   }
   const host = `bedrock-runtime.${region}.amazonaws.com`;
   const path = `/model/${encodeURIComponent(modelId)}/converse`;
@@ -168,14 +298,28 @@ export async function bedrockConverse({
     bodyObj.system = [{ text: systemPrompt }];
   }
 
-  const bodyStr = JSON.stringify(bodyObj);
+  const requestBody = JSON.stringify(bodyObj);
   const { authorization, amzDate } = buildAuthHeader({
-    accessKey, secretKey, region,
-    host, method: 'POST', path, body: bodyStr,
+    accessKey,
+    secretKey,
+    sessionToken,
+    region,
+    host,
+    method: 'POST',
+    path,
+    body: requestBody
   });
 
   try {
-    const result = await bedrockHttpRequest({ host, path, body: bodyStr, authorization, amzDate, timeoutMs });
+    const result = await bedrockHttpRequest({
+      host,
+      path,
+      body: requestBody,
+      authorization,
+      amzDate,
+      sessionToken,
+      timeoutMs
+    });
 
     const text = result?.output?.message?.content?.[0]?.text || '';
     const usage = result?.usage || {};

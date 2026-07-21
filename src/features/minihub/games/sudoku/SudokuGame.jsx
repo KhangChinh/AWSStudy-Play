@@ -8,7 +8,7 @@ import {
   checkmarkDoneOutline, flashOutline, lockClosedOutline, bugOutline
 } from 'ionicons/icons';
 
-import { handleStartSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi } from '../../../../services/minigameServices';
+import { handleStartSudokuSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi } from '../../../../services/minigameServices';
 import { setProfile } from '../../../../store/actions/profileActions';
 import UserAvatar from '../../../../components/UserAvatar';
 import { toast } from 'react-toastify';
@@ -214,7 +214,6 @@ const SudokuGame = ({ onClose }) => {
     setSanityCostPaid(costPaid);
     setIsSelectingLevel(false);
     setStatus('playing');
-    toast.info(`Màn ${level.name} bắt đầu!`);
   };
 
   const handleLevelSelect = async (level) => {
@@ -224,7 +223,7 @@ const SudokuGame = ({ onClose }) => {
 
     try {
       toast.info(`Đang tạo ván đấu ${displayLevelId}...`);
-      const response = await handleStartSession('sudoku', targetSK);
+      const response = await handleStartSudokuSession('sudoku', targetSK);
 
       if (response && (response.success || response.errCode === 0)) {
         const newBudget = response.profile?.budget || response.budget;
@@ -374,7 +373,6 @@ const SudokuGame = ({ onClose }) => {
     console.log(">>> [TEST REDUX] Đã mô phỏng nộp bài thành công!");
     console.log(">>> [TEST REDUX] Dữ liệu chuẩn bị gửi server sẽ là:", JSON.stringify(finalSessionData, null, 2));
 
-    toast.success("✅ [Test] Đã lưu finalGrid và Logs vào Redux. Kiểm tra Console!");
   };
 
   const handleCheckBoard = async () => {
@@ -390,33 +388,21 @@ const SudokuGame = ({ onClose }) => {
     if (!confirmSubmit) return;
 
     try {
-      toast.info('Đang nộp bài lên server...');
-      const levelId = selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : "level_01";
+      const levelId = selectedLevel ? selectedLevel.SK : "level_01";
       const finalGridStr = board.flat().join('');
 
       // Gọi API nộp bài kèm logs
       const response = await handleSubmitSudoku(levelId, finalGridStr, reduxLogs, 'win');
 
-      if (response.success && response.result === 'win') {
-        setStatus('won');
-        setEarnedScore(response.score);
-        setEarnedCoin(response.eCoinReward);
-        setTimer(response.timeSpent);
-
-        toast.success(`🎉 Chúc mừng! Bạn đã thắng cuộc!`);
-        toast.success(`💎 Nhận +${response.eCoinReward} eCoin thưởng!`);
-
-        if (response.isPB) {
-          toast.success(`🌟 Kỷ lục mới: ${response.score.toLocaleString()} Điểm!`);
+      if (response.success) {
+        if (response.result === 'win') {
+          setStatus('won');
+          toast.success("Chúc mừng bạn đã thắng!");
         } else {
-          toast.info(`🏆 Điểm Rank: ${response.score.toLocaleString()}`);
+          // Backend trả về result: "lost" nếu giải sai
+          setStatus('lost');
+          toast.error("Bàn cờ chưa chính xác, bạn đã thua cuộc.");
         }
-
-        // Dọn dẹp logs trên Redux sau khi hoàn thành
-        dispatch(clearMinigameLogs());
-      } else {
-        setStatus('lost');
-        toast.error(response.message || '❌ Bàn cờ chưa chính xác. Bạn đã thua cuộc!');
         dispatch(clearMinigameLogs());
       }
     } catch (e) {

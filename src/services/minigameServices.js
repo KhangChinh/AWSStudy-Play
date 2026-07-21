@@ -107,7 +107,8 @@ const handleSyncSudokuLevels = async () => {
         return null;
     }
 };
-const handleStartSession = async (gameId, levelId) => {
+
+const handleStartSudokuSession = async (gameId, levelId) => {
     // [DEBUG] In ra giá trị và kiểu dữ liệu ngay khi hàm được gọi
     console.log(">>> [FRONTEND DEBUG] Đầu vào hàm - gameId:", gameId, "| Type:", typeof gameId);
     console.log(">>> [FRONTEND DEBUG] Đầu vào hàm - levelId:", levelId, "| Type:", typeof levelId);
@@ -172,10 +173,11 @@ const handleStartSession = async (gameId, levelId) => {
         };
 
     } catch (error) {
-        console.warn('[gameService] FAIL handleStartSession:', error.message);
+        console.warn('[gameService] FAIL handleStartSudokuSession:', error.message);
         throw error;
     }
 };
+
 const handleCheckSudokuStep = async (currentGridStr, actionLogs) => {
     try {
         const token = await getValidAccessToken();
@@ -289,15 +291,11 @@ const handleGetLeaderboardApi = async (gameId) => {
                 });
                 return { success: true, topPlayers: localLeaderboard.data };
             }
-        } catch (err) {
-            console.log("Store Offline trống hoặc lỗi, tiến hành gọi API...");
-        }
+        } catch (err) { }
 
         // ==========================================
         // 3. GỌI API SERVER (Khi không có hoặc đã hết hạn)
         // ==========================================
-        console.log(`🚀 Cả 2 cache đều hụt/hết hạn. Gọi API Server lấy Leaderboard ${gameId}...`);
-
         const token = await getValidAccessToken();
         if (!token) throw new Error('No auth token');
 
@@ -346,4 +344,14 @@ const handleGetLeaderboardApi = async (gameId) => {
         return null;
     }
 };
-export { handleSyncSudokuLevels, handleStartSession, handleCheckSudokuStep, handleSubmitSudoku, handleGetLeaderboardApi };
+
+
+
+export {
+    handleSyncSudokuLevels,
+    handleStartSudokuSession,
+    handleCheckSudokuStep,
+    handleSubmitSudoku,
+    handleGetLeaderboardApi
+};
+

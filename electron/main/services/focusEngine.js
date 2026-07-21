@@ -5,7 +5,7 @@
    - WebSocket server (port 8765) for browser extension communication
    - Extension gate check (tasklist every 3s)
    - Timer with countdown
-   - Process killer for blacklisted apps
+   - AI-powered App Blocker with floating overlay (10s countdown)
    - Strike system (3 strikes = session failed)
    - Session API calls (startSession, recordStrike, endSession)
    - AI classification via WebSocket
@@ -16,6 +16,7 @@ import { WebSocketServer } from 'ws';
 import { exec } from 'node:child_process';
 import { classifyContent, classifyWebPage, clearCache, getAiStatus, getAllowedCategories, saveAllowedCategories, getGroqKey, saveGroqKey } from './aiGuard.js';
 import { startSession, recordStrike, endSession } from './sessionApi.js';
+import { getAppVerdict, clearAppCache } from './appBlocker.js';
 
 // ===== State =====
 let win = null;          // BrowserWindow reference, set via setFocusWin()
@@ -36,7 +37,30 @@ let noBrowserRunning = true; // true = no browsers open, focus allowed
 let missingBrowsersList = [];
 let missingSince = new Map();
 
-const BLACKLISTED_APPS = ['facebook.exe', 'twitter.exe', 'x.exe', 'tiktok.exe', 'threads.exe', 'instagram.exe'];
+// ===== App Blocker — Dependency Injection =====
+// Được set bởi index.js sau khi khởi động, tránh circular dependency
+let _createAppBlockerOverlay = null;
+let _hasPendingOverlay = null;
+
+/**
+ * Được gọi từ index.js để inject các hàm overlay.
+ */
+export function setAppBlockerFns(createFn, hasPendingFn) {
+  _createAppBlockerOverlay = createFn;
+  _hasPendingOverlay = hasPendingFn;
+}
+
+// Process cần bỏ qua dù có MainWindowHandle (vẫn có thể lọt qua)
+// MainWindowHandle != 0 đã lọc ~99% background services rồi
+// Chỉ cần giữ những thứ chắc chắn không phải app user mở
+const SYSTEM_PROCESSES = new Set([
+  // Browsers — Extension quản lý riêng, không cần App Blocker xử lý
+  'chrome', 'msedge', 'opera', 'brave', 'firefox', 'browser',
+  // Bản thân app này
+  'electron',
+  // Windows Explorer (desktop shell)
+  'explorer',
+]);
 
 // ===== Timer & Hard Mode State =====
 let timerState = {
@@ -159,6 +183,85 @@ async function stopTimerForcefully() {
   sendToRenderer('timer-expired');
 }
 
+// ===== App Blocker Helpers =====
+
+/**
+ * Ghi Strike do App vi phạm — tái sử dụng cùng logic Strike như YouTube/Web.
+ * @param {string} appName - tên app để log
+ */
+async function recordAppStrike(appName) {
+  if (authToken && currentSessionId && !currentSessionId.startsWith('local_')) {
+    // Ghi lên Server AWS
+    try {
+      const res = await recordStrike(authToken, { sessionId: currentSessionId });
+      if (res && res.strikeCount !== undefined) {
+        console.log(`[AppBlocker] ✅ Gửi Strike lên Server thành công (success: true, strikeCount: ${res.strikeCount})`);
+        strikeCount = res.strikeCount;
+        const modeLabel = timerState.hardMode ? 'Rank Mode' : 'Casual Mode';
+        console.log(`[Strike] ⚠️ STRIKE RECORDED (${modeLabel}): ${strikeCount}/3 for app "${appName}"`);
+        sendToRenderer('strike-recorded', { strikeCount, appName, reason: 'App vi phạm Focus Mode' });
+        if (res.sessionEnded || strikeCount >= 3) {
+          console.log('[Strike] ❌ 3 strikes reached! Session FAILED.');
+          endSessionFail();
+        }
+      } else {
+        console.log(`[AppBlocker] ❌ Lỗi khi gửi API Strike: Server trả về dữ liệu không hợp lệ`);
+      }
+    } catch (e) {
+      console.error('[AppBlocker] ❌ Failed to record strike on server:', e.message);
+      // Fallback: đếm local
+      strikeCount++;
+      console.log(`[AppBlocker] ✅ Ghi nhận Strike cục bộ thành công (Fallback Local, strikeCount: ${strikeCount})`);
+      console.log(`[Strike] ⚠️ STRIKE RECORDED (Fallback Local): ${strikeCount}/3 for app "${appName}"`);
+      sendToRenderer('strike-recorded', { strikeCount, appName });
+      if (strikeCount >= 3) {
+        console.log('[Strike] ❌ 3 strikes reached! Session FAILED.');
+        endSessionFail();
+      }
+    }
+  } else {
+    // Không có Session ID (chạy offline / local mode): đếm local
+    strikeCount++;
+    console.log(`[AppBlocker] ✅ Ghi nhận Strike cục bộ thành công (Local Mode, strikeCount: ${strikeCount})`);
+    console.log(`[Strike] ⚠️ STRIKE RECORDED (Local Mode): ${strikeCount}/3 for app "${appName}"`);
+    sendToRenderer('strike-recorded', { strikeCount, appName, reason: 'App vi phạm Focus Mode' });
+    if (strikeCount >= 3) {
+      console.log('[Strike] ❌ 3 strikes reached! Session FAILED.');
+      endSessionFail();
+    }
+  }
+}
+
+/**
+ * Kiểm tra và chặn 1 app:
+ *   AI BLOCK → showOverlay → 10s countdown → Strike
+ * Chạy async, không chặn vòng lặp.
+ */
+async function checkAndBlockApp(procName) {
+  try {
+    const verdict = await getAppVerdict(procName);
+
+    if (verdict.result !== 'BLOCK') return; // AI phán ALLOW → bỏ qua
+
+    // Lấy displayName đẹp hơn từ verdict nếu có
+    const displayName = verdict.productName || procName;
+    const reason = verdict.reason || 'Ứng dụng giải trí không phù hợp với học tập.';
+
+    console.log(`[AppBlocker] 🚫 BLOCK "${procName}" (${verdict.provider}) — ${reason}`);
+
+    // Tạo overlay 10s, truyền callbacks Strike
+    _createAppBlockerOverlay(
+      { processName: procName, displayName, reason },
+      // onStrike: hết 10s app vẫn chạy
+      () => recordAppStrike(procName),
+      // onUserClose: user tự đóng trong 10s → không Strike
+      () => console.log(`[AppBlocker] 🛑 User closed "${procName}" in time — no strike`)
+    );
+  } catch (e) {
+    console.error(`[AppBlocker] Error checking "${procName}":`, e.message);
+  }
+}
+
 // ===== Process Monitoring =====
 function getRunningBrowsers() {
   return new Promise(resolve => {
@@ -166,39 +269,38 @@ function getRunningBrowsers() {
       if (err) return resolve(new Set());
       const out = stdout.toLowerCase();
 
-      // Native App Killer — kill blacklisted apps during active timer
-      if (timerState.active) {
-        for (const app of BLACKLISTED_APPS) {
-          if (out.includes(app)) {
-            exec(`taskkill /F /IM ${app}`, (kErr) => {
-              if (!kErr) {
-                console.log(`[FocusGuard] Enforced App Block: Killed ${app}`);
-                if (authToken && currentSessionId && timerState.hardMode) {
-                  recordStrike(authToken, {
-                    sessionId: currentSessionId,
-                    type: 'APP_VIOLATION',
-                    reason: `Mở ứng dụng bị cấm: ${app}`
-                  }).then(res => {
-                    if (res && res.strikeCount) {
-                      strikeCount = res.strikeCount;
-                      sendToRenderer('strike-recorded', { strikeCount });
-                      if (strikeCount >= 3) {
-                        endSessionFail();
-                      }
-                    }
-                  }).catch(e => console.error('[AWS] Failed to record strike for app:', e.message));
-                } else if (!timerState.hardMode) {
-                  strikeCount++;
-                  sendToRenderer('strike-recorded', { strikeCount });
-                  if (strikeCount >= 3) {
-                    endSessionFail();
-                  }
-                }
-              }
-            });
+      // ===== AI-powered App Blocker =====
+      // Dùng PowerShell MainWindowHandle != 0 để CHỈ lấy app có cửa sổ visible
+      // Loại bỏ toàn bộ background services, system processes, drivers...
+      if (timerState.active && _createAppBlockerOverlay) {
+        const psScan = [
+          'Get-Process',
+          '| Where-Object { $_.MainWindowHandle -ne 0 }',
+          '| Select-Object -ExpandProperty ProcessName',
+          '| Sort-Object -Unique'
+        ].join(' ');
+
+        exec(`powershell -NoProfile -Command "${psScan}"`, { timeout: 8000 }, (psErr, psOut) => {
+          if (psErr || !psOut || !psOut.trim()) return;
+
+          const foregroundApps = psOut.split('\n')
+            .map(l => l.trim().toLowerCase())
+            .filter(l => l.length > 0 && !l.includes(' ')); // bỏ tên có khoảng trắng (edge case)
+
+          for (const procName of foregroundApps) {
+            // Browsers (Extension quản lý riêng) và bản thân app → skip
+            if (SYSTEM_PROCESSES.has(procName)) continue;
+
+            // Đang có overlay cho app này rồi → skip
+            if (_hasPendingOverlay && _hasPendingOverlay(procName)) continue;
+
+            // AI phân loại → nếu BLOCK → showOverlay
+            // Chạy async, không chặn vòng lặp
+            checkAndBlockApp(procName);
           }
-        }
+        });
       }
+
 
       const hasBrowser = out.includes('chrome.exe') || out.includes('msedge.exe') || 
                          out.includes('opera.exe') || out.includes('brave.exe') || 

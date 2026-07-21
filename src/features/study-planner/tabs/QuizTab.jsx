@@ -60,7 +60,6 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
         const quizId = `quiz_${Date.now()}`;
         setActiveQuizId(quizId);
         setQuestions(result.questions);
-        toast.success(t('study.quiz_ready'));
       } else {
         toast.error(result?.error || t('study.quiz_create_failed'));
       }
