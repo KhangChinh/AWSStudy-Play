@@ -98,8 +98,7 @@ const SudokuGame = ({ onClose }) => {
 
   const currentSanity = budget.sanity || 0;
 
-  // Leaderboard UI modal controls
-  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
+
   const [leaderboardTab, setLeaderboardTab] = useState('GLOBAL');
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
 
@@ -180,12 +179,6 @@ const SudokuGame = ({ onClose }) => {
       setLoadingLeaderboard(false);
     }
   }, [dispatch, sudokuLeaderboard, leaderboardTab, userInfo.UserId]);
-
-  useEffect(() => {
-    if (showLeaderboardModal) {
-      fetchLeaderboard(leaderboardTab);
-    }
-  }, [showLeaderboardModal, leaderboardTab, fetchLeaderboard]);
 
   useEffect(() => {
     if (status !== 'playing') return;
@@ -337,6 +330,11 @@ const SudokuGame = ({ onClose }) => {
     if (status !== 'playing' || checkCount <= 0) return;
 
     try {
+      const isBoardFilled = board.every(row => row.every(val => val !== 0));
+      if (!isBoardFilled) {
+        toast.info('💡 Hãy điền đầy đủ ô trên bàn cờ trước khi kiểm tra!');
+        return;
+      }
       const currentGridStr = board.flat().join('');
       // Gọi API lên server
       const response = await handleCheckSudokuStep(currentGridStr, reduxLogs);
@@ -380,7 +378,7 @@ const SudokuGame = ({ onClose }) => {
 
     const isBoardFilled = board.every(row => row.every(val => val !== 0));
     if (!isBoardFilled) {
-      toast.info('💡 Hãy điền đầy đủ 81 ô trên bàn cờ trước khi nộp bài!');
+      toast.info('💡 Hãy điền đầy đủ ô trên bàn cờ trước khi nộp bài!');
       return;
     }
 
@@ -397,6 +395,8 @@ const SudokuGame = ({ onClose }) => {
       if (response.success) {
         if (response.result === 'win') {
           setStatus('won');
+          setEarnedScore(response.score);
+          setEarnedCoin(response.eCoinReward);
           toast.success("Chúc mừng bạn đã thắng!");
         } else {
           // Backend trả về result: "lost" nếu giải sai
@@ -531,9 +531,7 @@ const SudokuGame = ({ onClose }) => {
                   <h2 className="text-gradient" style={{ margin: 0 }}>Vượt ải Sudoku Cosmic</h2>
                   <p className="level-subtitle" style={{ margin: '5px 0 0 0' }}>Vượt qua 20 màn chơi để tích lũy điểm Rank!</p>
                 </div>
-                <button className="btn-leaderboard-trigger animate-pulse" onClick={() => setShowLeaderboardModal(true)}>
-                  <IonIcon icon={trophyOutline} /> Bảng xếp hạng
-                </button>
+
               </div>
 
               <div className="user-budget-bar">
@@ -739,7 +737,7 @@ const SudokuGame = ({ onClose }) => {
 
                   <button
                     className="btn-ctrl btn-check"
-                    onClick={handleServerCheck} // <-- Đổi thành hàm mới gọi API
+                    onClick={handleServerCheck}
                     disabled={checkCount <= 0}
                     title="Kiểm tra với Server"
                     style={checkCount <= 0 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
@@ -747,18 +745,6 @@ const SudokuGame = ({ onClose }) => {
                     <IonIcon icon={checkmarkDoneOutline} />
                     <span>Kiểm tra ({checkCount}/5)</span>
                   </button>
-
-                  {/* 👈 NÚT BẤM TEST LƯU REDUX TẠI ĐÂY */}
-                  <button
-                    className="btn-ctrl btn-test"
-                    onClick={handleFakeComplete}
-                    title="Test gộp Log & FinalGrid vào Redux"
-                    style={{ background: '#3b82f6', color: '#fff' }}
-                  >
-                    <IonIcon icon={bugOutline} />
-                    <span>Test Redux</span>
-                  </button>
-
                   <button
                     className="btn-ctrl btn-submit"
                     onClick={handleCheckBoard}
@@ -804,115 +790,6 @@ const SudokuGame = ({ onClose }) => {
               </div>
             </div>
           </>
-        )}
-
-        {showLeaderboardModal && (
-          <div className="sudoku-modal-overlay animate-fade-in" onClick={() => setShowLeaderboardModal(false)}>
-            <div className="sudoku-modal-content animate-bounce-in" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3><IonIcon icon={trophyOutline} /> Bảng Xếp Hạng Cosmic</h3>
-                <button className="btn-close" onClick={() => setShowLeaderboardModal(false)}>
-                  <IonIcon icon={closeOutline} />
-                </button>
-              </div>
-
-              <div className="modal-tabs-row">
-                <div className="modal-tabs">
-                  <button
-                    className={`modal-tab ${leaderboardTab === 'GLOBAL' ? 'active' : ''}`}
-                    onClick={() => setLeaderboardTab('GLOBAL')}
-                  >
-                    Toàn cầu
-                  </button>
-                  <button
-                    className={`modal-tab ${leaderboardTab === 'FRIENDS' ? 'active' : ''}`}
-                    onClick={() => setLeaderboardTab('FRIENDS')}
-                  >
-                    Bạn bè
-                  </button>
-                </div>
-                <button
-                  className={`btn-refresh ${loadingLeaderboard ? 'spinning' : ''}`}
-                  onClick={() => fetchLeaderboard(leaderboardTab, true)}
-                  disabled={loadingLeaderboard}
-                  title="Làm mới"
-                >
-                  <IonIcon icon={refreshOutline} />
-                </button>
-              </div>
-
-              <div className="modal-body">
-                {loadingLeaderboard ? (
-                  <div className="modal-loading-spinner">
-                    <div className="spinner-ring"></div>
-                    <span>Đang tải bảng xếp hạng...</span>
-                  </div>
-                ) : (
-                  <div className="leaderboard-table-wrapper">
-                    <table className="leaderboard-table">
-                      <thead>
-                        <tr>
-                          <th className="col-rank">Hạng</th>
-                          <th className="col-username">Người chơi</th>
-                          <th className="col-completed">Số màn vượt qua</th>
-                          <th className="col-score">Điểm Rank</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(!sudokuLeaderboard[leaderboardTab]?.data || sudokuLeaderboard[leaderboardTab].data.length === 0) ? (
-                          <tr>
-                            <td colSpan="4" className="empty-message">
-                              Chưa có dữ liệu xếp hạng.
-                            </td>
-                          </tr>
-                        ) : (
-                          sudokuLeaderboard[leaderboardTab].data.map((entry, index) => {
-                            const isCurrentUser = entry.userId === userInfo.UserId;
-                            const rank = entry.rank ?? index + 1;
-                            return (
-                              <tr key={entry.userId} className={isCurrentUser ? 'current-user-row' : ''}>
-                                <td className="col-rank">
-                                  {rank === 1 && <span className="rank-badge gold">1</span>}
-                                  {rank === 2 && <span className="rank-badge silver">2</span>}
-                                  {rank === 3 && <span className="rank-badge bronze">3</span>}
-                                  {rank > 3 && rank}
-                                </td>
-                                <td className="col-username">
-                                  <UserAvatar
-                                    avatarUrl={entry.displayInfo?.avatarUrl}
-                                    alt={entry.displayInfo?.name || 'avatar'}
-                                    className="leaderboard-avatar"
-                                  />
-                                  <span className="username-text">
-                                    {entry.displayInfo?.name || entry.displayInfo?.username || entry.userId || 'Vô danh'}
-                                  </span>
-                                  {isCurrentUser && <span className="current-user-tag">Bạn</span>}
-                                </td>
-                                <td className="col-completed">
-                                  {entry.levelsCompleted || 0}
-                                </td>
-                                <td className="col-score">
-                                  🏆 {(entry.totalScore || 0).toLocaleString()}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              <div className="modal-footer">
-                <span className="cache-time-info">
-                  {sudokuLeaderboard[leaderboardTab]?.lastFetchedAt && (
-                    <>Cập nhật lúc: {new Date(sudokuLeaderboard[leaderboardTab].lastFetchedAt).toLocaleTimeString()}</>
-                  )}
-                </span>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>
