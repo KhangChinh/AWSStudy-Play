@@ -34,6 +34,7 @@ import PetBluewieOverlay from '../pet/PetBluewieOverlay';
 import PetBrowieOverlay from '../pet/PetBrowieOverlay';
 import PetLunebladeOverlay from '../pet/PetLunebladeOverlay';
 import PetCapybaraOverlay from '../pet/PetCapybaraOverlay';
+import PetIcaBellOverlay from '../pet/PetIcaBellOverlay';
 import { getDailyQuests, claimQuestReward } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
@@ -853,6 +854,8 @@ class Dashboard extends Component {
       <div className={desktopClassName} style={desktopStyle}>
         {this.state.currentPet === 'pet_death' ? (
           <PetDeathOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_icabell' ? (
+          <PetIcaBellOverlay equippedPet={this.state.currentPet} />
         ) : this.state.currentPet === 'pet_janedoe' ? (
           <PetJaneDoeOverlay equippedPet={this.state.currentPet} />
         ) : this.state.currentPet === 'pet_cat' ? (

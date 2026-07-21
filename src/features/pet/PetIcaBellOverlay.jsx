@@ -2,30 +2,29 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { cosmeticManager, assetUrl } from '../../services/cosmeticServices';
 import './PetOverlay.scss';
 
-const GRAVITY = 0.22;
+const GRAVITY = 0.5;
 const WALK_SPEED = 2;
-const JUMP_SPEED_Y = -7;
-const JUMP_SPEED_X = 1.25;
+const JUMP_SPEED_Y = -12;
+const JUMP_SPEED_X = 3;
 const TASKBAR_HEIGHT = 48;
-const PET_SCALE = 2.5;
 
-const JANE_DOE_ANIMATIONS = {
-  Idle: { asset: 'idle', fallbackAsset: 'sitting', frames: 8, speed: 150 },
-  Walk: { asset: 'run',fallbackAsset: 'walk',frames: 8,speed: 100,moveSpeed: 2,facing: 'left'},
-  Hurt: { asset: 'hurt', frames: 8, speed: 200 },
-  Attack: { asset: 'attack', frames: 8, speed: 100 },
-  Death: { asset: 'death', frames: 8, speed: 150, loop: false },
-  Jump: { asset: 'jump', frames: 8, speed: 220,facing: 'right' },
-  Sleep: { asset: 'sleep', frames: 8, speed: 200 },
-  CarrotSkill: { asset: 'carrotskill', frames: 8, speed: 150 },
-  Sitting: { asset: 'sitting', frames: 8, speed: 150 },
-  LieDown: { asset: 'liedown', frames: 8, speed: 150 },
+const ICABELL_ANIMATIONS = {
+  Idle: { asset: 'idle', fallbackAsset: 'run', frames: 3, speed: 180 },
+  Walk: {
+    asset: 'run',
+    fallbackAsset: 'idle',
+    frames: 3,
+    speed: 120,
+    moveSpeed: 2,
+    facing: 'right',
+  },
+  Hurt: { asset: 'hurt', frames: 3, speed: 200 },
 };
-const JANE_DOE_LAYOUT = { width: 32, height: 32 };
+const ICABELL_LAYOUT = { width: 48, height: 48 };
 
-const PetJaneDoeOverlay = ({ equippedPet }) => {
-  const animationSettings = JANE_DOE_ANIMATIONS;
-  const layout = JANE_DOE_LAYOUT;
+const PetIcaBellOverlay = ({ equippedPet }) => {
+  const animationSettings = ICABELL_ANIMATIONS;
+  const layout = ICABELL_LAYOUT;
   const [petId, setPetId] = useState(equippedPet !== undefined ? equippedPet : (localStorage.getItem('equippedPet') || null));
   const [pos, setPos] = useState({ x: 100, y: 0 });
   const [vel, setVel] = useState({ x: 0, y: 0 });
@@ -174,7 +173,7 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
       let s = stateRef.current;
       let d = dirRef.current;
       
-      const groundY = getGroundY(x, pet.width * PET_SCALE);
+      const groundY = getGroundY(x, pet.width * 1.5); // pet visually scaled by 1.5
 
       if (isDraggingRef.current) {
         // Handled by mouse move
@@ -233,8 +232,8 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
             d = 'right';
             dirRef.current = d;
             setDir('right');
-          } else if (x >= window.innerWidth - pet.width * PET_SCALE) {
-            x = window.innerWidth - pet.width * PET_SCALE;
+          } else if (x >= window.innerWidth - pet.width * 1.5) {
+            x = window.innerWidth - pet.width * 1.5;
             d = 'left';
             dirRef.current = d;
             setDir('left');
@@ -267,7 +266,7 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
           // Mid-air horizontal movement (if any)
           x += vx;
           if (x <= 0) { x = 0; vx = 0; }
-          if (x >= window.innerWidth - pet.width * PET_SCALE) { x = window.innerWidth - pet.width * PET_SCALE; vx = 0; }
+          if (x >= window.innerWidth - pet.width * 1.5) { x = window.innerWidth - pet.width * 1.5; vx = 0; }
         }
       }
 
@@ -399,25 +398,24 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
 
   const style = {
     position: 'fixed',
-    left: Math.round(pos.x),
-    top: Math.round(pos.y),
+    left: pos.x,
+    top: pos.y,
     width: pet.width,
     height: pet.height,
     backgroundImage: `url('${animConfig.fileUrl}')`,
-    transform: `scale(${PET_SCALE}) scaleX(${shouldFlipSprite ? -1 : 1})`,
+    transform: `scale(1.5) scaleX(${shouldFlipSprite ? -1 : 1})`,
     transformOrigin: 'bottom center',
     zIndex: 9999,
     touchAction: 'none',
     cursor: isDragging ? 'grabbing' : 'grab',
     imageRendering: 'pixelated',
-    opacity: 1,
-    filter: 'contrast(1.16) saturate(1.2) drop-shadow(0 3px 3px rgba(0, 0, 0, 0.45))',
     backgroundRepeat: 'no-repeat',
     willChange: 'left, top, transform, background-position'
   };
 
   if (animConfig.type !== 'gif') {
     style.backgroundPosition = `-${frame * pet.width}px 0`;
+    style.backgroundSize = `${animConfig.frames * pet.width}px ${pet.height}px`;
   }
 
   return (
@@ -432,4 +430,4 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
   );
 };
 
-export default PetJaneDoeOverlay;
+export default PetIcaBellOverlay;
