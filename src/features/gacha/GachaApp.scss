@@ -1227,7 +1227,18 @@
   }
 
   .rate-item-thumbnail.pet {
-    object-fit: contain;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .pet-sprite-frame {
+      display: block;
+      height: 100%;
+      flex: 0 0 auto;
+      background-repeat: no-repeat;
+      background-position: left top;
+      image-rendering: pixelated;
+    }
   }
 
   .rate-item-thumbnail.fallback {

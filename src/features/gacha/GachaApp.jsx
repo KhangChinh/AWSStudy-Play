@@ -15,6 +15,7 @@ import { applyGachaResult, getGachaMasterItems, handleGachaApi } from '../../ser
 import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import { handleSyncGachaHistoryApi } from '../../services/syncService';
 import currencyAssets from '../../data/currencyAssets';
+import { buildBannerDetails } from './bannerDetails';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
@@ -96,6 +97,17 @@ const BANNER_TYPE_LABELS = {
   frame: 'Frame',
   title: 'Title',
   pet: 'Pets',
+};
+const PET_IDLE_THUMBNAILS = {
+  pet_janedoe: { frames: 8, width: 32, height: 32 },
+  pet_wolf: { frames: 6, width: 64, height: 48 },
+  pet_cat: { frames: 8, width: 32, height: 32 },
+  pet_bluewie: { frames: 4, width: 32, height: 32 },
+  pet_browie: { frames: 2, width: 32, height: 32 },
+  pet_luneblade: { frames: 7, width: 32, height: 32 },
+  pet_bunny: { frames: 4, width: 32, height: 32 },
+  pet_death: { frames: 2, width: 32, height: 35 },
+  pet_icabell: { frames: 3, width: 48, height: 48 },
 };
 const normalizeAssetBase = (value = '') => value.replace(/\/+$/, '');
 const toCloudAssetUrl = (assetPath) => {
@@ -300,9 +312,13 @@ class GachaApp extends Component {
     try {
       const masterData = await getGachaMasterItems();
       const serverItems = masterData.items || [];
+      const bannerConfigs = this.state.bannerConfigs.map(config => ({
+        ...config,
+        rawBanner: buildBannerDetails(config, serverItems),
+      }));
       await cosmeticManager.loadFromMasterData(serverItems);
 
-      this.setState({ serverItems }, () => {
+      this.setState({ serverItems, bannerConfigs }, () => {
         this.loadBannerData(this.state.bannerId);
       });
     } catch (error) {
@@ -441,8 +457,23 @@ class GachaApp extends Component {
     }
     if (item?.itemType === 'pet') {
       const petUrl = toCloudAssetUrl(item.assets?.idle || item.assets?.sitting);
+      const layout = PET_IDLE_THUMBNAILS[itemId] || { frames: 1, width: 32, height: 32 };
+      const previewWidth = Math.min(96, Math.round(54 * layout.width / layout.height));
       return petUrl
-        ? <img className="rate-item-thumbnail pet" src={petUrl} alt={item.name || itemId} />
+        ? (
+          <span className="rate-item-thumbnail pet">
+            <span
+              className="pet-sprite-frame"
+              role="img"
+              aria-label={item.name || itemId}
+              style={{
+                width: `${previewWidth}px`,
+                backgroundImage: `url('${petUrl}')`,
+                backgroundSize: `${layout.frames * 100}% 100%`,
+              }}
+            />
+          </span>
+        )
         : <span className="rate-item-thumbnail fallback">PET</span>;
     }
     return <BackgroundCssThumbnail item={item} className="rate-bg-thumbnail" />;
@@ -464,7 +495,11 @@ class GachaApp extends Component {
     const tierRate = Number(star === 5 ? banner.rates?.base5Star : banner.rates?.base4Star) || 0;
     const rateUpChance = Number(banner.rates?.rateUpChance ?? 0.5);
     const rateUpItems = star === 5 ? (pool.rateUp5 || []) : (pool.rateUp4 || []);
-    const standardItems = star === 5 ? (pool.standard5 || []) : (pool.standard4 || []);
+    const standardItems = this.state.serverItems.filter(item => (
+      isBannerItem(item, this.state.activeBanner.itemType)
+      && Number(item.rarity) === star
+      && item.isLimited === false
+    ));
     const sourceItems = isRateUp ? rateUpItems : standardItems;
     if (!sourceItems.length) return 0;
 
@@ -480,8 +515,16 @@ class GachaApp extends Component {
 
     const addGroup = (star) => {
       const pool = banner?.pool;
-      const rateUpItems = star === 5 ? (pool?.rateUp5 || []) : (pool?.rateUp4 || []);
-      const standardItems = star === 5 ? (pool?.standard5 || []) : (pool?.standard4 || []);
+      const rawRateUpItems = star === 5 ? (pool?.rateUp5 || []) : (pool?.rateUp4 || []);
+
+      // Limited items are visible only when this exact banner marks them as rate-up.
+      // Read standard items from master data to avoid exposing stale limited pool entries.
+      const rateUpItems = rawRateUpItems;
+      const standardItems = serverItems.filter(item => (
+        isBannerItem(item, activeBanner.itemType)
+        && Number(item.rarity) === star
+        && item.isLimited === false
+      ));
       const rowsById = new Map();
 
       const addItems = (items, isRateUp, fallbackItemRate = null) => {
@@ -508,22 +551,12 @@ class GachaApp extends Component {
         addItems(standardItems, false);
       } else {
         const tierItems = serverItems.filter(item => isBannerItem(item, activeBanner.itemType) && Number(item.rarity) === star);
-        const limitedItems = tierItems.filter(item => item.isLimited === true);
         const standardItemsFallback = tierItems.filter(item => item.isLimited !== true);
         const tierRate = Number(activeBanner?.rates?.[star]) || 0;
-        const rateUpChance = Number(activeBanner?.rates?.rateUpChance ?? 0.5);
-
-        addItems(
-          limitedItems,
-          true,
-          limitedItems.length ? (tierRate * rateUpChance) / limitedItems.length : 0
-        );
         addItems(
           standardItemsFallback,
           false,
-          standardItemsFallback.length
-            ? (tierRate * (limitedItems.length ? 1 - rateUpChance : 1)) / standardItemsFallback.length
-            : 0
+          standardItemsFallback.length ? tierRate / standardItemsFallback.length : 0
         );
       }
 
