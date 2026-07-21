@@ -28,6 +28,7 @@ import MinigameWidget from '../minihub/MinigameWidget';
 import PetBunnyOverlay from '../pet/PetBunnyOverlay';
 import PetDeathOverlay from '../pet/PetDeathOverlay';
 import PetJaneDoeOverlay from '../pet/PetJaneDoeOverlay';
+import PetIcaBellOverlay from '../pet/PetIcaBellOverlay';
 import { getDailyQuests, claimQuestReward } from '../../services/questService';
 import { setProfile, setDailyQuests, setSocial } from '../../store/actions';
 import { handleGetFriendsApi } from '../../services/socialServices';
@@ -847,6 +848,8 @@ class Dashboard extends Component {
       <div className={desktopClassName} style={desktopStyle}>
         {this.state.currentPet === 'pet_death' ? (
           <PetDeathOverlay equippedPet={this.state.currentPet} />
+        ) : this.state.currentPet === 'pet_icabell' ? (
+          <PetIcaBellOverlay equippedPet={this.state.currentPet} />
         ) : this.state.currentPet === 'pet_janedoe' ? (
           <PetJaneDoeOverlay equippedPet={this.state.currentPet} />
         ) : (
