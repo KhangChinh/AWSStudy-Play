@@ -156,12 +156,12 @@ export const loadStudySettings = async () => {
 
   try {
     const diskData = await window.api?.invoke('study:loadSettings');
-    const settings = diskData?.success ? diskData.data : { aiProvider: 'ollama', geminiKey: '' };
+    const settings = diskData?.success ? diskData.data : { aiProvider: 'bedrock', geminiKey: '' };
     store.dispatch(setStudySettings(settings));
     return settings;
   } catch (err) {
     console.error('Error loading study settings:', err);
-    return { aiProvider: 'ollama', geminiKey: '' };
+    return { aiProvider: 'bedrock', geminiKey: '' };
   }
 };
 

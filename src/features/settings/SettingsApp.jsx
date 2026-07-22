@@ -168,7 +168,7 @@ const SettingsApp = ({
       const blocker = localAiSettings.blocker || {};
       const spProviderMap = { gemini: 'gemini', bedrock: 'bedrock', ollama: 'ollama' };
       await window.api.invoke('study:saveSettings', {
-        aiProvider: spProviderMap[sp.provider] || 'ollama',
+        aiProvider: spProviderMap[sp.provider] || 'bedrock',
         geminiKey: sp.apiKey || '',
         selectedModel: sp.selectedModel || '',
         bedrockAccessKey: sp.bedrockAccessKey || '',
@@ -185,7 +185,7 @@ const SettingsApp = ({
   };
 
   const renderAiRow = (featureKey, label) => {
-    const setting = localAiSettings[featureKey] || { provider: 'ollama', selectedModel: '', apiKey: '' };
+    const setting = localAiSettings[featureKey] || { provider: 'bedrock', selectedModel: '', apiKey: '' };
     return (
       <div className="ai-setting-row" key={featureKey}>
         <div className="ai-row-header">
@@ -410,9 +410,9 @@ const SettingsApp = ({
 
 const mapStateToProps = (state) => ({
   aiSettings: state.settings?.aiSettings || {
-    faceTracking: { provider: 'ollama', selectedModel: '', apiKey: '' },
-    blocker: { provider: 'ollama', selectedModel: '', apiKey: '' },
-    studyPlanner: { provider: 'ollama', selectedModel: '', apiKey: '' },
+    faceTracking: { provider: 'bedrock', selectedModel: '', apiKey: '' },
+    blocker: { provider: 'bedrock', selectedModel: '', apiKey: '' },
+    studyPlanner: { provider: 'bedrock', selectedModel: '', apiKey: '' },
   }
 });
 

@@ -15,7 +15,7 @@ const MinigameWidget = ({ onOpenMinigame }) => {
 
   const games = [
     { id: 'sudoku', name: 'Sudoku', desc: 'Trí tuệ', price: 'Free', icon: '🧠', disabled: false },
-    { id: 'minesweeper', name: 'Minesweeper', desc: 'Dò mìn', price: '100 🪙', icon: '💣', disabled: true },
+    { id: 'minesweeper', name: 'Minesweeper', desc: 'Dò mìn', price: '100 🪙', icon: '💣', disabled: false },
   ];
 
   useEffect(() => {

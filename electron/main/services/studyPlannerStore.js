@@ -159,7 +159,7 @@ export function deleteQuizResult(quizId) {
 // ═══════════════════════════════════════════
 
 const DEFAULT_STUDY_SETTINGS = {
-  aiProvider: 'ollama',
+  aiProvider: 'bedrock',
   geminiKey: '',
   bedrockAccessKey: '',
   bedrockSecretKey: '',

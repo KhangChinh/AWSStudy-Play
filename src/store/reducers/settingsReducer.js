@@ -2,9 +2,9 @@ import { SET_AI_SETTINGS } from '../actions/settingsActions';
 
 const initialState = {
   aiSettings: {
-    faceTracking: { provider: 'ollama', selectedModel: '', apiKey: '' },
-    blocker: { provider: 'ollama', selectedModel: '', apiKey: '' },
-    studyPlanner: { provider: 'ollama', selectedModel: '', apiKey: '' },
+    faceTracking: { provider: 'bedrock', selectedModel: '', apiKey: '' },
+    blocker: { provider: 'bedrock', selectedModel: '', apiKey: '' },
+    studyPlanner: { provider: 'bedrock', selectedModel: '', apiKey: '' },
   }
 };
 

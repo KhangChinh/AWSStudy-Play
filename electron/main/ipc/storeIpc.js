@@ -477,7 +477,7 @@ export function registerStoreIPC(ipcMain) {
       // Also sync to studyPlannerStore so backend services get the updated config immediately
       if (settings && settings.studyPlanner) {
         const studyConfig = {
-          aiProvider: settings.studyPlanner.provider || 'ollama',
+          aiProvider: settings.studyPlanner.provider || 'bedrock',
           selectedModel: settings.studyPlanner.selectedModel || '',
           geminiKey: settings.studyPlanner.apiKey || ''
         };

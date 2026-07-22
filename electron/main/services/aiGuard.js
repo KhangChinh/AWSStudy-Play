@@ -248,7 +248,7 @@ export async function classifyContent(metadata) {
   }
 
   let result;
-  const blockerConfig = getBlockerAiSettings() || { provider: 'ollama' };
+  const blockerConfig = getBlockerAiSettings() || { provider: 'bedrock' };
 
   if (blockerConfig.provider === 'bedrock') {
     // Try Bedrock
@@ -291,7 +291,7 @@ export async function classifyContent(metadata) {
         console.log(`[AI] 🔍 Classifying video with Ollama | Model: ${OLLAMA_MODEL} | Title: "${metadata.title || 'N/A'}"`);
         const ollamaResult = await classifyWithOllama(metadata, SYSTEM_PROMPT);
         console.log(`[AI] ✅ Ollama result: ${ollamaResult.result} — ${ollamaResult.reason}`);
-        result = { ...ollamaResult, provider: 'ollama' };
+        result = { ...ollamaResult, provider: 'bedrock' };
       }
     } catch (e) {
       console.warn('[AI] Ollama classification failed:', e.message);
@@ -445,7 +445,7 @@ export async function classifyWebPage(metadata) {
   }
 
   let result;
-  const blockerConfig = getBlockerAiSettings() || { provider: 'ollama' };
+  const blockerConfig = getBlockerAiSettings() || { provider: 'bedrock' };
 
   if (blockerConfig.provider === 'bedrock') {
     // Try Bedrock
@@ -498,7 +498,7 @@ export async function classifyWebPage(metadata) {
         console.log(`[AI-Web] 🔍 Classifying web page with Ollama | Model: ${OLLAMA_MODEL} | Domain: ${metadata.domain}`);
         const ollamaResult = await classifyWebWithOllama(metadata);
         console.log(`[AI-Web] ✅ Ollama result: ${ollamaResult.result} — ${ollamaResult.reason}`);
-        result = { ...ollamaResult, provider: 'ollama' };
+        result = { ...ollamaResult, provider: 'bedrock' };
       }
     } catch (e) {
       console.warn('[AI-Web] Ollama failed:', e.message);

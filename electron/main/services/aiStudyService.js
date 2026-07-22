@@ -54,22 +54,26 @@ function ollamaRequest(path, body, timeoutMs = 120000) {
 
 // ===== System Prompts =====
 
-const CHAT_SYSTEM_PROMPT = `You are an AI study consultant. Collect information from the user to create a study plan.
-Reply in the language the user is using (prioritize Vietnamese if unclear). You support ALL subjects and languages, including Chinese, Japanese, Korean, etc.
-YOU NEED TO COLLECT: 1. Subject 2. Specific topic 3. Current level 4. Goal 5. Total expected duration 6. Daily study hours
-RULES: Ask naturally. If the user provides enough info (at least 1, 2, and 3), set readyToGenerate=true. Keep responses brief (3-4 sentences).
-OUTPUT JSON ONLY (no markdown): {"reply":"...","collectedInfo":{"subject":"","topic":"","level":"","goal":"","totalDuration":"","dailyHours":""},"readyToGenerate":false}
-When readyToGenerate=true, add this to your reply in the current language: "I have enough information. Would you like me to generate your study plan now?"`;
+const CHAT_SYSTEM_PROMPT = `Role: AI study consultant. Goal: Collect info to build a study plan.
+1. Match user's language (default VI). Support ALL subjects/languages.
+2. Collect: Subject, Topic, Level, Goal, Total Duration, Daily Hours.
+3. If at least Subject, Topic, and Level are provided, set readyToGenerate=true and append "I have enough information. Would you like me to generate your study plan now?" to reply.
+4. Ask naturally, keep brief (3-4 sentences).
+5. ONLY RETURN JSON: {"reply":"...","collectedInfo":{"subject":"","topic":"","level":"","goal":"","totalDuration":"","dailyHours":""},"readyToGenerate":false}`;
 
-const PLAN_SYSTEM_PROMPT = `Create a study plan in JSON format. DO NOT explain, ONLY return JSON.
-CRITICAL LANGUAGE RULE: You MUST generate the content (title, description, phases, topics, etc.) in the SAME LANGUAGE as the user's inputs. If the user's inputs are in Vietnamese, the ENTIRE OUTPUT MUST BE IN VIETNAMESE.
-Format: {"title":"...","description":"...","phases":[{"id":1,"name":"...","duration":"...","description":"...","topics":["..."],"resources":[{"name":"...","url":"https://...","type":"website"}],"completed":false}]}
-Create 4-5 phases, 2-3 topics per phase, 1-2 resources per phase. Be concise.`;
+const PLAN_SYSTEM_PROMPT = `Role: Study Plan Generator. ONLY RETURN JSON.
+Rules:
+1. Adherence: Strictly base the plan on the user's info & document. Divide logically into phases matching the doc's chapters/sections. NO hallucinations.
+2. Detail: Provide highly detailed phase descriptions and exact topics from the doc to enable accurate future quizzes.
+3. Language: Match user's input language exactly.
+4. Structure (Adaptive): Adapt the number of phases and topics dynamically based on the user's "Total Duration" and the document length. Short goals/docs may only need 1-2 phases. Do not force a fixed number.
+Format: {"_self_check": {"adherence": "?", "structure": "?"}, "title":"...","description":"...","phases":[{"id":1,"name":"...","duration":"...","description":"...","topics":["..."],"resources":[{"name":"...","url":"...","type":"website"}],"completed":false}]}`;
 
-const QUIZ_SYSTEM_PROMPT = `Create a 10-question multiple choice quiz in JSON format. DO NOT explain, ONLY return JSON.
-CRITICAL LANGUAGE RULE: You MUST generate the questions and options in the SAME LANGUAGE as the Phase name and Plan title. If they are in Vietnamese, the ENTIRE QUIZ MUST BE IN VIETNAMESE.
-Format: {"questions":[{"id":1,"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correctAnswer":"A"}]}
-Generate exactly 10 questions, each with 4 options (A/B/C/D). Ensure all questions are unique, diverse, and do not repeat.`;
+const QUIZ_SYSTEM_PROMPT = `Role: Quiz Generator. ONLY RETURN JSON.
+Rules:
+1. Adherence & Focus: Strictly generate 10 unique 4-option MCQs based ONLY on the requested Phase's topics and provided document. NO external facts. NO questions from other phases.
+2. Language: Match Phase language. If testing a foreign language, test directly WITHOUT translations/hints in the question text.
+Format: {"_self_check": {"adherence": "?", "language": "?"}, "questions":[{"id":1,"question":"...","options":["A...","B...","C...","D..."],"correctAnswer":"A"}]}`;
 
 // Load AI settings from the main electron-store (saved by storeIpc aiSettings)
 async function getAiSettings() {
@@ -77,7 +81,7 @@ async function getAiSettings() {
     const settingsResult = loadStudySettings();
     const s = (settingsResult.success && settingsResult.data) ? settingsResult.data : {};
     return {
-      aiProvider: s.aiProvider || 'ollama',
+      aiProvider: s.aiProvider || 'bedrock',
       geminiKey: s.geminiKey || '',
       selectedModel: s.selectedModel || OLLAMA_MODEL_DEFAULT,
       bedrockAccessKey: s.bedrockAccessKey || '',
@@ -86,7 +90,7 @@ async function getAiSettings() {
       bedrockModel: s.bedrockModel || 'amazon.nova-lite-v1:0',
     };
   } catch {
-    return { aiProvider: 'ollama', geminiKey: '', selectedModel: OLLAMA_MODEL_DEFAULT,
+    return { aiProvider: 'bedrock', geminiKey: '', selectedModel: OLLAMA_MODEL_DEFAULT,
              bedrockAccessKey: '', bedrockSecretKey: '', bedrockRegion: 'us-east-1', bedrockModel: 'amazon.nova-lite-v1:0' };
   }
 }
@@ -196,6 +200,130 @@ export async function chatWithAI(messages) {
   }
 }
 
+// ===== Self-Correction Logic =====
+
+function validatePlan(planJSON) {
+  if (!planJSON) return "Invalid JSON format.";
+  if (!planJSON.phases || !Array.isArray(planJSON.phases) || planJSON.phases.length === 0) {
+    return "Missing or empty 'phases' array.";
+  }
+  for (const phase of planJSON.phases) {
+    if (!phase.name || !phase.description || !phase.topics || !Array.isArray(phase.topics)) {
+      return "Each phase must have a 'name', 'description', and 'topics' array.";
+    }
+  }
+  return null;
+}
+
+function shuffleQuizAnswers(quizJSON) {
+  if (!quizJSON || !Array.isArray(quizJSON.questions)) return;
+  quizJSON.questions.forEach(q => {
+    if (!q.options || q.options.length !== 4 || !q.correctAnswer) return;
+    
+    let ansLetter = q.correctAnswer.toString().toUpperCase().trim().charAt(0);
+    let correctIndex = ansLetter.charCodeAt(0) - 65;
+    if (correctIndex < 0 || correctIndex > 3) return;
+    
+    // Get raw correct answer text
+    let correctOptionRaw = q.options[correctIndex].replace(/^[A-D][\.\:\)]\s*/i, '');
+    
+    // Clean all options
+    let rawOptions = q.options.map(opt => opt.replace(/^[A-D][\.\:\)]\s*/i, ''));
+    
+    // Shuffle raw options
+    for (let i = rawOptions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [rawOptions[i], rawOptions[j]] = [rawOptions[j], rawOptions[i]];
+    }
+    
+    // Re-assign A, B, C, D
+    const prefixes = ['A. ', 'B. ', 'C. ', 'D. '];
+    q.options = rawOptions.map((opt, i) => prefixes[i] + opt);
+    
+    // Find new correct answer
+    let newCorrectIndex = rawOptions.findIndex(opt => opt === correctOptionRaw);
+    if (newCorrectIndex !== -1) {
+        q.correctAnswer = String.fromCharCode(65 + newCorrectIndex);
+    }
+  });
+}
+
+function validateQuiz(quizJSON) {
+  if (!quizJSON) return "Invalid JSON format.";
+  if (!quizJSON.questions || !Array.isArray(quizJSON.questions) || quizJSON.questions.length !== 10) {
+    return "You must generate exactly 10 questions in the 'questions' array.";
+  }
+  for (const q of quizJSON.questions) {
+     if (!q.question || !q.options || q.options.length !== 4 || !q.correctAnswer) {
+       return "Each question must have a 'question', 4 'options', and a 'correctAnswer'.";
+     }
+  }
+  
+  // Shuffle options in JS to guarantee perfect randomization without relying on AI
+  shuffleQuizAnswers(quizJSON);
+  
+  return null;
+}
+
+async function callAiWithRetry(config, systemPrompt, initialUserPrompt, type, maxRetries = 2) {
+  let userPrompt = initialUserPrompt;
+  let attempt = 0;
+  
+  while (attempt <= maxRetries) {
+    attempt++;
+    let text = '';
+    try {
+      if (config.aiProvider === 'gemini' && config.geminiKey) {
+        let geminiModel = config.selectedModel || 'gemini-2.0-flash';
+        if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-2.0-flash';
+        console.log(`[AIStudy] Generate ${type} (Attempt ${attempt}) → Gemini | ${geminiModel}`);
+        const geminiBody = {
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: { temperature: 0.6 }
+        };
+        const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000);
+        if (result.error) throw new Error(result.error.message || 'Gemini API Error');
+        text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } else if (config.aiProvider === 'bedrock') {
+        console.log(`[AIStudy] Generate ${type} (Attempt ${attempt}) → Bedrock`);
+        text = await bedrockChatJSON(systemPrompt, [{ role: 'user', content: userPrompt }], 2048);
+      } else {
+        const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
+        console.log(`[AIStudy] Generate ${type} (Attempt ${attempt}) → Ollama | ${ollamaModel}`);
+        warnIfWeakModel(ollamaModel);
+        const result = await ollamaRequest('/api/chat', {
+          model: ollamaModel,
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+          stream: false, format: 'json',
+          options: { temperature: 0.6, num_predict: 2048 }
+        }, 600000);
+        text = result.message?.content || '';
+      }
+      
+      const parsed = parseResponse(text);
+      const validator = type === 'Plan' ? validatePlan : validateQuiz;
+      const errorMsg = validator(parsed);
+      
+      if (!errorMsg) {
+        return { success: true, data: parsed };
+      }
+      
+      console.warn(`[AIStudy] Validation failed for ${type} on attempt ${attempt}: ${errorMsg}`);
+      if (attempt <= maxRetries) {
+        userPrompt += `\n\n[SYSTEM] ERROR IN YOUR PREVIOUS ATTEMPT: ${errorMsg}\nPlease fix this error and generate the JSON again. Strictly follow all rules.`;
+      } else {
+        return { success: false, error: `Validation failed: ${errorMsg}` };
+      }
+    } catch (e) {
+      console.warn(`[AIStudy] API Error on attempt ${attempt}: ${e.message}`);
+      if (attempt > maxRetries) {
+        return { success: false, error: e.message };
+      }
+    }
+  }
+}
+
 export async function generateStudyPlan(collectedInfo) {
   try {
     const config = await getAiSettings();
@@ -215,45 +343,10 @@ export async function generateStudyPlan(collectedInfo) {
     
     userPrompt += `\nONLY RETURN JSON.`;
 
-    if (config.aiProvider === 'gemini' && config.geminiKey) {
-      let geminiModel = config.selectedModel || 'gemini-2.0-flash';
-      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-2.0-flash';
-      console.log(`[AIStudy] 📋 Generate Plan → Gemini | ${geminiModel}`);
-      const geminiBody = {
-        system_instruction: { parts: [{ text: PLAN_SYSTEM_PROMPT }] },
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: { temperature: 0.6 }
-      };
-      const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000);
-      if (result.error) throw new Error(result.error.message || 'Gemini API Error');
-      const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const plan = parseResponse(content);
-      if (plan) return { success: true, plan };
-      return { success: false, error: 'Khong the parse ke hoach tu Gemini' };
+    const result = await callAiWithRetry(config, PLAN_SYSTEM_PROMPT, userPrompt, 'Plan');
+    if (result.success) return { success: true, plan: result.data };
+    return { success: false, error: result.error };
 
-    } else if (config.aiProvider === 'bedrock') {
-      console.log(`[AIStudy] 📋 Generate Plan → Bedrock | ${process.env.BEDROCK_MODEL || 'nova-lite'}`);
-      const content = await bedrockChatJSON(PLAN_SYSTEM_PROMPT, [{ role: 'user', content: userPrompt }], 2048);
-      const plan = parseResponse(content);
-      if (plan) return { success: true, plan };
-      return { success: false, error: 'Bedrock: Khong the parse ke hoach' };
-
-    } else {
-      const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
-      console.log(`[AIStudy] 📋 Generate Plan → Ollama | ${ollamaModel}`);
-      warnIfWeakModel(ollamaModel);
-      const result = await ollamaRequest('/api/chat', {
-        model: ollamaModel,
-        messages: [{ role: 'system', content: PLAN_SYSTEM_PROMPT }, { role: 'user', content: userPrompt }],
-        stream: false, format: 'json',
-        options: { temperature: 0.6, num_predict: 2048 },
-      }, 600000);
-      const content = result.message?.content || '';
-      console.log('[AIStudy] 📋 Raw plan (200 chars):', content.substring(0, 200));
-      const plan = parseResponse(content);
-      if (plan) return { success: true, plan };
-      return { success: false, error: 'Ollama: Khong the parse ke hoach' };
-    }
   } catch (error) {
     if (!error.message.includes('ECONNREFUSED')) {
       console.error('[AIStudy] Generate plan error:', error.message);
@@ -267,9 +360,7 @@ export async function generateQuiz(phase, planTitle) {
     const config = await getAiSettings();
     const docContext = getContextForQuiz(phase.name, phase.topics);
     
-    let userPrompt = `Context: Study Plan "${planTitle}"
-Generate 10 multiple choice questions about the phase: ${phase.name}
-Topics to focus on: ${(phase.topics || []).join(', ')}`;
+    let userPrompt = `Context: Study Plan "${planTitle}"\nGenerate 10 multiple choice questions about the phase: ${phase.name}\nTopics to focus on: ${(phase.topics || []).join(', ')}`;
 
     if (docContext) {
       userPrompt += `\n\n=== CONTENT FROM DOCUMENT (${docContext.fileName}) ===\n${docContext.contentBlock}\n\nREQUIREMENT: Generate questions strictly based 100% on this document. Do not invent facts outside of the document.`;
@@ -277,55 +368,12 @@ Topics to focus on: ${(phase.topics || []).join(', ')}`;
 
     userPrompt += `\nONLY RETURN JSON.`;
 
-    if (config.aiProvider === 'gemini' && config.geminiKey) {
-      let geminiModel = config.selectedModel || 'gemini-2.0-flash';
-      if (!geminiModel.startsWith('gemini')) geminiModel = 'gemini-2.0-flash';
-      console.log(`[AIStudy] 📝 Generate Quiz → Gemini | ${geminiModel}`);
-      const geminiBody = {
-        system_instruction: { parts: [{ text: QUIZ_SYSTEM_PROMPT }] },
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: { temperature: 0.7 }
-      };
-      const result = await geminiRequestWithFallback(config.geminiKey, geminiBody, geminiModel, 60000);
-      if (result.error) throw new Error(result.error.message || 'Gemini API Error');
-      const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const parsed = parseResponse(content);
-      if (parsed && parsed.questions) return { success: true, questions: parsed.questions };
-      return { success: false, error: 'Khong the parse quiz tu Gemini' };
+    const result = await callAiWithRetry(config, QUIZ_SYSTEM_PROMPT, userPrompt, 'Quiz');
+    if (result.success) return { success: true, questions: result.data.questions };
+    return { success: false, error: result.error };
 
-    } else if (config.aiProvider === 'bedrock') {
-      console.log(`[AIStudy] 📝 Generate Quiz → Bedrock | ${process.env.BEDROCK_MODEL || 'nova-lite'}`);
-      const content = await bedrockChatJSON(QUIZ_SYSTEM_PROMPT, [{ role: 'user', content: userPrompt }], 2048);
-      const parsed = parseResponse(content);
-      if (parsed && parsed.questions) return { success: true, questions: parsed.questions };
-      return { success: false, error: 'Bedrock: Khong the parse quiz' };
-
-    } else {
-      const ollamaModel = config.selectedModel || OLLAMA_MODEL_DEFAULT;
-      console.log(`[AIStudy] 📝 Generate Quiz → Ollama | ${ollamaModel}`);
-      warnIfWeakModel(ollamaModel);
-      const result = await ollamaRequest('/api/chat', {
-        model: ollamaModel,
-        messages: [
-          { role: 'system', content: QUIZ_SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt },
-        ],
-        stream: false,
-        format: 'json',
-        options: { temperature: 0.7, num_predict: 2048 },
-      }, 600000);
-
-      const content = result.message?.content || '';
-      console.log('[AIStudy] 📝 Raw quiz response (first 200 chars):', content.substring(0, 200));
-      const parsed = parseResponse(content);
-      if (parsed && parsed.questions) return { success: true, questions: parsed.questions };
-      console.error('[AIStudy] ❌ Could not parse quiz JSON from model output.');
-      return { success: false, error: 'Khong the parse quiz tu Ollama' };
-    }
   } catch (error) {
-    if (!error.message.includes('ECONNREFUSED')) {
-      console.error('[AIStudy] Generate quiz error:', error.message);
-    }
+    console.error('[AIStudy] Generate quiz error:', error.message);
     return { success: false, error: error.message };
   }
 }
