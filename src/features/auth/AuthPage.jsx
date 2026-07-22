@@ -225,7 +225,19 @@ class AuthPage extends Component {
           console.error('Error during cleanup:', logoutError);
         }
       } else {
-        toast.error(error.message || t('auth.generic_error'));
+        let errorMessage = error.message;
+        if (error.name === 'InvalidPasswordException' || (errorMessage && errorMessage.includes('password does not conform to policy'))) {
+          errorMessage = "Mật khẩu quá yếu. Vui lòng nhập mật khẩu dài hơn và có đủ chữ hoa, chữ thường, số.";
+        } else if (error.name === 'UsernameExistsException') {
+          errorMessage = "Email này đã được đăng ký trong hệ thống.";
+        } else if (error.name === 'UserNotFoundException') {
+          errorMessage = "Tài khoản không tồn tại.";
+        } else if (error.name === 'NotAuthorizedException') {
+          errorMessage = "Sai thông tin đăng nhập hoặc mật khẩu.";
+        } else if (error.name === 'CodeMismatchException') {
+          errorMessage = "Mã xác nhận không chính xác.";
+        }
+        toast.error(errorMessage || t('auth.generic_error'));
       }
     }
     this.setState({ isLoading: false });
