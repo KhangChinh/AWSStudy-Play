@@ -182,7 +182,6 @@ const ChatTab = ({ onPlanCreated }) => {
         };
         // Use service function so Redux is updated → PlanTab sees the plan immediately
         await saveStudyPlan(plan);
-        toast.success(t('study.plan_created'));
         onPlanCreated?.(planId);
       } else {
         toast.error(result?.error || t('study.plan_create_failed'));
@@ -213,20 +212,17 @@ const ChatTab = ({ onPlanCreated }) => {
       
       const filePath = res.filePaths[0];
       setDocStatus('processing');
-      toast.info('Đang phân tích tài liệu... Vui lòng chờ.');
       
       const uploadRes = await window.api.invoke('study:uploadFile', { filePath });
       if (uploadRes.success) {
         setDocumentFile(uploadRes.info);
         setDocStatus('ready');
-        toast.success(`Đã tải lên: ${uploadRes.info.fileName}`);
       } else {
         setDocStatus('idle');
-        toast.error(uploadRes.error || 'Lỗi khi tải file lên');
+        toast.error(uploadRes.error || t('study.document_upload_failed'));
       }
-    } catch (err) {
+    } catch {
       setDocStatus('idle');
-      toast.error('Lỗi kết nối IPC');
     }
   };
 

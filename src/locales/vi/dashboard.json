@@ -10,6 +10,8 @@
   "logout_confirm": "Bạn có chắc muốn đăng xuất?",
   "logout_success": "Đăng xuất thành công!",
   "logout_failed": "Đăng xuất thất bại. Vui lòng thử lại!",
+  "mission_action_failed": "Thao tác nhiệm vụ thất bại!",
+  "connection_error": "Lỗi kết nối!",
   "minimize": "Thu nhỏ",
   "previous_page": "Các ứng dụng trước",
   "next_page": "Các ứng dụng tiếp theo"

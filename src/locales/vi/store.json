@@ -8,7 +8,7 @@
   "quantity": "Số lượng",
   "max": "Tối đa",
   "total": "Tổng",
-  "not_enough_knowledge_points": "Không đủ Điểm tri thức.",
+  "not_enough_knowledge_points": "Không đủ Knowledge Point.",
   "not_enough_ecoin": "Không đủ eCoin.",
   "items": {
     "knowledge_core": "Lõi tri thức"

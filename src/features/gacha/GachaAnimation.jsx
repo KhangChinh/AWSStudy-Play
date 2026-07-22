@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import BackgroundCssThumbnail from '../../components/BackgroundCssThumbnail';
 import RankFrame from '../../components/RankFrame';
 import './GachaAnimation.scss';

@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { Trans, withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import GachaAnimation from './GachaAnimation';
@@ -15,6 +15,7 @@ import { applyGachaResult, getGachaMasterItems, handleGachaApi } from '../../ser
 import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import { handleSyncGachaHistoryApi } from '../../services/syncService';
 import currencyAssets from '../../data/currencyAssets';
+import { buildBannerDetails, GACHA_CONFIGS, PET_IDLE_THUMBNAILS } from './bannerDetails';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
@@ -48,49 +49,6 @@ const formatRemainingTime = (expiresAt) => {
   return days > 0 ? `${days}d ${clock}` : clock;
 };
 
-const GACHA_CONFIGS = [
-  {
-    id: 'banner_pet',
-    bannerId: 'banner_pet',
-    name: 'Banner Thú cưng',
-    itemType: 'pet',
-    durationDays: 7,
-    theme: 'theme-solar',
-    background: 'solar-bg',
-    rates: { 5: 0.01, 4: 0.09, 3: 0.90, rateUpChance: 0.5, pity5StarLimit: 80, pity4StarLimit: 10 },
-  },
-  {
-    id: 'banner_background',
-    bannerId: 'banner_background',
-    name: 'Banner Hình Nền Thường Nhật',
-    itemType: 'background',
-    durationDays: 1,
-    theme: 'theme-solar',
-    background: 'solar-bg',
-    rates: { 5: 0.01, 4: 0.09, 3: 0.90, rateUpChance: 0.5, pity5StarLimit: 80, pity4StarLimit: 10 },
-  },
-  {
-    id: 'banner_frame',
-    bannerId: 'banner_frame',
-    name: 'Banner Khung Đại Diện',
-    itemType: 'frame',
-    durationDays: 3,
-    theme: 'theme-solar',
-    background: 'solar-bg',
-    rates: { 5: 0.01, 4: 0.09, 3: 0.90, rateUpChance: 0.5, pity5StarLimit: 80, pity4StarLimit: 10 },
-  },
-  {
-    id: 'banner_title',
-    bannerId: 'banner_title',
-    name: 'Banner Trang trí Tiêu Đề',
-    itemType: 'title',
-    durationDays: 1,
-    theme: 'theme-solar',
-    background: 'solar-bg',
-    rates: { 5: 0.01, 4: 0.09, 3: 0.90, rateUpChance: 0.75, pity5StarLimit: 80, pity4StarLimit: 10 },
-  },
-];
-
 const BANNER_TYPE_LABELS = {
   background: 'Background',
   frame: 'Frame',
@@ -106,13 +64,6 @@ const toCloudAssetUrl = (assetPath) => {
   return `${base}/items/${normalized}`;
 };
 
-const isBannerItem = (item, itemType) => (
-  item?.itemType === itemType
-  && Boolean(item.SK || item.id)
-  && (itemType === 'pet'
-    ? Boolean(item.assets?.idle || item.assets?.sitting)
-    : Boolean(item.assets?.css))
-);
 const resolveMasterItemAsset = (item) => {
   if (!item) return '';
   if (item.itemType === 'pet') return toCloudAssetUrl(item.assets?.idle);
@@ -134,7 +85,6 @@ class GachaApp extends Component {
       bannerId: GACHA_CONFIGS[0].bannerId,
       bannerConfigs: GACHA_CONFIGS,
       bannerExpiresAt: getNextBannerRefreshUtcSeconds(),
-      bannerUpdatedAt: null,
       banner: null,
       timeLeftStr: formatRemainingTime(getNextBannerRefreshUtcSeconds()),
       historyItems: [],
@@ -144,7 +94,6 @@ class GachaApp extends Component {
       isSubmitting: false,
       pendingConfirmRollCount: null,
       serverItems: [],
-      guaranteedFiveStarItem: null,
       isLoadingHistory: false,
       pendingGachaResult: null,
     };
@@ -268,20 +217,11 @@ class GachaApp extends Component {
     if (!config) return;
 
     const banner = config.rawBanner;
-    const poolItems = banner?.pool ? Object.values(banner.pool).flat() : [];
-    const serverItems = Array.from(new Map(
-      [...this.state.serverItems, ...poolItems].map(item => [item.SK || item.id, item])
-    ).values());
-    const guaranteedFiveStarItem = banner?.pool?.rateUp5?.[0]
-      || this.pickRandomGuaranteedFiveStar(serverItems, config.itemType);
 
     this.setState({
       bannerId: config.bannerId,
       activeBanner: config,
       banner,
-      serverItems,
-      guaranteedFiveStarItem,
-      bannerUpdatedAt: Number(banner?.updatedAt) || null,
       bannerExpiresAt: resolveBannerExpiresAt(banner?.expiresAt, config.durationDays),
     }, this.updateBannerCountdown);
   };
@@ -300,14 +240,18 @@ class GachaApp extends Component {
     try {
       const masterData = await getGachaMasterItems();
       const serverItems = masterData.items || [];
+      const bannerConfigs = this.state.bannerConfigs.map(config => ({
+        ...config,
+        rawBanner: buildBannerDetails(config, serverItems),
+      }));
       await cosmeticManager.loadFromMasterData(serverItems);
 
-      this.setState({ serverItems }, () => {
+      this.setState({ serverItems, bannerConfigs }, () => {
         this.loadBannerData(this.state.bannerId);
       });
     } catch (error) {
       console.warn('[GachaApp] Could not load Gacha items:', error.message);
-      toast.error(error.message || this.props.t('common.error'));
+      toast.error(this.props.t('gacha.banner_load_failed'));
 
     }
   }
@@ -341,14 +285,6 @@ class GachaApp extends Component {
       });
     }
   };
-
-  pickRandomGuaranteedFiveStar = (items = this.state.serverItems, itemType = this.state.activeBanner.itemType) => {
-    const backgrounds = items.filter(item => isBannerItem(item, itemType));
-    const candidates = backgrounds.filter(item => Number(item.rarity) === 5 && item.isLimited === true);
-    if (!candidates.length) candidates.push(...backgrounds.filter(item => Number(item.rarity) === 5));
-    return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : null;
-  };
-
 
   componentDidUpdate(prevProps) {
     if (prevProps.userProfile !== this.props.userProfile) {
@@ -441,8 +377,23 @@ class GachaApp extends Component {
     }
     if (item?.itemType === 'pet') {
       const petUrl = toCloudAssetUrl(item.assets?.idle || item.assets?.sitting);
+      const layout = PET_IDLE_THUMBNAILS[itemId] || { frames: 1, width: 32, height: 32 };
+      const previewWidth = Math.min(96, Math.round(54 * layout.width / layout.height));
       return petUrl
-        ? <img className="rate-item-thumbnail pet" src={petUrl} alt={item.name || itemId} />
+        ? (
+          <span className="rate-item-thumbnail pet">
+            <span
+              className="pet-sprite-frame"
+              role="img"
+              aria-label={item.name || itemId}
+              style={{
+                width: `${previewWidth}px`,
+                backgroundImage: `url('${petUrl}')`,
+                backgroundSize: `${layout.frames * 100}% 100%`,
+              }}
+            />
+          </span>
+        )
         : <span className="rate-item-thumbnail fallback">PET</span>;
     }
     return <BackgroundCssThumbnail item={item} className="rate-bg-thumbnail" />;
@@ -475,19 +426,18 @@ class GachaApp extends Component {
   };
 
   getBannerRateRows = () => {
-    const { activeBanner, banner, serverItems } = this.state;
+    const banner = this.state.banner;
+    if (!banner?.pool) return [];
+
     const groups = [];
 
     const addGroup = (star) => {
-      const pool = banner?.pool;
-      const rateUpItems = star === 5 ? (pool?.rateUp5 || []) : (pool?.rateUp4 || []);
-      const standardItems = star === 5 ? (pool?.standard5 || []) : (pool?.standard4 || []);
+      const rateUpItems = star === 5 ? (banner.pool.rateUp5 || []) : (banner.pool.rateUp4 || []);
+      const standardItems = star === 5 ? (banner.pool.standard5 || []) : (banner.pool.standard4 || []);
       const rowsById = new Map();
 
-      const addItems = (items, isRateUp, fallbackItemRate = null) => {
-        const itemRate = banner
-          ? this.getBannerItemRate(star, isRateUp)
-          : (fallbackItemRate ?? ((Number(activeBanner?.rates?.[star]) || 0) / Math.max(items.length, 1)));
+      const addItems = (items, isRateUp) => {
+        const itemRate = this.getBannerItemRate(star, isRateUp);
 
         items.forEach(item => {
           const id = item.SK || item.id;
@@ -503,29 +453,8 @@ class GachaApp extends Component {
         });
       };
 
-      if (banner) {
-        addItems(rateUpItems, true);
-        addItems(standardItems, false);
-      } else {
-        const tierItems = serverItems.filter(item => isBannerItem(item, activeBanner.itemType) && Number(item.rarity) === star);
-        const limitedItems = tierItems.filter(item => item.isLimited === true);
-        const standardItemsFallback = tierItems.filter(item => item.isLimited !== true);
-        const tierRate = Number(activeBanner?.rates?.[star]) || 0;
-        const rateUpChance = Number(activeBanner?.rates?.rateUpChance ?? 0.5);
-
-        addItems(
-          limitedItems,
-          true,
-          limitedItems.length ? (tierRate * rateUpChance) / limitedItems.length : 0
-        );
-        addItems(
-          standardItemsFallback,
-          false,
-          standardItemsFallback.length
-            ? (tierRate * (limitedItems.length ? 1 - rateUpChance : 1)) / standardItemsFallback.length
-            : 0
-        );
-      }
+      addItems(rateUpItems, true);
+      addItems(standardItems, false);
 
       const items = Array.from(rowsById.values());
       if (items.length) groups.push({ star, items });
@@ -594,9 +523,9 @@ class GachaApp extends Component {
         rewards,
         pendingGachaResult: result,
       });
-    } catch (error) {
+    } catch {
       this.setState({ isSubmitting: false });
-      toast.error(error.message || this.props.t('common.error'));
+      toast.error(this.props.t('gacha.action_failed'));
     }
   };
 
@@ -604,15 +533,11 @@ class GachaApp extends Component {
     const { isPlaying, isSubmitting, currentRarity, rewards, pity5, pity4, activeBanner, timeLeftStr } = this.state;
     const knowledgeCore = this.getBudgetValue(['knowledgeCore', 'knowledge_core']);
     const knowledgePoints = this.getBudgetValue(['knowledgePoint', 'knowledge_points']);
-    const guaranteedFiveStarItem = this.state.guaranteedFiveStarItem;
-    const featuredFiveStar = guaranteedFiveStarItem || this.state.serverItems.find(item => isBannerItem(item, activeBanner.itemType) && Number(item.rarity) === 5) || this.state.serverItems.find(item => isBannerItem(item, activeBanner.itemType));
-    const bannerItems = this.state.serverItems.filter(item => isBannerItem(item, activeBanner.itemType));
-    const fallbackRateUp4 = bannerItems.filter(item => Number(item.rarity) === 4 && item.isLimited === true);
-    const featuredFourStars = this.state.banner?.pool?.rateUp4 || (fallbackRateUp4.length ? fallbackRateUp4 : bannerItems.filter(item => Number(item.rarity) === 4).slice(0, 3));
-    const displayedFourStars = featuredFourStars;
+    const featuredFiveStar = this.state.banner?.pool?.rateUp5?.[0] || null;
+    const featuredFourStars = this.state.banner?.pool?.rateUp4 || [];
 
     return (
-      <div className={`app-container gacha-app ${activeBanner.theme}`}>
+      <div className="app-container gacha-app theme-solar">
         <nav className="banner-switcher upper-left" aria-label="Chuyển banner Gacha">
           {this.state.bannerConfigs.map(config => (
             <button
@@ -651,7 +576,7 @@ class GachaApp extends Component {
 
 
         <div className="gacha-main-layout">
-          <div className={`banner-backdrop ${activeBanner.background}`}>
+          <div className="banner-backdrop solar-bg">
             <div className="banner-overlay" />
           </div>
 
@@ -664,7 +589,7 @@ class GachaApp extends Component {
                     <span>{this.props.t('gacha.featured_5_star')}: {featuredFiveStar.name}</span>
                   </div>
                 )}
-                {displayedFourStars.map(item => (
+                {featuredFourStars.map(item => (
                   <div key={item.SK || item.id} className="featured-item purple">
                     <span>{this.props.t('gacha.featured_4_star')}: {item.name}</span>
                   </div>

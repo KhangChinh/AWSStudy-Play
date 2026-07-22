@@ -16,5 +16,7 @@
   "avatar_confirm_failed": "Xác nhận ảnh đại diện thất bại",
   "avatar_upload_failed": "Upload ảnh đại diện thất bại",
   "zoom": "Phóng to",
-  "crop_hint": "Kéo để di chuyển, dùng thanh trượt để phóng to"
+  "crop_hint": "Kéo để di chuyển, dùng thanh trượt để phóng to",
+  "pets": "Thú cưng",
+  "sync": "Làm mới"
 }

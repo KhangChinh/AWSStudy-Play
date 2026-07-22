@@ -132,18 +132,8 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
           daily: rewardResult.daily
         });
       }
-      if (rewardResult.earnedKP > 0) {
-        toast.success(`Bạn nhận được ${rewardResult.earnedKP} KP từ việc trả lời đúng!`);
-      }
     }
 
-    if (correct === questions.length) {
-      toast.success(t('study.quiz_excellent', { correct, total: questions.length }));
-    } else if (correct >= questions.length * 0.7) {
-      toast.success(t('study.quiz_good', { correct, total: questions.length }));
-    } else {
-      toast.info(t('study.quiz_review', { correct, total: questions.length }));
-    }
   };
 
   const currentQuestion = questions[currentQ];

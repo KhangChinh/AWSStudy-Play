@@ -17,6 +17,7 @@
   "rename_error": "Đổi tên thất bại. Vui lòng thử lại!",
   "change_image": "Đổi ảnh đại diện",
   "ai_saved": "Đã lưu cài đặt AI.",
+  "ai_save_failed": "Không thể lưu cài đặt AI vào bộ nhớ cục bộ.",
   "profile_tab": "Hồ sơ",
   "ai_settings": "Cài đặt AI",
   "ai_settings_desc": "Thiết lập nhà cung cấp AI cục bộ và đám mây cho các tính năng của ứng dụng.",

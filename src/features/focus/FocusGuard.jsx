@@ -151,7 +151,6 @@ const FocusGuard = (props) => {
         }
       },
       'timer-expired': () => {
-        toast.success(t('focus_guard.session_complete'), { toastId: 'session-complete' });
         stopFaceTracking();
         setTimerStatus((prev) => ({
           ...prev,
@@ -170,7 +169,6 @@ const FocusGuard = (props) => {
         }
       },
       'session-failed': () => {
-        toast.error(t('focus_guard.session_failed'), { toastId: 'session-failed' });
         stopFaceTracking();
         setTimerStatus((prev) => ({
           ...prev,
@@ -232,7 +230,6 @@ const FocusGuard = (props) => {
       },
       onAfkTimeout: () => {
         setCamStatus('afk');
-        toast.error(t('focus_guard.afk_failed'), { toastId: 'afk-failed' });
         if (window.api?.invoke) {
           window.api.invoke('focus:stop');
         }

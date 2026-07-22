@@ -108,7 +108,7 @@ const SettingsApp = ({
         toast.success(t('settings.rename_success', { cost: RENAME_SANITY_COST }));
       }
     } catch (e) {
-      toast.error(t('settings.rename_error') || 'Lỗi khi đổi tên');
+      toast.error(t('settings.rename_error'));
     } finally {
       setLoading(false);
     }
@@ -177,9 +177,9 @@ const SettingsApp = ({
         bedrockModel: sp.bedrockModel || 'amazon.nova-micro-v1:0',
       });
       if (res?.success) {
-        toast.success(t('settings.ai_saved') || 'AI settings saved successfully');
+        toast.success(t('settings.ai_saved'));
       } else {
-        toast.error('Failed to save AI settings to local storage');
+        toast.error(t('settings.ai_save_failed'));
       }
     }
   };

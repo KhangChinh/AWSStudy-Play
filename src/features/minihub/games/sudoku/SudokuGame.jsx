@@ -210,12 +210,10 @@ const SudokuGame = ({ onClose }) => {
   };
 
   const handleLevelSelect = async (level) => {
-    const displayLevelId = getLevelIdFromSK(level.SK);
     const targetSK = level.SK;
     const cost = level.sanityCost || level.unlockCostSanity || 0;
 
     try {
-      toast.info(`Đang tạo ván đấu ${displayLevelId}...`);
       const response = await handleStartSudokuSession('sudoku', targetSK);
 
       if (response && (response.success || response.errCode === 0)) {
@@ -233,12 +231,9 @@ const SudokuGame = ({ onClose }) => {
 
         initFixedLevel(level, cost, puzzleGrid, initialCheckCount);
 
-      } else {
-        toast.error(response.error || response.message || `Không thể bắt đầu Màn ${displayLevelId}.`);
       }
     } catch (e) {
       console.error('Error starting game session:', e);
-      toast.error('Không thể kết nối máy chủ để bắt đầu trận đấu!');
     }
   };
 
@@ -250,11 +245,8 @@ const SudokuGame = ({ onClose }) => {
       try {
         const levelId = selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : "level_01";
         // Gửi API thoát sớm để lấy lại 50% sanity
-        const response = await handleSubmitSudoku(levelId, "", reduxLogs, 'quit');
+        await handleSubmitSudoku(levelId, "", reduxLogs, 'quit');
 
-        if (response.success) {
-          toast.info(`Đã thoát. Hoàn lại ${response.refundSanity} Sanity!`);
-        }
       } catch (e) {
         console.error('Error exiting game session:', e);
       }
@@ -332,7 +324,6 @@ const SudokuGame = ({ onClose }) => {
     try {
       const isBoardFilled = board.every(row => row.every(val => val !== 0));
       if (!isBoardFilled) {
-        toast.info('💡 Hãy điền đầy đủ ô trên bàn cờ trước khi kiểm tra!');
         return;
       }
       const currentGridStr = board.flat().join('');
@@ -397,11 +388,9 @@ const SudokuGame = ({ onClose }) => {
           setStatus('won');
           setEarnedScore(response.score);
           setEarnedCoin(response.eCoinReward);
-          toast.success("Chúc mừng bạn đã thắng!");
         } else {
           // Backend trả về result: "lost" nếu giải sai
           setStatus('lost');
-          toast.error("Bàn cờ chưa chính xác, bạn đã thua cuộc.");
         }
         dispatch(clearMinigameLogs());
       }

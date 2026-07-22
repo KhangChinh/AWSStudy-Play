@@ -225,7 +225,7 @@ class SocialApp extends Component {
       if (msg.includes('500')) {
         toast.error(this.props.t('social.server_error_500'));
       } else if (msg) {
-        toast.error(msg);
+        toast.error(this.props.t('social.connection_failed'));
       } else {
         toast.error(this.props.t('social.search_failed'));
       }
@@ -297,21 +297,12 @@ class SocialApp extends Component {
 
     if (res && !res.errCode) {
       this.setState({ apiNotConfigured: false });
-      toast.success(res.message || 'Action successful');
 
       if (type === 'request') {
         this.setState({ searchResults: this.state.searchResults.filter(u => u.userId !== targetUserId) });
       }
     } else if (res?.errMessage === 'API_NOT_CONFIGURED') {
       this.setState({ apiNotConfigured: true });
-    } else {
-      const msg = res?.errMessage || '';
-      const { t } = this.props;
-      if (msg.includes('500')) {
-        toast.error(t('social.server_error_500'));
-      } else {
-        toast.error(msg || t('social.action_failed'));
-      }
     }
 
     // Tự động đồng bộ lại danh sách bạn bè sau khi thực hiện action thành công
