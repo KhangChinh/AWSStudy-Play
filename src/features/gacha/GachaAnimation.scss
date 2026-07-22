@@ -372,12 +372,7 @@ $rarity-five-star-glow: rgba(250, 204, 21, 0.72);
 }
 
 .floating-shards {
-  z-index: 5;
-
-  span {
-    opacity: 0.45;
-    animation: shardDrift 5s ease-in-out infinite;
-  }
+  display: none;
 }
 
 .reveal-container {
@@ -424,8 +419,107 @@ $rarity-five-star-glow: rgba(250, 204, 21, 0.72);
     0 24px 90px rgba(0, 0, 0, 0.58),
     0 0 44px var(--rarity-soft),
     inset 0 0 42px rgba(255, 255, 255, 0.08);
-  overflow: hidden;
+  overflow: visible;
   animation: cardFloat 3.5s ease-in-out infinite;
+}
+
+.reward-aura {
+  position: absolute;
+  inset: -5px;
+  z-index: 0;
+  border: 2px solid transparent;
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+.single.rarity-four-star .reward-aura,
+.grid-item.rarity-four-star .reward-aura {
+  border-color: rgba(216, 180, 254, 0.9);
+  box-shadow: 0 0 12px rgba(216, 180, 254, 0.88), 0 0 28px rgba(139, 92, 246, 0.72), 0 0 52px rgba(59, 130, 246, 0.34);
+  animation: fourStarAura 2.2s ease-in-out infinite;
+}
+
+.single.rarity-five-star .reward-aura,
+.grid-item.rarity-five-star .reward-aura {
+  border-color: #fff7b2;
+  box-shadow:
+    0 0 8px #fff,
+    0 0 20px rgba(254, 240, 138, 0.98),
+    0 0 42px rgba(250, 204, 21, 0.92),
+    0 0 78px rgba(249, 115, 22, 0.72),
+    0 0 118px rgba(239, 68, 68, 0.34);
+  animation: fiveStarAura 1.65s ease-in-out infinite;
+}
+
+.single.rarity-five-star .reward-aura::after,
+.grid-item.rarity-five-star .reward-aura::after {
+  content: '';
+  position: absolute;
+  inset: -34px;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0 5%,
+      rgba(255, 255, 255, 0.92) 6%,
+      transparent 8% 20%,
+      rgba(250, 204, 21, 0.76) 22%,
+      transparent 25% 42%,
+      rgba(249, 115, 22, 0.68) 44%,
+      transparent 47% 70%,
+      rgba(255, 255, 255, 0.82) 72%,
+      transparent 75% 100%
+    );
+  -webkit-mask: radial-gradient(closest-side, transparent 70%, #000 73%);
+  mask: radial-gradient(closest-side, transparent 70%, #000 73%);
+  filter: blur(4px) drop-shadow(0 0 12px rgba(250, 204, 21, 0.95));
+  opacity: 0.78;
+  animation: fiveStarRays 6s linear infinite;
+}
+
+.grid-item.rarity-five-star .reward-aura::after {
+  inset: -22px;
+}
+
+.single.rarity-four-star .reward-aura::before,
+.single.rarity-five-star .reward-aura::before,
+.grid-item.rarity-four-star .reward-aura::before,
+.grid-item.rarity-five-star .reward-aura::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  padding: 2px;
+  border-radius: 25px;
+  background: conic-gradient(from 0deg, transparent 0 12%, var(--rarity-main) 18%, transparent 30% 54%, #fff 62%, transparent 72% 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: blur(2px);
+  opacity: 0.82;
+  animation: rewardAuraSpin 5.5s linear infinite;
+}
+
+.grid-item .reward-aura {
+  inset: -4px;
+  border-radius: 16px;
+}
+
+.grid-item.rarity-four-star,
+.grid-item.rarity-five-star {
+  overflow: visible;
+}
+
+.grid-item .grid-shine {
+  inset: 0;
+  clip-path: inset(0 round 12px);
+  animation: cardShineOnce 1.15s calc(var(--result-delay, 0s) + 0.25s) ease-out both;
+}
+
+.item-card-shine {
+  inset: 0;
+  clip-path: inset(0 round 18px);
+  animation: cardShineOnce 1.25s 0.2s ease-out both;
 }
 
 .item-card-glow {
@@ -842,6 +936,13 @@ $rarity-five-star-glow: rgba(250, 204, 21, 0.72);
   65%, 100% { transform: translateX(58%) rotate(8deg); opacity: 0; }
 }
 
+@keyframes cardShineOnce {
+  0% { transform: translateX(-115%) rotate(8deg); opacity: 0; }
+  18% { opacity: 0.82; }
+  78% { opacity: 0.72; }
+  100% { transform: translateX(115%) rotate(8deg); opacity: 0; }
+}
+
 @keyframes iconLevitate {
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-8px) scale(1.04); }
@@ -880,6 +981,27 @@ $rarity-five-star-glow: rgba(250, 204, 21, 0.72);
     width: 90vw;
     text-align: center;
   }
+}
+
+@keyframes fourStarAura {
+  0%, 100% { opacity: 0.58; transform: scale(0.985); filter: hue-rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.018); filter: hue-rotate(16deg); }
+}
+
+@keyframes fiveStarAura {
+  0%, 100% { opacity: 0.78; transform: scale(0.985); filter: brightness(1) saturate(1.08); }
+  38% { opacity: 1; transform: scale(1.035); filter: brightness(1.42) saturate(1.3); }
+  52% { opacity: 0.88; transform: scale(1.012); filter: brightness(1.16) saturate(1.18); }
+}
+
+@keyframes fiveStarRays {
+  0% { transform: rotate(0deg) scale(0.96); opacity: 0.48; }
+  45% { opacity: 0.9; }
+  100% { transform: rotate(360deg) scale(1.04); opacity: 0.48; }
+}
+
+@keyframes rewardAuraSpin {
+  to { transform: rotate(360deg); }
 }
 
 .gacha-css-background {

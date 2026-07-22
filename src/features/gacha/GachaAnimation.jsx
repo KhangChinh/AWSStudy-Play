@@ -304,6 +304,9 @@ class GachaAnimation extends Component {
           <div className={`reveal-container single ${rarityClass}`}>
             <div className="rarity-banner">{(() => { const r = Number(primaryReward.rarity || this.props.rarity); return r === 5 ? '5★' : r === 4 ? '4★' : '3★'; })()}</div>
             <div className="item-card-shell">
+              {Number(primaryReward.rarity || this.props.rarity) >= 4 && (
+                <div className="reward-aura" aria-hidden="true" />
+              )}
               <div className="item-card-glow" />
               <div className="item-card-shine" />
               <div className={primaryReward.isConverted ? 'item-icon conversion-source-icon' : 'item-icon'}>
@@ -338,8 +341,12 @@ class GachaAnimation extends Component {
                   <div
                     className={`grid-item ${itemRarityClass} ${reward.isConverted ? 'converted' : ''}`}
                     key={`${reward.id || reward.name || 'reward'}-${index}`}
-                    style={{ animationDelay: isInstantReveal ? '0s' : `${index * 0.12}s` }}
+                    style={{
+                      animationDelay: isInstantReveal ? '0s' : `${index * 0.12}s`,
+                      '--result-delay': isInstantReveal ? '0s' : `${index * 0.12}s`,
+                    }}
                   >
+                    {rVal >= 4 && <div className="reward-aura" aria-hidden="true" />}
                     <div className="grid-shine" />
                     <div className="grid-icon">{this.renderIcon(reward.icon)}</div>
                     <div className="grid-name">{reward.name || this.props.t?.('gacha_animation.item') || 'Item'}</div>
