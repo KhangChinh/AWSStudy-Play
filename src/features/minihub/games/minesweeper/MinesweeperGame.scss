@@ -87,6 +87,7 @@
     .header-actions {
       display: flex;
       gap: 10px;
+      align-items: center;
     }
   }
 
@@ -139,37 +140,64 @@
       }
 
       .user-budget-bar {
-        display: inline-flex;
-        align-items: center;
-        gap: 12px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
-        padding: 8px 20px;
-        font-size: 13px;
-        margin-bottom: 12px;
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        margin-bottom: 24px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 18px;
+        padding: 12px 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(18px);
+        width: fit-content;
+        margin-left: auto;
+        margin-right: auto;
 
-        .budget-item {
+        .currency-item {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 10px;
+          min-width: 100px;
+          color: #e2e8f0;
+        }
 
-          &.sanity {
-            color: #22d3ee;
-          }
+        .currency-icon {
+          width: 32px;
+          height: 32px;
+          min-width: 32px;
+          display: grid;
+          place-items: center;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
 
-          &.entain {
-            color: #c084fc;
-          }
-
-          strong {
-            font-weight: 800;
+          img {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.28));
           }
         }
 
-        .budget-divider {
-          color: rgba(255, 255, 255, 0.15);
-          font-size: 16px;
+        .currency-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          align-items: flex-start;
+        }
+
+        .currency-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #94a3b8;
+        }
+
+        .currency-value {
+          font-size: 15px;
+          font-weight: 700;
+          color: #fff;
         }
       }
 
@@ -263,16 +291,6 @@
           &.cleared {
             border-style: solid;
             background: rgba(251, 191, 36, 0.03);
-
-            &::after {
-              content: '✓';
-              position: absolute;
-              top: 4px;
-              right: 5px;
-              font-size: 12px;
-              color: #10b981;
-              font-weight: 700;
-            }
           }
         }
       }
@@ -601,38 +619,6 @@
           transform: rotate(90deg);
         }
       }
-    }
-
-    .modal-tabs-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-
-      .modal-tabs {
-        display: flex;
-        gap: 8px;
-
-        .modal-tab {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          color: #94a3b8;
-          padding: 6px 14px;
-          border-radius: 14px;
-          font-weight: 600;
-          font-size: 12px;
-          cursor: pointer;
-          transition: all 0.2s;
-
-          &.active {
-            background: rgba(167, 139, 250, 0.12);
-            border-color: rgba(167, 139, 250, 0.4);
-            color: #c084fc;
-          }
-        }
-      }
 
       .btn-refresh {
         background: rgba(255, 255, 255, 0.04);
@@ -647,8 +633,20 @@
         cursor: pointer;
         transition: all 0.2s;
 
+        ion-icon {
+          font-size: 16px;
+        }
+
+        &:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.08);
+          color: #fff;
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+
         &.spinning {
           animation: spin 1s linear infinite;
+          pointer-events: none;
+          opacity: 0.6;
         }
       }
     }

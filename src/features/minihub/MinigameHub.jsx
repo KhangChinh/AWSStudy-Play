@@ -23,7 +23,7 @@ const MINIGAMES = [
 // ═══ Arcade Game List ═══
 const ArcadeList = ({ onPlayGame }) => (
   <div className="arcade-list">
-    <h3><IonIcon icon={gameControllerOutline} /> Available Games</h3>
+    <h3><IonIcon icon={gameControllerOutline} /> Danh Sách Trò Chơi</h3>
     <div className="store-grid">
       {[
         { name: 'Minesweeper', price: 100, icon: '💣', disabled: false },
@@ -38,7 +38,7 @@ const ArcadeList = ({ onPlayGame }) => (
               style={game.disabled ? { background: '#475569', cursor: 'not-allowed', opacity: 0.6 } : {}}
               disabled={game.disabled}
             >
-              <IonIcon icon={playOutline} /> {game.disabled ? 'Coming Soon' : 'Play Now'}
+              <IonIcon icon={playOutline} /> {game.disabled ? 'Sắp Ra Mắt' : 'Chơi Ngay'}
             </button>
           </div>
         </div>
@@ -51,7 +51,7 @@ const LeaderboardView = ({ minigameFilter, setMinigameFilter, leaderboardData })
   return (
     <div className="leaderboard-section">
       <div className="section-header">
-        <h3><IonIcon icon={trophyOutline} /> Hall of Fame</h3>
+        <h3><IonIcon icon={trophyOutline} /> Bảng Xếp Hạng</h3>
 
       </div>
 
@@ -62,7 +62,7 @@ const LeaderboardView = ({ minigameFilter, setMinigameFilter, leaderboardData })
           onChange={e => setMinigameFilter(e.target.value)}
         >
           {MINIGAMES.map(g => (
-            <option key={g.id} value={g.id}>{g.icon} {g.label}</option>
+            <option key={g.id} value={g.id}>{g.label}</option>
           ))}
         </select>
       </div>
@@ -218,7 +218,7 @@ class MinigameHub extends Component {
 
     return (
       <div className="app-container minigame-hub">
-        <h2 className="app-title">🎮 Minigame Hub</h2>
+        <h2 className="app-title">🎮 Khu Vực Trò Chơi</h2>
         <ArcadeList onPlayGame={this.handlePlayGame} />
 
         <LeaderboardView

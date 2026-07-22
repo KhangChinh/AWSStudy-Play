@@ -14,6 +14,7 @@ import { handleStartMinesweeperSession, handleSubmitMinesweeper, handleRevealApi
 import { setProfile } from '../../../../store/actions/profileActions';
 import UserAvatar from '../../../../components/UserAvatar';
 import { toast } from 'react-toastify';
+import currencyAssets from '../../../../data/currencyAssets';
 import './MinesweeperGame.scss';
 import {
   clearMinigameLogs,
@@ -135,7 +136,7 @@ const MinesweeperGame = ({ onClose }) => {
   // --- THÊM VÀO PHẦN KHAI BÁO STATE ---
   const [gameStateToken, setGameStateToken] = useState(null);
   const [isRevealing, setIsRevealing] = useState(false);
-  // Board states
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
   const [rows, setRows] = useState(9);
   const [cols, setCols] = useState(9);
   const [minesCount, setMinesCount] = useState(10);
@@ -316,21 +317,25 @@ const MinesweeperGame = ({ onClose }) => {
 
   const handleExit = async () => {
     if (status === 'playing') {
-      const confirmExit = window.confirm("Thoát giữa chừng sẽ bị tính là thua. Bạn có chắc chắn?");
-      if (!confirmExit) return;
+      setConfirmDialog({
+        isOpen: true,
+        message: "Thoát giữa chừng sẽ bị tính là thua. Bạn có chắc chắn?",
+        onConfirm: async () => {
+          try {
+            const levelId = selectedLevel ? (getLevelIdFromSK(selectedLevel.SK)) : "level_01";
+            const finalGridStr = getFinalGridStr();
+            const response = await handleSubmitMinesweeper(selectedLevel.SK, finalGridStr, reduxLogs, 'quit');
 
-      try {
-        const levelId = selectedLevel ? (getLevelIdFromSK(selectedLevel.SK)) : "level_01";
-        const finalGridStr = getFinalGridStr();
-        const response = await handleSubmitMinesweeper(selectedLevel.SK, finalGridStr, reduxLogs, 'quit');
 
-        if (response.success) {
-          toast.info(`Đã thoát. Hoàn lại ${response.refundSanity || 0} Sanity!`);
+          } catch (e) {
+            console.error('Error exiting game session:', e);
+          }
+          dispatch(clearMinigameLogs());
+          setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+          onClose();
         }
-      } catch (e) {
-        console.error('Error exiting game session:', e);
-      }
-      dispatch(clearMinigameLogs());
+      });
+      return;
     }
     onClose();
   };
@@ -468,21 +473,6 @@ const MinesweeperGame = ({ onClose }) => {
     }
   };
 
-  // ═══ CHỨC NĂNG TEST NỘP BÀI GIẢ LẬP (LƯU REDUX) ═══
-  const handleFakeComplete = () => {
-    if (status !== 'playing') return;
-
-    const finalGridStr = getFinalGridStr();
-
-    const finalSessionData = {
-      finalGrid: finalGridStr,
-      completedAt: Date.now()
-    };
-
-    dispatch(saveMinigameFinalResult(finalSessionData));
-    console.log(">>> [TEST REDUX] Đã mô phỏng nộp bài Minesweeper thành công!");
-    console.log(">>> [TEST REDUX] Dữ liệu chuẩn bị gửi server sẽ là:", JSON.stringify(finalSessionData, null, 2));
-  };
 
   const totalSafeCells = useMemo(() => {
     return rows * cols - minesCount;
@@ -509,11 +499,11 @@ const MinesweeperGame = ({ onClose }) => {
 
   return (
     <div className="minesweeper-container animate-fade-in">
-      <div className="minesweeper-header">
+      <div className="minesweeper-header" style={{ position: 'relative' }}>
         <button className="btn-back" onClick={handleExit}>
           <IonIcon icon={arrowBackOutline} /> Thoát
         </button>
-        <span className="game-title">💣 Minesweeper Cosmic</span>
+        <span className="game-title" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>💣 Minesweeper</span>
         <div className="header-actions"></div>
       </div>
 
@@ -521,21 +511,34 @@ const MinesweeperGame = ({ onClose }) => {
         {isSelectingLevel ? (
           <div className="level-selection-screen animate-fade-in">
             <div className="level-selection-inner">
-              <div className="level-selection-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '15px', flexWrap: 'wrap' }}>
-                <div>
-                  <h2 className="text-gradient" style={{ margin: 0 }}>Vượt ải Minesweeper Cosmic</h2>
-                  <p className="level-subtitle" style={{ margin: '5px 0 0 0' }}>Vượt qua các màn chơi để tích lũy điểm Rank!</p>
-                </div>
+              <div className="level-selection-header-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
+                <h2 className="text-gradient" style={{ margin: 0, fontSize: '2rem' }}>Chọn Màn Chơi</h2>
                 <button className="btn-leaderboard-trigger animate-pulse" onClick={() => setShowLeaderboardModal(true)}>
                   <IonIcon icon={trophyOutline} /> Bảng xếp hạng
                 </button>
               </div>
 
               <div className="user-budget-bar">
-                <span className="budget-item sanity">⚡ Sanity: <strong>{(budget.sanity || 0).toLocaleString()}</strong></span>
-                <span className="budget-divider">|</span>
-                <span className="budget-item entain">💎 eCoin: <strong>{(budget.eCoin || 0).toLocaleString()}</strong></span>
+                <div className="currency-item sanity" title="Sanity">
+                  <div className="currency-icon">
+                    <img src={currencyAssets.sanity} alt="Sanity" />
+                  </div>
+                  <div className="currency-info">
+                    <span className="currency-label">Sanity</span>
+                    <span className="currency-value">{(budget.sanity || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="currency-item ecoin" title="eCoin">
+                  <div className="currency-icon">
+                    <img src={currencyAssets.eCoin} alt="eCoin" />
+                  </div>
+                  <div className="currency-info">
+                    <span className="currency-label">eCoin</span>
+                    <span className="currency-value">{(budget.eCoin || 0).toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
+
 
               <div className="total-score-bar">
                 <span>🏆 Tổng điểm tích lũy: <strong>{totalAccumulatedScore.toLocaleString()}</strong> Điểm</span>
@@ -566,7 +569,6 @@ const MinesweeperGame = ({ onClose }) => {
                       className={`btn-level ${hasScore ? 'cleared' : ''} ${isLocked ? 'locked' : ''}`}
                       onClick={() => {
                         if (isLocked) {
-                          toast.warn("Bạn cần vượt qua màn chơi trước đó để mở khóa màn này!");
                           return;
                         }
                         handleLevelSelect(level);
@@ -578,12 +580,11 @@ const MinesweeperGame = ({ onClose }) => {
                         filter: isLocked ? 'grayscale(100%)' : 'none'
                       }}
                     >
-                      {isLocked && (
-                        <IonIcon
-                          icon={lockClosedOutline}
-                          style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '1.2rem', color: '#cbd5e1' }}
-                        />
-                      )}
+                      {isLocked ? (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', zIndex: 10 }}>
+                          <IonIcon icon={lockClosedOutline} style={{ fontSize: '3.5rem', color: 'rgba(255, 255, 255, 0.9)' }} />
+                        </div>
+                      ) : null}
                       <span className="level-name" style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '8px', color: '#fff' }}>
                         {level.name}
                       </span>
@@ -675,49 +676,71 @@ const MinesweeperGame = ({ onClose }) => {
                 </div>
 
                 {status === 'won' && (
-                  <div className="board-overlay glass won-overlay animate-bounce-in">
-                    <IonIcon icon={trophyOutline} style={{ fontSize: 60, color: '#fbbf24' }} />
-                    <h3 className="text-gradient">Chiến Thắng!</h3>
-                    <p>Bạn đã hoàn thành Màn {selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : 1} trong {formatTime(timer)}!</p>
-                    <p className="earned-pcoin">🏆 +{earnedScore.toLocaleString()} Điểm Rank</p>
-                    {earnedCoin > 0 && (
-                      <p className="earned-entain">💎 +{earnedCoin.toLocaleString()} eCoin</p>
-                    )}
-                    <div className="overlay-actions">
-                      <button className="btn-glow green" onClick={onClose}>
-                        Quay lại Hub
-                      </button>
+                  <div className="minesweeper-modal-overlay animate-fade-in" style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(10, 4, 22, 0.85)', backdropFilter: 'blur(8px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+                  }}>
+                    <div className="board-overlay glass won-overlay animate-bounce-in" style={{ position: 'relative', width: 'auto', minWidth: '350px', padding: '30px 40px', borderRadius: '16px' }}>
+                      <IonIcon icon={trophyOutline} style={{ fontSize: 60, color: '#fbbf24' }} />
+                      <h3 className="text-gradient">Chiến Thắng!</h3>
+                      <p>Bạn đã hoàn thành Màn {selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : 1} trong {formatTime(timer)}!</p>
+                      <p className="earned-pcoin">🏆 +{earnedScore.toLocaleString()} Điểm Rank</p>
+                      {earnedCoin > 0 && (
+                        <p className="earned-entain">💎 +{earnedCoin.toLocaleString()} eCoin</p>
+                      )}
+                      <div className="overlay-actions">
+                        <button className="btn-glow green" onClick={onClose}>
+                          Quay lại Hub
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {status === 'lost' && (
-                  <div className="board-overlay glass lost-overlay animate-bounce-in">
-                    <IonIcon icon={closeOutline} style={{ fontSize: 60, color: '#ef4444' }} />
-                    <h3 className="text-gradient red-gradient" style={{ background: 'linear-gradient(135deg, #f87171, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Thất Bại!</h3>
-                    <p>Bạn đã dẫm phải mìn ở Màn {selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : 1}.</p>
-                    <p className="earned-entain" style={{ color: '#f87171' }}>⚡ Hoàn lại 50% chi phí vào cổng: +{Math.floor(sanityCostPaid * 0.5)} Sanity</p>
-                    <div className="overlay-actions">
-                      <button className="btn-glow red" style={{ boxShadow: '0 0 15px rgba(239, 68, 68, 0.4)', background: 'linear-gradient(135deg, #ef4444, #dc2626)' }} onClick={onClose}>
-                        Quay lại Hub
-                      </button>
+                  <div className="minesweeper-modal-overlay animate-fade-in" style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(10, 4, 22, 0.85)', backdropFilter: 'blur(8px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+                  }}>
+                    <div className="board-overlay glass lost-overlay animate-bounce-in" style={{ position: 'relative', width: 'auto', minWidth: '350px', padding: '30px 40px', borderRadius: '16px' }}>
+                      <IonIcon icon={closeOutline} style={{ fontSize: 60, color: '#ef4444' }} />
+                      <h3 className="text-gradient red-gradient" style={{ background: 'linear-gradient(135deg, #f87171, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Thất Bại!</h3>
+                      <p>Bạn đã dẫm phải mìn ở Màn {selectedLevel ? (selectedLevel.levelId || getLevelIdFromSK(selectedLevel.SK)) : 1}.</p>
+                      <p className="earned-entain" style={{ color: '#f87171' }}>⚡ Hoàn lại 50% chi phí vào cổng: +{Math.floor(sanityCostPaid * 0.5)} Sanity</p>
+                      <div className="overlay-actions">
+                        <button className="btn-glow red" style={{ boxShadow: '0 0 15px rgba(239, 68, 68, 0.4)', background: 'linear-gradient(135deg, #ef4444, #dc2626)' }} onClick={onClose}>
+                          Quay lại Hub
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {confirmDialog.isOpen && (
+                  <div className="minesweeper-modal-overlay animate-fade-in" style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(10, 4, 22, 0.85)', backdropFilter: 'blur(8px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+                  }}>
+                    <div className="board-overlay glass animate-bounce-in" style={{ position: 'relative', width: 'auto', minWidth: '350px', padding: '30px 40px', borderRadius: '16px' }}>
+                      <h3 className="text-gradient" style={{ color: '#fff', textShadow: 'none', background: 'none', WebkitTextFillColor: '#fff', fontSize: '1.5rem', textAlign: 'center' }}>Xác nhận</h3>
+                      <p style={{ fontSize: '1rem', marginBottom: '25px', lineHeight: '1.5', textAlign: 'center' }}>{confirmDialog.message}</p>
+                      <div className="overlay-actions" style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                        <button className="btn-glow green" onClick={confirmDialog.onConfirm}>
+                          Đồng ý
+                        </button>
+                        <button className="btn-glow red" onClick={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: null })}>
+                          Hủy
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
               <div className="controls-pad">
-                <div className="action-buttons" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button
-                    className="btn-ctrl btn-test"
-                    onClick={handleFakeComplete}
-                    title="Test gộp Log & FinalGrid vào Redux"
-                    style={{ background: '#3b82f6', color: '#fff' }}
-                  >
-                    <IonIcon icon={bugOutline} />
-                    <span>Test Redux</span>
-                  </button>
-                </div>
 
                 <div className="keyboard-tip">
                   💡 Mẹo: Click chuột trái để mở ô, click chuột phải để đặt cờ cảnh báo mìn.
@@ -732,28 +755,19 @@ const MinesweeperGame = ({ onClose }) => {
             <div className="minesweeper-modal-content animate-bounce-in" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h3><IonIcon icon={trophyOutline} /> Bảng Xếp Hạng Cosmic</h3>
-                <button className="btn-close" onClick={() => setShowLeaderboardModal(false)}>
-                  <IonIcon icon={closeOutline} />
-                </button>
-              </div>
-
-              <div className="modal-tabs-row">
-                <div className="modal-tabs">
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <button
-                    className={`modal-tab ${leaderboardTab === 'GLOBAL' ? 'active' : ''}`}
-                    onClick={() => setLeaderboardTab('GLOBAL')}
+                    className={`btn-refresh ${loadingLeaderboard ? 'spinning' : ''}`}
+                    onClick={() => fetchLeaderboard(leaderboardTab, true)}
+                    disabled={loadingLeaderboard}
+                    title="Làm mới"
                   >
-                    Toàn cầu
+                    <IonIcon icon={refreshOutline} />
+                  </button>
+                  <button className="btn-close" onClick={() => setShowLeaderboardModal(false)}>
+                    <IonIcon icon={closeOutline} />
                   </button>
                 </div>
-                <button
-                  className={`btn-refresh ${loadingLeaderboard ? 'spinning' : ''}`}
-                  onClick={() => fetchLeaderboard(leaderboardTab, true)}
-                  disabled={loadingLeaderboard}
-                  title="Làm mới"
-                >
-                  <IonIcon icon={refreshOutline} />
-                </button>
               </div>
 
               <div className="modal-body">
