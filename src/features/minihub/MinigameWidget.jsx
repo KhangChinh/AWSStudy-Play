@@ -10,6 +10,7 @@ import './MinigameWidget.scss';
 const MinigameWidget = ({ onOpenMinigame }) => {
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [activeGameIndex, setActiveGameIndex] = useState(0);
   
   const leaderboards = useSelector(state => state.minigame?.leaderboards);
 
@@ -32,22 +33,27 @@ const MinigameWidget = ({ onOpenMinigame }) => {
     if (onOpenMinigame) onOpenMinigame();
   };
 
+  const changeGame = (direction) => {
+    setActiveGameIndex(current => (current + direction + games.length) % games.length);
+  };
+
   return (
     <div className={`minigame-widget-container ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="mw-header">
-        <span className="mw-header-title"><IonIcon icon={gameControllerOutline} /><h4>{t('dashboard.minigames', 'Arcade')}</h4></span>
+        <span className="mw-header-title"><IonIcon icon={gameControllerOutline} /><h4>{t('dashboard.minigames', 'Minigame')}</h4></span>
         <button
           type="button"
           className="mw-toggle"
           onClick={() => setIsCollapsed(collapsed => !collapsed)}
-          aria-label={isCollapsed ? 'Expand Arcade' : 'Collapse Arcade'}
+          aria-label={isCollapsed ? 'Expand Minigame' : 'Collapse Minigame'}
           aria-expanded={!isCollapsed}
         >
           <IonIcon icon={isCollapsed ? chevronForwardOutline : chevronBackOutline} aria-hidden="true" />
         </button>
       </div>
-      <div className="mw-list" aria-hidden={isCollapsed}>
-        {games.map(game => {
+      <div className="mw-carousel" aria-hidden={isCollapsed}>
+        <div className="mw-list">
+        {[games[activeGameIndex]].map(game => {
           const lbData = leaderboards?.[game.id]?.data || [];
           const top3 = lbData.slice(0, 3);
           
@@ -93,6 +99,26 @@ const MinigameWidget = ({ onOpenMinigame }) => {
             </div>
           );
         })}
+        </div>
+      </div>
+      <div className="mw-controls" aria-hidden={isCollapsed}>
+        <button type="button" className="mw-nav" onClick={() => changeGame(-1)} aria-label="Previous minigame">
+          <IonIcon icon={chevronBackOutline} />
+        </button>
+        <div className="mw-pagination">
+        {games.map((game, index) => (
+          <button
+            type="button"
+            key={game.id}
+            className={index === activeGameIndex ? 'active' : ''}
+            onClick={() => setActiveGameIndex(index)}
+            aria-label={`Open ${game.name}`}
+          />
+        ))}
+        </div>
+        <button type="button" className="mw-nav" onClick={() => changeGame(1)} aria-label="Next minigame">
+          <IonIcon icon={chevronForwardOutline} />
+        </button>
       </div>
     </div>
   );

@@ -3,8 +3,51 @@ import { getValidAccessToken } from './tokenService';
 import { ingestServerData, hasInventorySyncServerError } from './syncService';
 import { ingestErrorResponse } from './apiErrorService';
 import { KNOWLEDGE_POINTS_PER_CORE } from './currencyServices';
+import { setGachaBanners } from '../store/actions/gachaActions';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+const normalizeBanners = (banners) => (
+  Array.isArray(banners) ? banners.filter(banner => banner?.SK && banner?.pool && banner?.rates) : []
+);
+
+const areBannersValid = (banners) => {
+  const now = Math.floor(Date.now() / 1000);
+  return banners.length > 0 && banners.every(banner => Number(banner.expiresAt) > now);
+};
+
+const saveGachaBanners = async (banners) => {
+  const normalized = normalizeBanners(banners);
+  store.dispatch(setGachaBanners(normalized));
+  await window.api?.invoke('store:saveGachaBanners', normalized).catch((error) => {
+    console.warn('[GachaService] save banner cache failed:', error?.message || error);
+  });
+  return normalized;
+};
+
+export const getGachaBanners = async ({ force = false } = {}) => {
+  let banners = normalizeBanners(store.getState().gacha?.banners);
+  if (!force && areBannersValid(banners)) return banners;
+
+  if (!store.getState().gacha?.bannersHydrated) {
+    const cached = await window.api?.invoke('store:loadGachaBanners').catch(() => null);
+    banners = normalizeBanners(cached);
+    store.dispatch(setGachaBanners(banners));
+    if (!force && areBannersValid(banners)) return banners;
+  }
+
+  const token = await getValidAccessToken();
+  if (!token) throw new Error('No auth token. Please sign in again.');
+  const response = await fetch(`${API_URL}/gacha/banners`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const error = await ingestErrorResponse(response);
+    throw new Error(error.message || `Server error (${response.status})`);
+  }
+  const result = await response.json();
+  return saveGachaBanners(result.banners);
+};
 
 export const getGachaMasterItems = async () => {
   const token = await getValidAccessToken();

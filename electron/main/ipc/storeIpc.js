@@ -193,6 +193,19 @@ export function registerStoreIPC(ipcMain) {
       return { success: false, error: err.message };
     }
   });
+  // Gacha banners are global and expire according to their server expiresAt.
+  ipcMain.handle('store:saveGachaBanners', async (_event, banners) => {
+    store.set('gachaBanners', encodeBase64(banners));
+    return { success: true };
+  });
+  ipcMain.handle('store:loadGachaBanners', async () => {
+    const encoded = store.get('gachaBanners');
+    return encoded ? decodeBase64(encoded) : null;
+  });
+  ipcMain.handle('store:clearGachaBanners', async () => {
+    store.delete('gachaBanners');
+    return { success: true };
+  });
   // App data version is not user-scoped and survives logout.
   ipcMain.handle('store:saveVersion', async (_event, versionData) => {
     try {

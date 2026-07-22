@@ -20,9 +20,9 @@ const MINIGAMES = [
   { id: 'sudoku', label: 'Sudoku', icon: '🔢' },
 ];
 
-// ═══ Arcade Game List ═══
-const ArcadeList = ({ onPlayGame }) => (
-  <div className="arcade-list">
+// ═══ Minigame List ═══
+const MinigameList = ({ onPlayGame }) => (
+  <div className="minigame-list">
     <h3><IonIcon icon={gameControllerOutline} /> Danh Sách Trò Chơi</h3>
     <div className="store-grid">
       {[
@@ -219,7 +219,7 @@ class MinigameHub extends Component {
     return (
       <div className="app-container minigame-hub">
         <h2 className="app-title">🎮 Khu Vực Trò Chơi</h2>
-        <ArcadeList onPlayGame={this.handlePlayGame} />
+        <MinigameList onPlayGame={this.handlePlayGame} />
 
         <LeaderboardView
           minigameFilter={minigameFilter}

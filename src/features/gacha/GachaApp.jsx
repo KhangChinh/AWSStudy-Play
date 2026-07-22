@@ -11,11 +11,11 @@ import { S3_ASSETS_BASE } from '../../data/cosmetics';
 import BackgroundCssThumbnail from '../../components/BackgroundCssThumbnail';
 import RankFrame from '../../components/RankFrame';
 import { cosmeticManager } from '../../services/cosmeticServices';
-import { applyGachaResult, getGachaMasterItems, handleGachaApi } from '../../services/gachaServices';
+import { applyGachaResult, getGachaBanners, getGachaMasterItems, handleGachaApi } from '../../services/gachaServices';
 import { KNOWLEDGE_POINTS_PER_CORE } from '../../services/currencyServices';
 import { handleSyncGachaHistoryApi } from '../../services/syncService';
 import currencyAssets from '../../data/currencyAssets';
-import { buildBannerDetails, GACHA_CONFIGS, PET_IDLE_THUMBNAILS } from './bannerDetails';
+import { PET_IDLE_THUMBNAILS } from './bannerDetails';
 
 const KNOWLEDGE_CORE_PER_ROLL = 1;
 const KNOWLEDGE_POINTS_PER_ROLL = KNOWLEDGE_POINTS_PER_CORE;
@@ -35,8 +35,7 @@ const getNextBannerRefreshUtcSeconds = (durationDays = 1) => {
 
 const resolveBannerExpiresAt = (expiresAt, durationDays = 1) => {
   const serverExpiresAt = Number(expiresAt);
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  return Number.isFinite(serverExpiresAt) && serverExpiresAt > nowSeconds
+  return Number.isFinite(serverExpiresAt) && serverExpiresAt > 0
     ? serverExpiresAt
     : getNextBannerRefreshUtcSeconds(durationDays);
 };
@@ -55,6 +54,19 @@ const BANNER_TYPE_LABELS = {
   title: 'Title',
   pet: 'Pets',
 };
+const buildBannerConfigs = (serverBanners = []) => [...serverBanners]
+  .sort((left, right) => {
+    const leftPriority = left?.itemType === 'pet' || left?.SK === 'banner_pet' ? 0 : 1;
+    const rightPriority = right?.itemType === 'pet' || right?.SK === 'banner_pet' ? 0 : 1;
+    return leftPriority - rightPriority;
+  })
+  .map(banner => ({
+    bannerId: banner.SK,
+    name: banner.bannerName || banner.SK,
+    itemType: banner.itemType,
+    durationDays: banner.durationDays,
+    rawBanner: banner,
+  }));
 const normalizeAssetBase = (value = '') => value.replace(/\/+$/, '');
 const toCloudAssetUrl = (assetPath) => {
   if (!assetPath) return '';
@@ -81,9 +93,9 @@ class GachaApp extends Component {
       hasNewItem: false,
       pity5: 0,
       pity4: 0,
-      activeBanner: GACHA_CONFIGS[0],
-      bannerId: GACHA_CONFIGS[0].bannerId,
-      bannerConfigs: GACHA_CONFIGS,
+      activeBanner: { name: '' },
+      bannerId: null,
+      bannerConfigs: [],
       bannerExpiresAt: getNextBannerRefreshUtcSeconds(),
       banner: null,
       timeLeftStr: formatRemainingTime(getNextBannerRefreshUtcSeconds()),
@@ -238,16 +250,22 @@ class GachaApp extends Component {
     this.setState({ historyItems: this.props.gachaHistory || [] });
 
     try {
-      const masterData = await getGachaMasterItems();
+      const [masterData, serverBanners] = await Promise.all([
+        getGachaMasterItems(),
+        getGachaBanners(),
+      ]);
       const serverItems = masterData.items || [];
-      const bannerConfigs = this.state.bannerConfigs.map(config => ({
-        ...config,
-        rawBanner: buildBannerDetails(config, serverItems),
-      }));
+      const bannerConfigs = buildBannerConfigs(serverBanners);
+      if (!bannerConfigs.length) throw new Error('Server returned no Gacha banners.');
       await cosmeticManager.loadFromMasterData(serverItems);
 
-      this.setState({ serverItems, bannerConfigs }, () => {
-        this.loadBannerData(this.state.bannerId);
+      this.setState({
+        serverItems,
+        bannerConfigs,
+        bannerId: bannerConfigs[0].bannerId,
+        activeBanner: bannerConfigs[0],
+      }, () => {
+        this.loadBannerData(bannerConfigs[0].bannerId);
       });
     } catch (error) {
       console.warn('[GachaApp] Could not load Gacha items:', error.message);
@@ -260,8 +278,28 @@ class GachaApp extends Component {
     window.clearInterval(this.bannerCountdownTimer);
   }
 
+  refreshExpiredBanners = async () => {
+    const now = Date.now();
+    if (this.isRefreshingBanners || now - (this.lastBannerRefreshAttempt || 0) < 60000) return;
+    this.isRefreshingBanners = true;
+    this.lastBannerRefreshAttempt = now;
+    try {
+      const serverBanners = await getGachaBanners({ force: true });
+      const bannerConfigs = buildBannerConfigs(serverBanners);
+      const selected = bannerConfigs.find(item => item.bannerId === this.state.bannerId) || bannerConfigs[0];
+      if (selected) this.setState({ bannerConfigs }, () => this.loadBannerData(selected.bannerId));
+    } catch (error) {
+      console.warn('[GachaApp] Could not refresh expired banners:', error.message);
+    } finally {
+      this.isRefreshingBanners = false;
+    }
+  };
+
   updateBannerCountdown = () => {
     this.setState(({ bannerExpiresAt }) => ({ timeLeftStr: formatRemainingTime(bannerExpiresAt) }));
+    if (Number(this.state.bannerExpiresAt) <= Math.floor(Date.now() / 1000)) {
+      this.refreshExpiredBanners();
+    }
   };
 
   handleRollKeyDown = (event) => {

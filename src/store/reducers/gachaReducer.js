@@ -1,10 +1,12 @@
-import { SET_GACHA_HISTORY, APPEND_GACHA_HISTORY, CLEAR_GACHA_HISTORY } from '../actions/gachaActions';
+import { SET_GACHA_HISTORY, APPEND_GACHA_HISTORY, CLEAR_GACHA_HISTORY, SET_GACHA_BANNERS } from '../actions/gachaActions';
 
 const initialState = {
   gachaHistory: [],
   gachaHistoryLastEvaluatedKey: null,
   hasMore: true,
   isLoading: false,
+  banners: [],
+  bannersHydrated: false,
 };
 
 const historyKey = (item) => `${item?.PK || ''}:${item?.SK || item?.timestamp || item?.acquiredAt || item?.name || ''}`;
@@ -39,7 +41,19 @@ const gachaReducer = (state = initialState, action) => {
         isLoading: false,
       };
     case CLEAR_GACHA_HISTORY:
-      return initialState;
+      return {
+        ...state,
+        gachaHistory: [],
+        gachaHistoryLastEvaluatedKey: null,
+        hasMore: true,
+        isLoading: false,
+      };
+    case SET_GACHA_BANNERS:
+      return {
+        ...state,
+        banners: Array.isArray(action.payload) ? action.payload : [],
+        bannersHydrated: true,
+      };
 
     default:
       return state;
