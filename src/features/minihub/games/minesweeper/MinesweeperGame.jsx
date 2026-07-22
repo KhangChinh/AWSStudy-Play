@@ -220,27 +220,46 @@ const MinesweeperGame = ({ onClose }) => {
   };
 
   // ═══ Initialize Game ═══
+  // ═══ Initialize Game ═══
   const initFixedLevel = (level, costPaid, puzzleGridStr, token) => {
-    // Detect board dimensions from level config or fall back to detection
-    const tempRows = level.rows || (level.name.includes('Khó') ? 16 : level.name.includes('Trung') ? 16 : 9);
-    const tempCols = level.cols || (level.name.includes('Khó') ? 30 : level.name.includes('Trung') ? 16 : 9);
-    const tempMines = level.mines || (level.name.includes('Khó') ? 99 : level.name.includes('Trung') ? 40 : 10);
+    // 1. Kiểm tra cấu hình bắt buộc từ Redux (Chặn lỗi ngay từ đầu)
+    if (!level || !level.baseMapConfig || !level.baseMapConfig.gridSize) {
+      toast.error("Lỗi: Dữ liệu màn chơi bị thiếu cấu hình bản đồ (baseMapConfig)!");
+      return;
+    }
+
+    // Lấy kích thước và tổng số mìn trực tiếp từ config
+    const [tempRows, tempCols] = level.baseMapConfig.gridSize.split('x').map(Number);
+    const tempMines = level.baseMapConfig.mineCount || 0; // Để hiển thị UI số cờ cắm
+
+    // Bắt lỗi nếu parse ra không phải là số hợp lệ
+    if (!tempRows || !tempCols) {
+      toast.error("Lỗi: Cấu hình gridSize không hợp lệ!");
+      return;
+    }
 
     setRows(tempRows);
     setCols(tempCols);
     setMinesCount(tempMines);
 
+    // 2. Render lưới dựa trên số row/col lấy được
     const initialGrid = Array(tempRows).fill(null).map((_, r) => {
       return Array(tempCols).fill(null).map((_, c) => {
-        const char = puzzleGridStr[r * tempCols + c];
 
-        // Nếu khác 'H' nghĩa là ô này đã được server mở sẵn
+        let char;
+        if (Array.isArray(puzzleGridStr) && Array.isArray(puzzleGridStr[0])) {
+          char = puzzleGridStr[r][c];
+        } else {
+          char = puzzleGridStr[r * tempCols + c];
+        }
+
+        // Ký tự khác 'H' nghĩa là server cho phép mở ô này
         const isRevealed = char !== 'H';
 
-        // Nếu là số thì lấy số đó, không thì gán 0
+        // Lấy con số an toàn (nếu có), không thì mặc định là 0
         const neighborCount = isRevealed && !isNaN(parseInt(char)) ? parseInt(char, 10) : 0;
 
-        // Ký tự '*' là mìn (dù lúc đầu puzzleGrid không có mìn, cứ để đề phòng)
+        // Client không cần tính mìn ở đâu, chỉ ghi nhận nếu vô tình server gửi chữ '*'
         const isMine = char === '*';
 
         return {
@@ -265,18 +284,17 @@ const MinesweeperGame = ({ onClose }) => {
     setIsSelectingLevel(false);
     setStatus('playing');
   };
-
   const handleLevelSelect = async (level) => {
     const displayLevelId = getLevelIdFromSK(level.SK);
     const targetSK = level.SK;
-    const cost = level.sanityCost || level.unlockCostSanity || 0;
+    const cost = level.sanityCost;
 
     try {
       toast.info(`Đang tạo ván đấu ${displayLevelId}...`);
       const response = await handleStartMinesweeperSession('minesweeper', targetSK);
 
       if (response && (response.success || response.errCode === 0)) {
-        const newBudget = response.profile?.budget || response.budget;
+        const newBudget = response.profile?.budget;
         if (newBudget) {
           const nextUserInfo = { ...userInfo, budget: newBudget };
           dispatch(setProfile(nextUserInfo));

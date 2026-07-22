@@ -33,9 +33,6 @@ const ArcadeList = ({ onPlayGame }) => (
           <div className="item-cover">{game.icon}</div>
           <div className="item-info">
             <span className="item-title">{game.name}</span>
-            <span className="item-price">
-              {typeof game.price === 'number' ? `🪙 ${game.price} P-Coin / Play` : game.price}
-            </span>
             <button
               onClick={() => !game.disabled && onPlayGame(game.name.toLowerCase())}
               style={game.disabled ? { background: '#475569', cursor: 'not-allowed', opacity: 0.6 } : {}}
@@ -59,15 +56,15 @@ const LeaderboardView = ({ minigameFilter, setMinigameFilter, leaderboardData })
       </div>
 
       <div className="minigame-filter">
-          <select
-            className="minigame-select"
-            value={minigameFilter}
-            onChange={e => setMinigameFilter(e.target.value)}
-          >
-            {MINIGAMES.map(g => (
-              <option key={g.id} value={g.id}>{g.icon} {g.label}</option>
-            ))}
-          </select>
+        <select
+          className="minigame-select"
+          value={minigameFilter}
+          onChange={e => setMinigameFilter(e.target.value)}
+        >
+          {MINIGAMES.map(g => (
+            <option key={g.id} value={g.id}>{g.icon} {g.label}</option>
+          ))}
+        </select>
       </div>
 
       <div className="rank-list">
