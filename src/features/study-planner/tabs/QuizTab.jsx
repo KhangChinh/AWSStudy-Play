@@ -132,9 +132,6 @@ const QuizTab = ({ quizRequest, onClearRequest }) => {
           daily: rewardResult.daily
         });
       }
-      if (rewardResult.earnedKP > 0) {
-        toast.success(`Bạn nhận được ${rewardResult.earnedKP} KP từ việc trả lời đúng!`);
-      }
     }
 
   };

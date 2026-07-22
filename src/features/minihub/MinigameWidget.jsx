@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { IonIcon } from '@ionic/react';
-import { gameControllerOutline, playOutline } from 'ionicons/icons';
+import { gameControllerOutline, playOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { handleGetLeaderboardApi } from '../../services/minigameServices';
 import UserAvatar from '../../components/UserAvatar';
 import './MinigameWidget.scss';
@@ -34,9 +34,18 @@ const MinigameWidget = ({ onOpenMinigame }) => {
 
   return (
     <div className={`minigame-widget-container ${isCollapsed ? 'collapsed' : ''}`}>
-      <button type="button" className="mw-header" onClick={() => setIsCollapsed(collapsed => !collapsed)} aria-expanded={!isCollapsed}>
+      <div className="mw-header">
         <span className="mw-header-title"><IonIcon icon={gameControllerOutline} /><h4>{t('dashboard.minigames', 'Arcade')}</h4></span>
-      </button>
+        <button
+          type="button"
+          className="mw-toggle"
+          onClick={() => setIsCollapsed(collapsed => !collapsed)}
+          aria-label={isCollapsed ? 'Expand Arcade' : 'Collapse Arcade'}
+          aria-expanded={!isCollapsed}
+        >
+          <IonIcon icon={isCollapsed ? chevronForwardOutline : chevronBackOutline} aria-hidden="true" />
+        </button>
+      </div>
       <div className="mw-list" aria-hidden={isCollapsed}>
         {games.map(game => {
           const lbData = leaderboards?.[game.id]?.data || [];

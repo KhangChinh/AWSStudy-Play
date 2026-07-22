@@ -290,12 +290,9 @@ const MinesweeperGame = ({ onClose }) => {
         }
 
         initFixedLevel(level, cost, puzzleGrid, token);
-      } else {
-        toast.error(response.error || response.message || `Không thể bắt đầu Màn ${displayLevelId}.`);
       }
     } catch (e) {
       console.error('Error starting game session:', e);
-      toast.error('Không thể kết nối máy chủ để bắt đầu trận đấu!');
     }
   };
 

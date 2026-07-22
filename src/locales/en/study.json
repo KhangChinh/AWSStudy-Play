@@ -42,9 +42,7 @@
   "quiz_create_failed": "Could not create quiz",
   "quiz_create_error": "Quiz creation error: {{message}}",
   "answer_all_questions": "Please answer all questions before submitting.",
-  "quiz_excellent": "Excellent! {{correct}}/{{total}} correct!",
-  "quiz_good": "Nice work! {{correct}}/{{total}} correct.",
-  "quiz_review": "{{correct}}/{{total}} correct. Review a little more!",
+  "quiz_reward_earned": "You earned {{count}} KP for your correct answers!",
   "quiz_history": "Quiz History",
   "no_quizzes": "No quizzes yet.",
   "generating_quiz": "AI is generating questions...",
@@ -56,5 +54,9 @@
   "next": "Next",
   "complete": "Complete",
   "save_settings": "Save Settings",
-  "select_document": "Select a document"
+  "select_document": "Select a document",
+  "document_analyzing": "Analyzing the document... Please wait.",
+  "document_uploaded": "Uploaded: {{fileName}}",
+  "document_upload_failed": "Failed to upload the file",
+  "ipc_connection_error": "IPC connection error"
 }

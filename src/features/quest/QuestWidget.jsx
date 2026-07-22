@@ -1,8 +1,8 @@
-import React from 'react';
 import { IonIcon } from '@ionic/react';
 import { 
   trophyOutline, giftOutline, starOutline, 
-  flameOutline, checkmarkCircleOutline, timerOutline
+  flameOutline, checkmarkCircleOutline, timerOutline,
+  chevronBackOutline, chevronForwardOutline
 } from 'ionicons/icons';
 import './QuestWidget.scss';
 
@@ -24,9 +24,7 @@ const QuestWidget = ({
   onClaimQuest, 
   t 
 }) => {
-  const completedCount = quests.filter(q => q.isCompleted).length;
-  const totalCount = quests.length;
-  const isAllCompleted = quests.length > 0 && completedCount === quests.length;
+  const isAllCompleted = quests.length > 0 && quests.every(q => q.isCompleted);
 
   // Format time
   const formatTime = (ts) => {
@@ -37,21 +35,29 @@ const QuestWidget = ({
   return (
     <div className={`quest-widget ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="widget-header">
-        <div className="title" onClick={onToggle}>
+        <div className="title">
           <IonIcon icon={trophyOutline} />
           <span>{t('quest.daily_quests')}</span>
         </div>
         <div className="header-controls">
-          {isCollapsed && completedCount > 0 ? (
-            <span className="count-badge" onClick={onToggle}>{completedCount}</span>
-          ) : (
-            <span className="count-text" onClick={onToggle}>{completedCount}/{totalCount}</span>
+          {isAllCompleted && allDaily?.isCompleted && !allDaily?.isClaimed && (
+            <button type="button" className="header-claim-all" onClick={onClaimAll}>
+              <IonIcon icon={giftOutline} /> {t('missions.claim_all', { defaultValue: 'Claim All' })}
+            </button>
           )}
+          <button
+            type="button"
+            className="widget-toggle"
+            onClick={onToggle}
+            aria-label={isCollapsed ? 'Expand Daily Quests' : 'Collapse Daily Quests'}
+            aria-expanded={!isCollapsed}
+          >
+            <IonIcon icon={isCollapsed ? chevronForwardOutline : chevronBackOutline} aria-hidden="true" />
+          </button>
         </div>
       </div>
 
-      {!isCollapsed && (
-        <>
+      <div className="widget-content" aria-hidden={isCollapsed}>
           <div className="widget-meta">
             <span className="expires-at">
               <IonIcon icon={timerOutline} /> {t('quest.expires_at')}: {formatTime(expiresAt)}
@@ -109,15 +115,9 @@ const QuestWidget = ({
                    style={{ width: `${Math.min(100, (allDaily.progress / allDaily.target) * 100)}%` }} 
                 />
               </div>
-              {allDaily.isCompleted && !allDaily.isClaimed && (
-                <button className="btn-claim-all" onClick={onClaimAll}>
-                  <IonIcon icon={giftOutline} /> {t('missions.claim')}
-                </button>
-              )}
             </div>
           )}
-        </>
-      )}
+      </div>
     </div>
   );
 };

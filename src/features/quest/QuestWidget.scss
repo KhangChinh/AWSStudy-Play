@@ -14,20 +14,40 @@
   gap: 12px;
   z-index: 5;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
   color: #f1f5f9;
 
   &.collapsed {
     width: 200px;
     gap: 0;
     padding: 12px 16px;
+
+    .widget-content {
+      max-height: 0;
+      margin-top: 0;
+      opacity: 0;
+      transform: translateY(-12px) scaleY(0.96);
+      pointer-events: none;
+    }
+  }
+
+  .widget-content {
+    max-height: 620px;
+    margin-top: 0;
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    transform-origin: top;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: max-height 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), margin 0.35s ease;
   }
 
   .widget-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
     user-select: none;
 
     .title {
@@ -48,6 +68,56 @@
       align-items: center;
       gap: 10px;
 
+    }
+
+    .header-claim-all {
+      min-height: 28px;
+      padding: 4px 9px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      box-shadow: 0 3px 10px rgba(139, 92, 246, 0.25);
+
+      &:hover {
+        filter: brightness(1.1);
+      }
+    }
+
+    .widget-toggle {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
+        transform: scale(1.08);
+      }
+
+      &:active {
+        transform: scale(0.92);
+      }
+
+      ion-icon {
+        font-size: 15px;
+      }
     }
 
     .count-text {

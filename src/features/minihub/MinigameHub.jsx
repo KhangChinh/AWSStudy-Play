@@ -171,8 +171,6 @@ class MinigameHub extends Component {
 
         if (response && (response.levels || response.success)) {
           this.setState({ activeGame: 'sudoku' });
-        } else {
-          toast.error("Có lỗi xảy ra hoặc không tìm thấy dữ liệu.");
         }
       } catch (error) {
         console.log('Error loading levels:', error);
@@ -188,8 +186,6 @@ class MinigameHub extends Component {
 
         if (response && (response.levels || response.success)) {
           this.setState({ activeGame: 'minesweeper' });
-        } else {
-          toast.error("Có lỗi xảy ra hoặc không tìm thấy dữ liệu.");
         }
       } catch (error) {
         console.log('Error loading levels:', error);

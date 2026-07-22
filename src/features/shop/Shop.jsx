@@ -92,7 +92,6 @@ class Shop extends Component {
   openCoreModal = () => {
     const maxAmount = this.getMaxCoreAmount();
     if (maxAmount <= 0) {
-      toast.error(this.props.t('store.not_enough_knowledge_points'));
       return;
     }
     this.setState(
@@ -124,7 +123,7 @@ class Shop extends Component {
         toast.error(result?.message || this.props.t('store.purchase_failed'));
       }
     } catch (error) {
-      toast.error(error.message || this.props.t('store.purchase_failed'));
+      console.error('Knowledge Core purchase failed:', error);
     }
     this.setState({ buyingKey: null });
   };

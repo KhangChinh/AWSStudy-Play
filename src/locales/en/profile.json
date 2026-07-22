@@ -16,5 +16,7 @@
   "avatar_confirm_failed": "Failed to confirm avatar image",
   "avatar_upload_failed": "Failed to upload avatar image",
   "zoom": "Zoom",
-  "crop_hint": "Drag to position, use slider to zoom"
+  "crop_hint": "Drag to position, use slider to zoom",
+  "pets": "Pets",
+  "sync": "Refresh"
 }

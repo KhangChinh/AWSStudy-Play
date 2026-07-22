@@ -159,8 +159,6 @@ class AuthPage extends Component {
           if (nextStep && nextStep.signInStep === 'CONFIRM_SIGN_UP') {
             toast.info(t('auth.account_not_confirmed'));
             this.setState({ authMode: 'confirm' });
-          } else {
-            toast.info(t('auth.complete_next_step', { step: nextStep?.signInStep || '' }));
           }
         }
       } else if (authMode === 'register') {
@@ -198,10 +196,7 @@ class AuthPage extends Component {
           confirmationCode: verificationCode
         });
         if (isSignUpComplete) {
-          toast.info(t('auth.confirm_success'));
           this.setState({ authMode: 'login', password: '', confirmPassword: '', verificationCode: '' });
-        } else {
-          toast.info(t('auth.confirm_incomplete'));
         }
       } else if (authMode === 'forgot') {
         const output = await resetPassword({ username: email });
@@ -211,7 +206,6 @@ class AuthPage extends Component {
           this.startResendCooldown();
           this.setState({ authMode: 'resetPassword', verificationCode: '' });
         } else {
-          toast.success(t('auth.password_reset_done'));
           this.setState({ authMode: 'login' });
         }
       } else if (authMode === 'resetPassword') {
@@ -303,6 +297,7 @@ class AuthPage extends Component {
                     <button
                       type="button"
                       className="toggle-password"
+                      tabIndex={-1}
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                       aria-pressed={showPassword}
                       onClick={() => this.handleTogglePasswordVisibility('showPassword')}
@@ -322,6 +317,7 @@ class AuthPage extends Component {
                     <button
                       type="button"
                       className="toggle-password"
+                      tabIndex={-1}
                       aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                       aria-pressed={showConfirmPassword}
                       onClick={() => this.handleTogglePasswordVisibility('showConfirmPassword')}
@@ -349,6 +345,7 @@ class AuthPage extends Component {
                       <button
                         type="button"
                         className="toggle-password"
+                        tabIndex={-1}
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                         aria-pressed={showPassword}
                         onClick={() => this.handleTogglePasswordVisibility('showPassword')}
@@ -365,6 +362,7 @@ class AuthPage extends Component {
                       <button
                         type="button"
                         className="toggle-password"
+                        tabIndex={-1}
                         aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                         aria-pressed={showConfirmPassword}
                         onClick={() => this.handleTogglePasswordVisibility('showConfirmPassword')}

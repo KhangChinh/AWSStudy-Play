@@ -251,7 +251,7 @@ class GachaApp extends Component {
       });
     } catch (error) {
       console.warn('[GachaApp] Could not load Gacha items:', error.message);
-      toast.error(error.message || this.props.t('common.error'));
+      toast.error(this.props.t('gacha.banner_load_failed'));
 
     }
   }
@@ -523,9 +523,9 @@ class GachaApp extends Component {
         rewards,
         pendingGachaResult: result,
       });
-    } catch (error) {
+    } catch {
       this.setState({ isSubmitting: false });
-      toast.error(error.message || this.props.t('common.error'));
+      toast.error(this.props.t('gacha.action_failed'));
     }
   };
 

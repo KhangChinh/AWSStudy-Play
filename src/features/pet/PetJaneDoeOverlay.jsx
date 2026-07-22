@@ -7,7 +7,7 @@ const WALK_SPEED = 2;
 const JUMP_SPEED_Y = -7;
 const JUMP_SPEED_X = 1.25;
 const TASKBAR_HEIGHT = 48;
-const PET_SCALE = 2.5;
+const PET_SCALE = 0.55;
 
 const JANE_DOE_ANIMATIONS = {
   Idle: { asset: 'idle', fallbackAsset: 'sitting', frames: 8, speed: 150 },
@@ -17,11 +17,12 @@ const JANE_DOE_ANIMATIONS = {
   Death: { asset: 'death', frames: 8, speed: 150, loop: false },
   Jump: { asset: 'jump', frames: 8, speed: 220,facing: 'right' },
   Sleep: { asset: 'sleep', frames: 8, speed: 200 },
-  CarrotSkill: { asset: 'carrotskill', frames: 8, speed: 150 },
+  Spin: { asset: 'spin', frames: 8, speed: 115, loop: false },
+  Held: { asset: 'held', frames: 8, speed: 140 },
   Sitting: { asset: 'sitting', frames: 8, speed: 150 },
   LieDown: { asset: 'liedown', frames: 8, speed: 150 },
 };
-const JANE_DOE_LAYOUT = { width: 32, height: 32 };
+const JANE_DOE_LAYOUT = { width: 128, height: 128 };
 
 const PetJaneDoeOverlay = ({ equippedPet }) => {
   const animationSettings = JANE_DOE_ANIMATIONS;
@@ -128,9 +129,14 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
       const activeFramesCount = animConfig.frames;
       frameTimerRef.current = setInterval(() => {
         setFrame(f => {
-          if (stateRef.current === 'Death' && f === activeFramesCount - 1) {
+          if (!animConfig.loop && f === activeFramesCount - 1) {
             clearInterval(frameTimerRef.current);
-            return f; // stop at last frame
+            if (stateRef.current !== 'Death') {
+              window.setTimeout(() => {
+                if (stateRef.current === state) setState('Idle');
+              }, 180);
+            }
+            return f;
           }
           return (f + 1) % activeFramesCount;
         });
@@ -318,11 +324,11 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
          targetRef.current = null;
          const jumpFrames = pet.animations.Jump.frames;
          delay = (jumpFrames * pet.animations.Jump.speed) || 1000;
-      } else if (rand < 0.4 && pet.animations.CarrotSkill) {
-         nextState = 'CarrotSkill';
+      } else if (rand < 0.4 && pet.animations.Spin) {
+         nextState = 'Spin';
          targetRef.current = null;
-         const skillFrames = pet.animations.CarrotSkill.frames;
-         delay = (skillFrames * pet.animations.CarrotSkill.speed) || 2000;
+         const skillFrames = pet.animations.Spin.frames;
+         delay = (skillFrames * pet.animations.Spin.speed) + 180;
       } else if (rand < 0.5 && pet.animations.Sleep) {
          nextState = 'Sleep';
          targetRef.current = null;
@@ -360,8 +366,8 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
     setIsDragging(true);
     targetRef.current = null;
     e.target.setPointerCapture(e.pointerId);
-    if (pet.animations.LieDown) {
-      setState('LieDown');
+    if (pet.animations.Held) {
+      setState('Held');
     } else {
       setState('Idle'); // Don't hurt when grabbing
     }
@@ -409,7 +415,7 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
     zIndex: 9999,
     touchAction: 'none',
     cursor: isDragging ? 'grabbing' : 'grab',
-    imageRendering: 'pixelated',
+    imageRendering: 'auto',
     opacity: 1,
     filter: 'contrast(1.16) saturate(1.2) drop-shadow(0 3px 3px rgba(0, 0, 0, 0.45))',
     backgroundRepeat: 'no-repeat',
@@ -418,6 +424,7 @@ const PetJaneDoeOverlay = ({ equippedPet }) => {
 
   if (animConfig.type !== 'gif') {
     style.backgroundPosition = `-${frame * pet.width}px 0`;
+    style.backgroundSize = `${animConfig.frames * pet.width}px ${pet.height}px`;
   }
 
   return (

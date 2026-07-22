@@ -42,9 +42,7 @@
   "quiz_create_failed": "Không thể tạo câu hỏi",
   "quiz_create_error": "Lỗi tạo quiz: {{message}}",
   "answer_all_questions": "Hãy trả lời tất cả câu hỏi trước khi nộp bài!",
-  "quiz_excellent": "Xuất sắc! {{correct}}/{{total}} câu đúng!",
-  "quiz_good": "Tốt lắm! {{correct}}/{{total}} câu đúng.",
-  "quiz_review": "{{correct}}/{{total}} câu đúng. Hãy ôn tập thêm!",
+  "quiz_reward_earned": "Bạn nhận được {{count}} KP từ việc trả lời đúng!",
   "quiz_history": "Lịch sử kiểm tra",
   "no_quizzes": "Chưa có bài kiểm tra nào.",
   "generating_quiz": "AI đang tạo câu hỏi...",
@@ -56,5 +54,9 @@
   "next": "Tiếp",
   "complete": "Hoàn thành",
   "save_settings": "Lưu cài đặt",
-  "select_document": "Chọn tài liệu"
+  "select_document": "Chọn tài liệu",
+  "document_analyzing": "Đang phân tích tài liệu... Vui lòng chờ.",
+  "document_uploaded": "Đã tải lên: {{fileName}}",
+  "document_upload_failed": "Lỗi khi tải file lên",
+  "ipc_connection_error": "Lỗi kết nối IPC"
 }

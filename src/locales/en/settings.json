@@ -17,6 +17,7 @@
   "rename_error": "Failed to update name. Please try again!",
   "change_image": "Change Image",
   "ai_saved": "AI settings saved successfully.",
+  "ai_save_failed": "Failed to save AI settings to local storage.",
   "profile_tab": "Profile",
   "ai_settings": "AI Settings",
   "ai_settings_desc": "Configure local and cloud AI providers for application features.",

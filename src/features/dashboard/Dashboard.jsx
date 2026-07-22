@@ -366,11 +366,6 @@ class Dashboard extends Component {
         maximizedApp: null,
         isVacuuming: false,
       });
-      toast.success(this.props.t('dashboard.system_cleanup_complete'), {
-        icon: 'clean',
-        theme: 'dark',
-        autoClose: 1500,
-      });
     }, 800);
   };
 
@@ -611,7 +606,6 @@ class Dashboard extends Component {
     try {
       const result = await claimQuestReward(questKey);
       if (result.success) {
-        toast.success(`✨ ${result.message || this.props.t('missions.rewards_claimed')}`);
 
         const { dailyQuests } = this.props;
         const updatedQuests = { ...dailyQuests.quests };
@@ -636,11 +630,9 @@ class Dashboard extends Component {
           };
           this.props.setProfile(newProfile);
         }
-      } else {
-        toast.error(result.error || result.message || 'Action failed!');
       }
     } catch {
-      toast.error('Connection error!');
+      toast.error(this.props.t('dashboard.connection_error'));
     }
   };
 
@@ -764,7 +756,6 @@ class Dashboard extends Component {
     if (isConfirmed) {
       try {
         await handleLogoutApi();
-        toast.success(this.props.t('dashboard.logout_success'));
       } catch (e) {
         console.log(e);
         toast.error(this.props.t('dashboard.logout_failed'));
